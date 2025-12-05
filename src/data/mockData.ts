@@ -1,0 +1,132 @@
+import { Customer, DashboardStats, PurchaseHistory, FollowUp } from '@/types/customer';
+
+export const mockCustomers: Customer[] = [
+  {
+    id: '1',
+    name: 'Sarah Johnson',
+    email: 'sarah.johnson@email.com',
+    phone: '+1 (555) 123-4567',
+    location: 'New York, NY',
+    status: 'vip',
+    firstVisit: '2023-01-15',
+    lastPurchase: '2024-12-01',
+    totalPurchases: 24,
+    totalSpent: 4850,
+    notes: 'Prefers organic products. Birthday: March 15',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop&crop=face',
+  },
+  {
+    id: '2',
+    name: 'Michael Chen',
+    email: 'michael.chen@email.com',
+    phone: '+1 (555) 234-5678',
+    location: 'San Francisco, CA',
+    status: 'active',
+    firstVisit: '2023-06-20',
+    lastPurchase: '2024-11-28',
+    totalPurchases: 12,
+    totalSpent: 2340,
+    notes: 'Interested in premium services',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+  },
+  {
+    id: '3',
+    name: 'Emma Williams',
+    email: 'emma.williams@email.com',
+    phone: '+1 (555) 345-6789',
+    location: 'Chicago, IL',
+    status: 'active',
+    firstVisit: '2023-09-10',
+    lastPurchase: '2024-11-25',
+    totalPurchases: 8,
+    totalSpent: 1560,
+    notes: 'Referred by Michael Chen',
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
+  },
+  {
+    id: '4',
+    name: 'James Rodriguez',
+    email: 'james.r@email.com',
+    phone: '+1 (555) 456-7890',
+    location: 'Miami, FL',
+    status: 'inactive',
+    firstVisit: '2023-03-05',
+    lastPurchase: '2024-08-15',
+    totalPurchases: 5,
+    totalSpent: 890,
+    notes: 'Last contact: Follow up needed',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop&crop=face',
+  },
+  {
+    id: '5',
+    name: 'Olivia Brown',
+    email: 'olivia.b@email.com',
+    phone: '+1 (555) 567-8901',
+    location: 'Austin, TX',
+    status: 'vip',
+    firstVisit: '2022-11-20',
+    lastPurchase: '2024-12-03',
+    totalPurchases: 32,
+    totalSpent: 6720,
+    notes: 'High-value customer. Prefers phone contact',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face',
+  },
+  {
+    id: '6',
+    name: 'David Kim',
+    email: 'david.kim@email.com',
+    phone: '+1 (555) 678-9012',
+    location: 'Seattle, WA',
+    status: 'active',
+    firstVisit: '2024-02-14',
+    lastPurchase: '2024-11-30',
+    totalPurchases: 6,
+    totalSpent: 1280,
+    notes: 'New customer with growth potential',
+    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face',
+  },
+];
+
+export const mockDashboardStats: DashboardStats = {
+  totalCustomers: 1247,
+  newCustomersToday: 12,
+  totalSales: 284650,
+  pendingFollowUps: 23,
+};
+
+export const mockPurchaseHistory: PurchaseHistory[] = [
+  { id: '1', customerId: '1', date: '2024-12-01', amount: 245, description: 'Premium Package' },
+  { id: '2', customerId: '1', date: '2024-11-15', amount: 180, description: 'Monthly Service' },
+  { id: '3', customerId: '2', date: '2024-11-28', amount: 320, description: 'Starter Kit' },
+  { id: '4', customerId: '5', date: '2024-12-03', amount: 450, description: 'VIP Bundle' },
+];
+
+export const mockFollowUps: FollowUp[] = [
+  { id: '1', customerId: '4', date: '2024-12-10', note: 'Re-engagement call', completed: false },
+  { id: '2', customerId: '6', date: '2024-12-08', note: 'Upsell opportunity', completed: false },
+  { id: '3', customerId: '2', date: '2024-12-05', note: 'Feedback collection', completed: true },
+];
+
+export const monthlySalesData = [
+  { month: 'Jan', sales: 18500, customers: 85 },
+  { month: 'Feb', sales: 21200, customers: 92 },
+  { month: 'Mar', sales: 24800, customers: 110 },
+  { month: 'Apr', sales: 22400, customers: 98 },
+  { month: 'May', sales: 26700, customers: 125 },
+  { month: 'Jun', sales: 28900, customers: 138 },
+  { month: 'Jul', sales: 31200, customers: 152 },
+  { month: 'Aug', sales: 29800, customers: 145 },
+  { month: 'Sep', sales: 33500, customers: 168 },
+  { month: 'Oct', sales: 35200, customers: 178 },
+  { month: 'Nov', sales: 38900, customers: 195 },
+  { month: 'Dec', sales: 42500, customers: 210 },
+];
+
+export const customerGrowthData = [
+  { month: 'Jan', active: 720, vip: 85, inactive: 120 },
+  { month: 'Feb', active: 780, vip: 92, inactive: 115 },
+  { month: 'Mar', active: 850, vip: 105, inactive: 108 },
+  { month: 'Apr', active: 890, vip: 118, inactive: 102 },
+  { month: 'May', active: 945, vip: 132, inactive: 95 },
+  { month: 'Jun', active: 1020, vip: 148, inactive: 88 },
+];
