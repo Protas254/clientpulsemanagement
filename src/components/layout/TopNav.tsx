@@ -1,3 +1,4 @@
+import { ReactNode } from 'react';
 import { Bell, Search, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -5,14 +6,18 @@ import { Input } from '@/components/ui/input';
 interface TopNavProps {
   title: string;
   subtitle?: string;
+  action?: ReactNode;
 }
 
-export function TopNav({ title, subtitle }: TopNavProps) {
+export function TopNav({ title, subtitle, action }: TopNavProps) {
   return (
     <header className="h-16 bg-card border-b border-border px-6 flex items-center justify-between">
-      <div>
-        <h1 className="font-display text-xl font-semibold text-foreground">{title}</h1>
-        {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+      <div className="flex items-center gap-4">
+        <div>
+          <h1 className="font-display text-xl font-semibold text-foreground">{title}</h1>
+          {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+        </div>
+        {action && <div className="ml-4">{action}</div>}
       </div>
 
       <div className="flex items-center gap-4">

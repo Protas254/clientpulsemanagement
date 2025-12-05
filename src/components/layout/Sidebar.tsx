@@ -6,7 +6,10 @@ import {
   BarChart3, 
   Settings,
   LogOut,
-  Coffee
+  Coffee,
+  Gift,
+  Award,
+  Wallet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -14,6 +17,9 @@ const navItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
   { title: 'Customers', url: '/customers', icon: Users },
   { title: 'Sales', url: '/sales', icon: TrendingUp },
+  { title: 'Rewards', url: '/rewards', icon: Gift },
+  { title: 'Manage Rewards', url: '/rewards/manage', icon: Award },
+  { title: 'Customer Wallet', url: '/rewards/wallet', icon: Wallet },
   { title: 'Reports', url: '/reports', icon: BarChart3 },
   { title: 'Settings', url: '/settings', icon: Settings },
 ];
