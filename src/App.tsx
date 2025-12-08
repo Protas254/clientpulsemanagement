@@ -12,6 +12,7 @@ import Settings from "./pages/Settings";
 import RewardsDashboard from "./pages/RewardsDashboard";
 import RewardsManagement from "./pages/RewardsManagement";
 import CustomerWallet from "./pages/CustomerWallet";
+import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path="/auth" element={<Auth />} />
           <Route path="/" element={<Index />} />
           <Route path="/customers" element={<Customers />} />
           <Route path="/customers/:id" element={<CustomerProfile />} />
