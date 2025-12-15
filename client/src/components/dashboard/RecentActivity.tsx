@@ -5,7 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 
 export function RecentActivity() {
   const recentPurchases = mockPurchaseHistory.slice(0, 5).map(purchase => {
-    const customer = mockCustomers.find(c => c.id === purchase.customerId);
+    const customer = mockCustomers.find(c => c.id.toString() === purchase.customerId);
     return { ...purchase, customer };
   });
 
@@ -17,8 +17,8 @@ export function RecentActivity() {
       </div>
       <div className="space-y-4">
         {recentPurchases.map((item) => (
-          <div 
-            key={item.id} 
+          <div
+            key={item.id}
             className="flex items-center gap-4 p-3 rounded-lg hover:bg-secondary/50 transition-colors"
           >
             <Avatar className="h-10 w-10 border-2 border-caramel/20">
@@ -37,7 +37,7 @@ export function RecentActivity() {
             </div>
             <div className="text-right">
               <p className="text-sm font-semibold text-foreground">
-                ${item.amount.toLocaleString()}
+                KES{item.amount.toLocaleString()}
               </p>
               <p className="text-xs text-muted-foreground">
                 {formatDistanceToNow(new Date(item.date), { addSuffix: true })}

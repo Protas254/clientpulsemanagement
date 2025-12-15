@@ -186,10 +186,10 @@ export default function Visits() {
                                         KES {parseFloat(visit.total_amount).toLocaleString()}
                                     </p>
                                     <span className={`px-3 py-1 rounded-full text-sm ${visit.payment_status === 'paid'
-                                            ? 'bg-green-100 text-green-700'
-                                            : visit.payment_status === 'partial'
-                                                ? 'bg-yellow-100 text-yellow-700'
-                                                : 'bg-red-100 text-red-700'
+                                        ? 'bg-green-100 text-green-700'
+                                        : visit.payment_status === 'partial'
+                                            ? 'bg-yellow-100 text-yellow-700'
+                                            : 'bg-red-100 text-red-700'
                                         }`}>
                                         {visit.payment_status}
                                     </span>
@@ -234,8 +234,8 @@ export default function Visits() {
                                         key={service.id}
                                         onClick={() => toggleService(service.id)}
                                         className={`p-4 rounded-lg border-2 text-left transition ${selectedServices.includes(service.id)
-                                                ? 'border-purple-600 bg-purple-50'
-                                                : 'border-gray-200 hover:border-purple-300'
+                                            ? 'border-purple-600 bg-purple-50'
+                                            : 'border-gray-200 hover:border-purple-300'
                                             }`}
                                     >
                                         <p className="font-semibold text-purple-900">{service.name}</p>

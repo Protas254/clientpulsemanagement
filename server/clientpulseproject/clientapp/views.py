@@ -501,6 +501,64 @@ class CustomerRewardCheckView(APIView):
         })
 
 
+class CustomerPortalDetailsView(APIView):
+    """
+    Admin view to see customer details exactly as they appear in the portal.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, pk):
+        try:
+            customer = Customer.objects.get(pk=pk)
+        except Customer.DoesNotExist:
+            return Response({'error': 'Customer not found'}, status=404)
+
+        # Get all active rewards
+        all_rewards = Reward.objects.filter(status='active')
+        rewards_data = RewardSerializer(all_rewards, many=True).data
+
+        # Get customer's visit history
+        visits = Visit.objects.filter(customer=customer).order_by('-visit_date')
+        visits_data = VisitSerializer(visits, many=True).data
+
+        # Get purchase history (backward compatibility)
+        purchases = Sale.objects.filter(customer=customer).order_by('-date')
+        purchases_data = SaleSerializer(purchases, many=True).data
+
+        # Calculate statistics
+        total_spent = visits.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        total_purchases = purchases.count()
+
+        # Get redemption history
+        redemptions = CustomerReward.objects.filter(customer=customer).order_by('-date_claimed')
+        redemptions_data = CustomerRewardSerializer(redemptions, many=True).data
+
+        return Response({
+            'customer': {
+                'id': customer.id,
+                'name': customer.name,
+                'email': customer.email,
+                'phone': customer.phone,
+                'location': customer.location,
+                'status': customer.status,
+                'notes': customer.notes,
+                'points': customer.points,
+                'visit_count': customer.visit_count,
+                'last_purchase': customer.last_purchase,
+                'created_at': customer.created_at,
+            },
+            'statistics': {
+                'total_spent': float(total_spent),
+                'total_visits': customer.visit_count,
+                'total_purchases': total_purchases,
+            },
+            'visits': visits_data,
+            'purchases': purchases_data,
+            'eligible_rewards': rewards_data,
+            'redemptions': redemptions_data
+        })
+
+
 # Website Management
 # Removed CustomerWebsite views as requested
 

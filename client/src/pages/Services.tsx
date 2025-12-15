@@ -148,7 +148,7 @@ export default function Services() {
     const handleToggleStatus = async (service: Service) => {
         try {
             await updateService(service.id, { is_active: !service.is_active });
-            toast({ title: 'Success', description: `Service ${service.is_active ? 'deactivated' : 'activated'}` });
+            toast({ title: 'Success', description: `Service KES{service.is_active ? 'deactivated' : 'activated'}` });
             loadServices();
         } catch (error) {
             toast({

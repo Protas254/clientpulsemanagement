@@ -6,7 +6,7 @@ from .views import (
     SaleListCreate, SaleDetail, 
     DashboardStatsView, DailyStatsView, TopCustomersView,
     RewardListCreate, RewardDetail, 
-    CustomerRewardCheckView, CustomerSignupView,
+    CustomerRewardCheckView, CustomerSignupView, CustomerPortalDetailsView,
     ServiceViewSet, VisitViewSet, StaffMemberViewSet,
     AnalyticsView, BookingViewSet, CustomerRewardViewSet, RewardsStatsView
 )
@@ -32,6 +32,7 @@ urlpatterns = [
     # Customers
     path('customers/', CustomerListCreate.as_view(), name='customer-list-create'),
     path('customers/<int:pk>/', CustomerDetail.as_view(), name='customer-detail'),
+    path('customers/<int:pk>/portal-details/', CustomerPortalDetailsView.as_view(), name='customer-portal-details'),
     path('customers/<int:customer_id>/service-history/', CustomerServiceHistoryView.as_view(), name='customer-service-history'),
     
     # Sales (backward compatibility)

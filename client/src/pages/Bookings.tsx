@@ -92,7 +92,7 @@ export default function Bookings() {
             return;
         }
 
-        const dateTime = new Date(`${bookingDate}T${bookingTime}`);
+        const dateTime = new Date(`KES{bookingDate}TKES{bookingTime}`);
 
         try {
             await createBooking({
@@ -126,7 +126,7 @@ export default function Bookings() {
             await updateBooking(id, { status });
             toast({
                 title: 'Success',
-                description: `Booking ${status}`,
+                description: `Booking KES{status}`,
             });
             loadData();
         } catch (error) {

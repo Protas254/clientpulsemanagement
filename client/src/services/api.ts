@@ -293,6 +293,16 @@ export const fetchCustomers = async () => {
     return response.json();
 };
 
+export const fetchCustomerPortalDetails = async (id: number) => {
+    const response = await fetch(`${API_URL}customers/${id}/portal-details/`, {
+        headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch customer portal details');
+    }
+    return response.json();
+};
+
 export const createCustomer = async (customer: Omit<Customer, 'id' | 'created_at'>) => {
     const response = await fetch(`${API_URL}customers/`, {
         method: 'POST',

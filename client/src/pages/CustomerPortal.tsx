@@ -202,14 +202,13 @@ export default function CustomerPortal() {
         }
     };
 
-    const handleRedeem = async (reward: Reward) => {
+    const handleRedeemReward = async (reward: Reward) => {
         if (!customerData) return;
 
         try {
             await redeemReward({
                 customer: customerData.id,
-                reward: reward.id,
-                date_claimed: new Date().toISOString()
+                reward: reward.id
             });
 
             toast({
@@ -412,7 +411,7 @@ export default function CustomerPortal() {
                                                                     <Button
                                                                         variant={isEligible ? "link" : "ghost"}
                                                                         className={isEligible ? "text-purple-600 p-0 h-auto font-medium" : "text-muted-foreground p-0 h-auto font-medium cursor-not-allowed"}
-                                                                        onClick={() => isEligible && handleRedeem(reward)}
+                                                                        onClick={() => isEligible && handleRedeemReward(reward)}
                                                                         disabled={!isEligible}
                                                                     >
                                                                         Redeem <ArrowRight className="w-4 h-4 ml-1" />
@@ -461,7 +460,7 @@ export default function CustomerPortal() {
                                                     ))}
                                                     {purchases.map((purchase) => (
                                                         <div
-                                                            key={`p-${purchase.id}`}
+                                                            key={`p-KES{purchase.id}`}
                                                             className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
                                                         >
                                                             <div>

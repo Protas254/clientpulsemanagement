@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { monthlySalesData } from '@/data/mockData';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { SalesChart } from '@/components/dashboard/SalesChart';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -48,7 +49,7 @@ export default function Sales() {
               <div>
                 <p className="text-sm text-muted-foreground">This Month</p>
                 <p className="text-2xl font-display font-semibold text-foreground">
-                  ${stats.current_month_sales.toLocaleString()}
+                  KES{stats.current_month_sales.toLocaleString()}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-caramel/10 flex items-center justify-center">
@@ -68,7 +69,7 @@ export default function Sales() {
               <div>
                 <p className="text-sm text-muted-foreground">Last Month</p>
                 <p className="text-2xl font-display font-semibold text-foreground">
-                  ${stats.last_month_sales.toLocaleString()}
+                  KES{stats.last_month_sales.toLocaleString()}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
@@ -100,7 +101,7 @@ export default function Sales() {
               <div>
                 <p className="text-sm text-muted-foreground">Avg. Order</p>
                 <p className="text-2xl font-display font-semibold text-foreground">
-                  ${stats.avg_order.toLocaleString()}
+                  KES{stats.avg_order.toLocaleString()}
                 </p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-caramel/10 flex items-center justify-center">
@@ -113,7 +114,7 @@ export default function Sales() {
 
       {/* Chart */}
       <div className="mb-8">
-        <SalesChart />
+        <SalesChart data={monthlySalesData} />
       </div>
 
       {/* Recent Transactions */}
@@ -138,7 +139,7 @@ export default function Sales() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold text-foreground">${Number(sale.amount).toLocaleString()}</p>
+                  <p className="font-semibold text-foreground">KES{Number(sale.amount).toLocaleString()}</p>
                   <p className="text-sm text-muted-foreground">
                     {format(new Date(sale.date), 'MMM d, yyyy')}
                   </p>
