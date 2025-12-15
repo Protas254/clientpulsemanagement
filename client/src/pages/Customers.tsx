@@ -1,12 +1,11 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { CustomerTable } from '@/components/customers/CustomerTable';
 import { CustomerFilters } from '@/components/customers/CustomerFilters';
 import { CustomerForm } from '@/components/customers/CustomerForm';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { mockCustomers } from '@/data/mockData';
-import { Customer } from '@/types/customer';
+import { fetchCustomers, createCustomer, updateCustomer, deleteCustomer, Customer } from "@/services/api";
 import {
   Dialog,
   DialogContent,
@@ -16,50 +15,89 @@ import {
 import { toast } from '@/hooks/use-toast';
 
 export default function Customers() {
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
 
+  useEffect(() => {
+    loadCustomers();
+  }, []);
+
+  const loadCustomers = async () => {
+    try {
+      const data = await fetchCustomers();
+      setCustomers(data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load customers",
+        variant: "destructive",
+      });
+    }
+  };
+
   const filteredCustomers = useMemo(() => {
-    return mockCustomers.filter((customer) => {
-      const matchesSearch = 
+    return customers.filter((customer) => {
+      const matchesSearch =
         customer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         customer.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
         customer.phone.includes(searchQuery);
-      
+
       const matchesStatus = statusFilter === 'all' || customer.status === statusFilter;
-      
+
       return matchesSearch && matchesStatus;
     });
-  }, [searchQuery, statusFilter]);
+  }, [customers, searchQuery, statusFilter]);
 
   const handleEdit = (customer: Customer) => {
     setEditingCustomer(customer);
     setIsFormOpen(true);
   };
 
-  const handleDelete = (customer: Customer) => {
-    toast({
-      title: "Customer deleted",
-      description: `${customer.name} has been removed from your customers.`,
-    });
-  };
-
-  const handleFormSubmit = (data: any) => {
-    if (editingCustomer) {
+  const handleDelete = async (customer: Customer) => {
+    try {
+      await deleteCustomer(customer.id);
+      loadCustomers();
       toast({
-        title: "Customer updated",
-        description: `${data.name}'s information has been updated.`,
+        title: "Customer deleted",
+        description: `${customer.name} has been removed from your customers.`,
       });
-    } else {
+    } catch (error) {
       toast({
-        title: "Customer added",
-        description: `${data.name} has been added to your customers.`,
+        title: "Error",
+        description: "Failed to delete customer",
+        variant: "destructive",
       });
     }
-    setIsFormOpen(false);
-    setEditingCustomer(null);
+  };
+
+  const handleFormSubmit = async (data: any) => {
+    try {
+      if (editingCustomer) {
+        await updateCustomer(editingCustomer.id, data);
+        toast({
+          title: "Customer updated",
+          description: `${data.name}'s information has been updated.`,
+        });
+      } else {
+        await createCustomer(data);
+        toast({
+          title: "Customer added",
+          description: `${data.name} has been added to your customers.`,
+        });
+      }
+      loadCustomers();
+      setIsFormOpen(false);
+      setEditingCustomer(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save customer",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleFormCancel = () => {
@@ -82,7 +120,7 @@ export default function Customers() {
         </Button>
       </div>
 
-      <CustomerTable 
+      <CustomerTable
         customers={filteredCustomers}
         onEdit={handleEdit}
         onDelete={handleDelete}

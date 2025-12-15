@@ -9,8 +9,8 @@ import { cn } from '@/lib/utils';
 interface RewardCardProps {
   reward: Reward;
   onEdit: (reward: Reward) => void;
-  onDelete: (id: string) => void;
-  onToggleStatus: (id: string) => void;
+  onDelete: (id: number) => void;
+  onToggleStatus: (id: number) => void;
 }
 
 export function RewardCard({ reward, onEdit, onDelete, onToggleStatus }: RewardCardProps) {
@@ -43,14 +43,14 @@ export function RewardCard({ reward, onEdit, onDelete, onToggleStatus }: RewardC
           </div>
           <Badge className={getStatusColor()}>{reward.status}</Badge>
         </div>
-        
+
         <h3 className="text-lg font-semibold text-foreground mb-1">{reward.name}</h3>
         <p className="text-sm text-muted-foreground mb-4">{reward.description}</p>
-        
+
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Points Required:</span>
-            <span className="font-semibold text-primary">{reward.pointsRequired} ⭐</span>
+            <span className="font-semibold text-primary">{reward.points_required} ⭐</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Value:</span>
@@ -58,15 +58,15 @@ export function RewardCard({ reward, onEdit, onDelete, onToggleStatus }: RewardC
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Expires:</span>
-            <span className="text-foreground">{format(new Date(reward.expiryDate), 'MMM dd, yyyy')}</span>
+            <span className="text-foreground">{reward.expiry_date ? format(new Date(reward.expiry_date), 'MMM dd, yyyy') : 'No Expiry'}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Times Redeemed:</span>
-            <span className="text-foreground">{reward.timesRedeemed}</span>
+            <span className="text-foreground">{reward.times_redeemed}</span>
           </div>
         </div>
       </CardContent>
-      
+
       <CardFooter className="p-4 pt-0 gap-2">
         <Button variant="outline" size="sm" className="flex-1" onClick={() => onEdit(reward)}>
           <Pencil className="w-4 h-4 mr-1" /> Edit

@@ -3,11 +3,11 @@ import { Reward, CustomerReward, CustomerPoints, RewardRule, RewardsDashboardSta
 export const rewards: Reward[] = [
   {
     id: '1',
-    name: 'Free Coffee',
-    description: 'Enjoy a complimentary cup of coffee',
+    name: 'Free Haircut',
+    description: 'Enjoy a complimentary haircut',
     pointsRequired: 50,
-    type: 'gift',
-    value: 'Free Coffee',
+    type: 'free_service',
+    value: 'Free Haircut',
     expiryDate: '2025-12-31',
     status: 'active',
     createdAt: '2025-01-01',
@@ -15,8 +15,8 @@ export const rewards: Reward[] = [
   },
   {
     id: '2',
-    name: '10% Discount',
-    description: 'Get 10% off your next purchase',
+    name: '10% Off Massage',
+    description: 'Get 10% off your next massage session',
     pointsRequired: 100,
     type: 'discount',
     value: '10%',
@@ -27,8 +27,8 @@ export const rewards: Reward[] = [
   },
   {
     id: '3',
-    name: 'KES 500 Cashback',
-    description: 'Receive KES 500 cashback on your account',
+    name: 'KES 500 Spa Credit',
+    description: 'Receive KES 500 credit for any spa service',
     pointsRequired: 150,
     type: 'cashback',
     value: 'KES 500',
@@ -39,11 +39,11 @@ export const rewards: Reward[] = [
   },
   {
     id: '4',
-    name: 'Free Service',
-    description: 'One complimentary service of your choice',
+    name: 'Free Manicure',
+    description: 'One complimentary manicure service',
     pointsRequired: 200,
     type: 'free_service',
-    value: 'Free Service',
+    value: 'Free Manicure',
     expiryDate: '2025-12-31',
     status: 'active',
     createdAt: '2025-02-01',
@@ -51,7 +51,7 @@ export const rewards: Reward[] = [
   },
   {
     id: '5',
-    name: 'VIP Upgrade',
+    name: 'VIP Salon Access',
     description: 'Upgrade to VIP status for 3 months',
     pointsRequired: 300,
     type: 'gift',
@@ -82,11 +82,11 @@ export const customerRewards: CustomerReward[] = [
 export const rewardRules: RewardRule[] = [
   {
     id: '1',
-    name: 'Purchase Points',
+    name: 'Service Points',
     type: 'purchase',
     pointsAwarded: 1,
     threshold: 100,
-    description: 'Earn 1 point for every KES 100 spent',
+    description: 'Earn 1 point for every KES 100 spent on services',
     isActive: true,
   },
   {
@@ -144,9 +144,9 @@ export const monthlyRewardUsage = [
 ];
 
 export const mostRedeemedRewards = [
-  { name: 'Free Coffee', count: 45 },
-  { name: '10% Discount', count: 32 },
-  { name: 'KES 500 Cashback', count: 18 },
-  { name: 'Free Service', count: 12 },
-  { name: 'VIP Upgrade', count: 5 },
+  { name: 'Free Haircut', count: 45 },
+  { name: '10% Off Massage', count: 32 },
+  { name: 'KES 500 Spa Credit', count: 18 },
+  { name: 'Free Manicure', count: 12 },
+  { name: 'VIP Salon Access', count: 5 },
 ];

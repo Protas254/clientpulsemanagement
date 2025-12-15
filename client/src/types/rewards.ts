@@ -3,16 +3,16 @@ export type RewardStatus = 'active' | 'disabled' | 'expired';
 export type RedemptionStatus = 'completed' | 'pending' | 'cancelled';
 
 export interface Reward {
-  id: string;
+  id: number;
   name: string;
   description: string;
-  pointsRequired: number;
+  points_required: number;
   type: RewardType;
   value: string; // e.g., "10%", "KES 500", "Free Coffee"
-  expiryDate: string;
+  expiry_date: string;
   status: RewardStatus;
-  createdAt: string;
-  timesRedeemed: number;
+  created_at: string;
+  times_redeemed: number;
 }
 
 export interface CustomerReward {

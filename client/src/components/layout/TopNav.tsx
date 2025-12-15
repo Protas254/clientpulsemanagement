@@ -9,7 +9,29 @@ interface TopNavProps {
   action?: ReactNode;
 }
 
+import { useSearchParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+
 export function TopNav({ title, subtitle, action }: TopNavProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchValue, setSearchValue] = useState(searchParams.get('search') || '');
+
+  // Update local state when URL changes
+  useEffect(() => {
+    setSearchValue(searchParams.get('search') || '');
+  }, [searchParams]);
+
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+    const newParams = new URLSearchParams(searchParams);
+    if (value) {
+      newParams.set('search', value);
+    } else {
+      newParams.delete('search');
+    }
+    setSearchParams(newParams);
+  };
+
   return (
     <header className="h-16 bg-card border-b border-border px-6 flex items-center justify-between">
       <div className="flex items-center gap-4">
@@ -24,9 +46,11 @@ export function TopNav({ title, subtitle, action }: TopNavProps) {
         {/* Search */}
         <div className="relative hidden md:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search customers..." 
+          <Input
+            placeholder="Search..."
             className="w-64 pl-10 bg-background"
+            value={searchValue}
+            onChange={(e) => handleSearch(e.target.value)}
           />
         </div>
 

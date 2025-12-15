@@ -1,25 +1,27 @@
 import { NavLink } from '@/components/NavLink';
-import { 
-  LayoutDashboard, 
-  Users, 
-  TrendingUp, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  Users,
+  TrendingUp,
+  BarChart3,
   Settings,
   LogOut,
-  Coffee,
+  Scissors,
   Gift,
   Award,
-  Wallet
+  Calendar,
+  UserCog,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { title: 'Dashboard', url: '/', icon: LayoutDashboard },
+  { title: 'Bookings', url: '/bookings', icon: Calendar },
+  { title: 'Staff', url: '/staff', icon: UserCog },
   { title: 'Customers', url: '/customers', icon: Users },
-  { title: 'Sales', url: '/sales', icon: TrendingUp },
+  { title: 'Services', url: '/services', icon: TrendingUp },
   { title: 'Rewards', url: '/rewards', icon: Gift },
   { title: 'Manage Rewards', url: '/rewards/manage', icon: Award },
-  { title: 'Customer Wallet', url: '/rewards/wallet', icon: Wallet },
   { title: 'Reports', url: '/reports', icon: BarChart3 },
   { title: 'Settings', url: '/settings', icon: Settings },
 ];
@@ -31,11 +33,11 @@ export function Sidebar() {
       <div className="p-6 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-sidebar-primary flex items-center justify-center">
-            <Coffee className="w-5 h-5 text-sidebar-primary-foreground" />
+            <Scissors className="w-5 h-5 text-sidebar-primary-foreground" />
           </div>
           <div>
             <h1 className="font-display text-xl font-semibold text-sidebar-foreground">ClientPulse</h1>
-            <p className="text-xs text-sidebar-foreground/60">Customer Tracker</p>
+            <p className="text-xs text-sidebar-foreground/60">Salon & Spa Manager</p>
           </div>
         </div>
       </div>

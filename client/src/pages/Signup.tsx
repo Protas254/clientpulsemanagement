@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Coffee, Eye, EyeOff } from "lucide-react";
+import { Scissors, Eye, EyeOff, User, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { register, registerCustomer } from "../services/api";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -14,10 +16,16 @@ const Signup = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Customer form state
+  const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleAdminSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!email || !password) {
@@ -49,59 +57,111 @@ const Signup = () => {
 
     setIsLoading(true);
 
-    // Simulate auth - replace with actual auth when backend is connected
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await register({ username: email, email, password });
       toast({
         title: "Account created!",
-        description: "Your account has been created successfully",
+        description: "Your admin account has been created successfully. Please login.",
       });
-      navigate("/index");
-    }, 1500);
+      navigate("/login");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create account",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCustomerSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!customerName || !customerEmail || !customerPhone) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!agreeTerms) {
+      toast({
+        title: "Error",
+        description: "Please agree to the terms and conditions",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      await registerCustomer({
+        name: customerName,
+        email: customerEmail,
+        phone: customerPhone
+      });
+      toast({
+        title: "Registration successful!",
+        description: "Your customer profile has been created. You can now access the portal.",
+      });
+      navigate("/login");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to register customer",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen flex">
       {/* Left side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 gradient-chocolate relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-chocolate-dark/90 via-chocolate-medium/80 to-caramel/30" />
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-purple-900 via-purple-800 to-pink-700 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/90 via-purple-800/80 to-pink-700/30" />
 
         {/* Decorative circles */}
-        <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-caramel/10 blur-3xl" />
-        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-caramel/15 blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-chocolate-light/10 blur-2xl" />
+        <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-pink-500/10 blur-3xl" />
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-pink-500/15 blur-3xl" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-purple-400/10 blur-2xl" />
 
         <div className="relative z-10 flex flex-col items-center justify-center w-full p-12 text-center">
           {/* Logo */}
-          <div className="mb-8 p-5 rounded-2xl bg-caramel/20 backdrop-blur-sm border border-caramel/30">
-            <Coffee className="h-16 w-16 text-caramel" />
+          <div className="mb-8 p-5 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
+            <Scissors className="h-16 w-16 text-white" />
           </div>
 
-          <h1 className="text-5xl font-display font-bold text-primary-foreground mb-4">
+          <h1 className="text-5xl font-display font-bold text-white mb-4">
             ClientPulse
           </h1>
-          <p className="text-xl text-caramel-light font-light max-w-md">
-            Customer Loyalty & Rewards Management System
+          <p className="text-xl text-purple-100 font-light max-w-md">
+            Salon, Spa & Kinyozi Management System
           </p>
 
           <div className="mt-16 space-y-6">
-            <div className="flex items-center gap-4 text-primary-foreground/80">
-              <div className="w-12 h-12 rounded-full bg-caramel/20 flex items-center justify-center">
-                <span className="text-caramel text-lg font-bold">1</span>
+            <div className="flex items-center gap-4 text-white/80">
+              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+                <span className="text-white text-lg font-bold">1</span>
               </div>
-              <span className="text-left">Track customer purchases & visits</span>
+              <span className="text-left">Track services & appointments</span>
             </div>
-            <div className="flex items-center gap-4 text-primary-foreground/80">
-              <div className="w-12 h-12 rounded-full bg-caramel/20 flex items-center justify-center">
-                <span className="text-caramel text-lg font-bold">2</span>
+            <div className="flex items-center gap-4 text-white/80">
+              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+                <span className="text-white text-lg font-bold">2</span>
               </div>
-              <span className="text-left">Manage loyalty rewards programs</span>
+              <span className="text-left">Manage loyalty & memberships</span>
             </div>
-            <div className="flex items-center gap-4 text-primary-foreground/80">
-              <div className="w-12 h-12 rounded-full bg-caramel/20 flex items-center justify-center">
-                <span className="text-caramel text-lg font-bold">3</span>
+            <div className="flex items-center gap-4 text-white/80">
+              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+                <span className="text-white text-lg font-bold">3</span>
               </div>
-              <span className="text-left">Boost customer retention</span>
+              <span className="text-left">Enhance client experience</span>
             </div>
           </div>
         </div>
@@ -113,7 +173,7 @@ const Signup = () => {
           {/* Mobile logo */}
           <div className="lg:hidden flex flex-col items-center mb-8">
             <div className="p-4 rounded-xl bg-primary mb-4">
-              <Coffee className="h-10 w-10 text-primary-foreground" />
+              <Scissors className="h-10 w-10 text-primary-foreground" />
             </div>
             <h1 className="text-2xl font-display font-bold text-foreground">ClientPulse</h1>
           </div>
@@ -128,89 +188,179 @@ const Signup = () => {
             </p>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground">
-                Email Address
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="h-12 bg-muted/50 border-border focus:border-caramel focus:ring-caramel/30"
-              />
-            </div>
+          <Tabs defaultValue="admin" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-8">
+              <TabsTrigger value="admin" className="flex items-center gap-2">
+                <Shield className="w-4 h-4" />
+                Admin
+              </TabsTrigger>
+              <TabsTrigger value="customer" className="flex items-center gap-2">
+                <User className="w-4 h-4" />
+                Customer
+              </TabsTrigger>
+            </TabsList>
 
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground">
-                Password
-              </Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="h-12 bg-muted/50 border-border focus:border-caramel focus:ring-caramel/30 pr-12"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-foreground">
-                Confirm Password
-              </Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="Confirm your password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="h-12 bg-muted/50 border-border focus:border-caramel focus:ring-caramel/30"
-              />
-            </div>
-
-            <div className="flex items-start space-x-2">
-              <Checkbox
-                id="terms"
-                checked={agreeTerms}
-                onCheckedChange={(checked) => setAgreeTerms(checked as boolean)}
-                className="border-border data-[state=checked]:bg-primary mt-0.5"
-              />
-              <Label htmlFor="terms" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
-                I agree to the{" "}
-                <span className="text-caramel hover:underline cursor-pointer">Terms of Service</span>
-                {" "}and{" "}
-                <span className="text-caramel hover:underline cursor-pointer">Privacy Policy</span>
-              </Label>
-            </div>
-
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full h-12 bg-primary hover:bg-chocolate-medium text-primary-foreground font-medium text-base shadow-chocolate transition-all duration-300 hover:shadow-lg"
-            >
-              {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                  <span>Creating account...</span>
+            <TabsContent value="admin">
+              <form onSubmit={handleAdminSignup} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-foreground">
+                    Email Address
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="name@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="h-12 bg-muted/50 border-border focus:border-purple-500 focus:ring-purple-500/30"
+                  />
                 </div>
-              ) : (
-                "Create Account"
-              )}
-            </Button>
-          </form>
+
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-foreground">
+                    Password
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="h-12 bg-muted/50 border-border focus:border-purple-500 focus:ring-purple-500/30 pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword" className="text-foreground">
+                    Confirm Password
+                  </Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    placeholder="Confirm your password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="h-12 bg-muted/50 border-border focus:border-purple-500 focus:ring-purple-500/30"
+                  />
+                </div>
+
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="terms-admin"
+                    checked={agreeTerms}
+                    onCheckedChange={(checked) => setAgreeTerms(checked as boolean)}
+                    className="border-border data-[state=checked]:bg-purple-600 mt-0.5"
+                  />
+                  <Label htmlFor="terms-admin" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
+                    I agree to the{" "}
+                    <span className="text-purple-600 hover:underline cursor-pointer">Terms of Service</span>
+                    {" "}and{" "}
+                    <span className="text-purple-600 hover:underline cursor-pointer">Privacy Policy</span>
+                  </Label>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full h-12 bg-purple-600 hover:bg-purple-700 text-white font-medium text-base shadow-lg shadow-purple-200 transition-all duration-300 hover:shadow-xl"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Creating account...</span>
+                    </div>
+                  ) : (
+                    "Create Admin Account"
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="customer">
+              <form onSubmit={handleCustomerSignup} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="customerName" className="text-foreground">
+                    Full Name
+                  </Label>
+                  <Input
+                    id="customerName"
+                    type="text"
+                    placeholder="John Doe"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="h-12 bg-muted/50 border-border focus:border-purple-500 focus:ring-purple-500/30"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="customerEmail" className="text-foreground">
+                    Email Address
+                  </Label>
+                  <Input
+                    id="customerEmail"
+                    type="email"
+                    placeholder="name@example.com"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    className="h-12 bg-muted/50 border-border focus:border-purple-500 focus:ring-purple-500/30"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="customerPhone" className="text-foreground">
+                    Phone Number
+                  </Label>
+                  <Input
+                    id="customerPhone"
+                    type="tel"
+                    placeholder="+1 (555) 000-0000"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    className="h-12 bg-muted/50 border-border focus:border-purple-500 focus:ring-purple-500/30"
+                  />
+                </div>
+
+                <div className="flex items-start space-x-2">
+                  <Checkbox
+                    id="terms-customer"
+                    checked={agreeTerms}
+                    onCheckedChange={(checked) => setAgreeTerms(checked as boolean)}
+                    className="border-border data-[state=checked]:bg-purple-600 mt-0.5"
+                  />
+                  <Label htmlFor="terms-customer" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
+                    I agree to the{" "}
+                    <span className="text-purple-600 hover:underline cursor-pointer">Terms of Service</span>
+                    {" "}and{" "}
+                    <span className="text-purple-600 hover:underline cursor-pointer">Privacy Policy</span>
+                  </Label>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full h-12 bg-purple-600 hover:bg-purple-700 text-white font-medium text-base shadow-lg shadow-purple-200 transition-all duration-300 hover:shadow-xl"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Registering...</span>
+                    </div>
+                  ) : (
+                    "Register as Customer"
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
 
           {/* Divider */}
           <div className="relative">
@@ -229,7 +379,7 @@ const Signup = () => {
             <Button
               type="button"
               variant="outline"
-              className="h-12 border-border hover:bg-muted/50 hover:border-caramel/50 transition-all"
+              className="h-12 border-border hover:bg-muted/50 hover:border-purple-200 transition-all"
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                 <path
@@ -258,7 +408,7 @@ const Signup = () => {
             Already have an account?{" "}
             <Link
               to="/login"
-              className="text-caramel hover:text-caramel/80 font-medium transition-colors"
+              className="text-purple-600 hover:text-purple-700 font-medium transition-colors"
             >
               Sign in
             </Link>

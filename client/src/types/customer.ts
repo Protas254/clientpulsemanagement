@@ -1,17 +1,20 @@
 export type CustomerStatus = 'active' | 'inactive' | 'vip';
 
 export interface Customer {
-  id: string;
+  id: number;
   name: string;
   email: string;
   phone: string;
-  location: string;
-  status: CustomerStatus;
-  firstVisit: string;
-  lastPurchase: string;
-  totalPurchases: number;
-  totalSpent: number;
-  notes: string;
+  status: 'active' | 'inactive' | 'vip';
+  location?: string;
+  notes?: string;
+  points: number;
+  last_purchase?: string;
+  created_at: string;
+  // Legacy fields (optional)
+  firstVisit?: string;
+  totalPurchases?: number;
+  totalSpent?: number;
   avatar?: string;
 }
 

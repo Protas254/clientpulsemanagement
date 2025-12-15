@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Reward, RewardType } from '@/types/rewards';
+import { Reward } from '@/services/api';
+import { RewardType } from '@/types/rewards';
 
 interface RewardFormProps {
   isOpen: boolean;
@@ -31,10 +32,10 @@ export function RewardForm({ isOpen, onClose, onSave, reward }: RewardFormProps)
       setFormData({
         name: reward.name,
         description: reward.description,
-        pointsRequired: reward.pointsRequired,
+        pointsRequired: reward.points_required,
         type: reward.type,
         value: reward.value,
-        expiryDate: reward.expiryDate,
+        expiryDate: reward.expiry_date,
         isActive: reward.status === 'active',
       });
     } else {
@@ -56,10 +57,10 @@ export function RewardForm({ isOpen, onClose, onSave, reward }: RewardFormProps)
       id: reward?.id,
       name: formData.name,
       description: formData.description,
-      pointsRequired: formData.pointsRequired,
+      points_required: formData.pointsRequired,
       type: formData.type,
       value: formData.value,
-      expiryDate: formData.expiryDate,
+      expiry_date: formData.expiryDate || null,
       status: formData.isActive ? 'active' : 'disabled',
     });
     onClose();
@@ -73,7 +74,7 @@ export function RewardForm({ isOpen, onClose, onSave, reward }: RewardFormProps)
             {reward ? 'Edit Reward' : 'Add New Reward'}
           </DialogTitle>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Reward Name</Label>
