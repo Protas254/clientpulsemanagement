@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.core.mail import send_mail
 
 # Create your models here.
 
@@ -136,22 +137,38 @@ class Booking(models.Model):
     booking_date = models.DateTimeField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     notes = models.TextField(blank=True)
+    reminder_sent = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.customer.name} - {self.service.name} - {self.booking_date}"
 
     def save(self, *args, **kwargs):
-        # Check if status changed to completed
+        # Check if status changed to confirmed (approved)
+        send_approval = False
+        create_visit = False
+
         if self.pk:
             old_instance = Booking.objects.get(pk=self.pk)
+            if old_instance.status != 'confirmed' and self.status == 'confirmed':
+                send_approval = True
+            
+            # Check if status changed to completed
             if old_instance.status != 'completed' and self.status == 'completed':
-                self._create_visit_from_booking()
-        elif self.status == 'completed':
-            # New booking created as completed (unlikely but possible)
-            self._create_visit_from_booking()
+                create_visit = True
+        else:
+            if self.status == 'completed':
+                create_visit = True
+            elif self.status == 'confirmed':
+                send_approval = True
             
         super().save(*args, **kwargs)
+
+        if send_approval:
+            self._send_approval_email()
+        
+        if create_visit:
+            self._create_visit_from_booking()
 
     def _create_visit_from_booking(self):
         """Create a Visit record from this booking"""
@@ -172,6 +189,35 @@ class Booking(models.Model):
         )
         visit.services.add(self.service)
         # Visit.save() handles updating customer points/visit count automatically via its own save method
+
+    def _send_approval_email(self):
+        from django.conf import settings
+        if not self.customer.email:
+            print(f"Warning: Customer {self.customer.name} has no email address. Skipping approval email.")
+            return
+
+        subject = 'Your Booking Has Been Approved'
+        message = f'''Dear {self.customer.name},
+
+Your booking has been approved!
+
+Booking Details:
+- Service: {self.service.name}
+- Date & Time: {self.booking_date.strftime('%Y-%m-%d %H:%M')}
+- Staff Member: {self.staff_member.name if self.staff_member else 'TBA'}
+
+Thank you for choosing our service.
+
+Best regards,
+ClientPulse Team'''
+
+        send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            [self.customer.email, settings.DEFAULT_FROM_EMAIL],
+            fail_silently=False,
+        )
 
 
 class CustomerReward(models.Model):
