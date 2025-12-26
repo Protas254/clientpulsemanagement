@@ -100,7 +100,7 @@ export default function Staff() {
         return (
             <AppLayout title="Staff" subtitle="Loading...">
                 <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
                 </div>
             </AppLayout>
         );
@@ -117,7 +117,7 @@ export default function Staff() {
             <div className="mb-6">
                 <Button
                     onClick={() => setShowForm(true)}
-                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                    className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
                 >
                     <Plus className="w-4 h-4 mr-2" />
                     Add Staff Member
@@ -126,21 +126,21 @@ export default function Staff() {
 
             {/* Active Staff */}
             <div className="mb-8">
-                <h2 className="text-2xl font-display font-semibold mb-4 text-purple-900">
+                <h2 className="text-2xl font-display font-semibold mb-4 text-amber-900">
                     Active Staff
                 </h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {activeStaff.map((staffMember) => (
-                        <Card key={staffMember.id} className="border-purple-200 hover:shadow-lg transition">
+                        <Card key={staffMember.id} className="border-amber-200 hover:shadow-lg transition">
                             <CardContent className="p-6">
                                 <div className="flex justify-between items-start mb-4">
-                                    <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                                    <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-400 rounded-full flex items-center justify-center text-white text-2xl font-bold">
                                         {staffMember.name.charAt(0)}
                                     </div>
                                     <Badge className="bg-green-100 text-green-700">Active</Badge>
                                 </div>
 
-                                <h3 className="text-lg font-semibold text-purple-900 mb-3">
+                                <h3 className="text-lg font-semibold text-amber-900 mb-3">
                                     {staffMember.name}
                                 </h3>
 
@@ -239,7 +239,7 @@ export default function Staff() {
                         <div className="flex gap-3">
                             <Button
                                 onClick={handleSubmit}
-                                className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                                className="flex-1 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
                             >
                                 Add Staff
                             </Button>

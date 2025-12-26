@@ -582,6 +582,7 @@ export const updateBooking = async (id: number, booking: Partial<Booking>): Prom
 export interface RewardsStats {
     total_rewards_created: number;
     total_rewards_claimed: number;
+    active_rewards: number;
     eligible_rewards: Reward[];
     redemptions: CustomerReward[];
     pending_redemptions: number;

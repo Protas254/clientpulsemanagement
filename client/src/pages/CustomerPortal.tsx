@@ -3,7 +3,7 @@ import { TopNav } from '@/components/layout/TopNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Scissors, Gift, ArrowRight, Mail, Phone, MapPin, Calendar, DollarSign, ShoppingBag, Plus, Check, Clock, Waves, Hand, Smile, MoreVertical, Edit, Camera } from 'lucide-react';
-import { Reward, Service, fetchServices, createBooking, fetchBookings, Booking, redeemReward, checkRewards, updateCustomerProfile } from '@/services/api';
+import { Reward, Service, fetchServices, createBooking, fetchBookings, Booking, redeemReward, checkRewards, updateCustomerProfile, CustomerReward } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -32,6 +32,7 @@ interface CustomerData {
     last_purchase: string | null;
     created_at: string;
     photo?: string;
+    visit_count: number;
 }
 
 interface Purchase {
@@ -58,7 +59,7 @@ interface PortalData {
 const statusColors = {
     active: 'bg-green-100 text-green-700 border-green-200',
     inactive: 'bg-gray-100 text-gray-500 border-gray-200',
-    vip: 'bg-purple-100 text-purple-700 border-purple-200',
+    vip: 'bg-amber-100 text-amber-700 border-amber-200',
     ACTIVE: 'bg-green-100 text-green-700 border-green-200',
 };
 
@@ -73,7 +74,7 @@ const categoryIcons = {
 };
 
 const categoryColors = {
-    hair: 'bg-purple-100 text-purple-700',
+    hair: 'bg-amber-100 text-amber-700',
     salon: 'bg-amber-100 text-amber-700',
     barber: 'bg-blue-100 text-blue-700',
     spa: 'bg-pink-100 text-pink-700',
@@ -284,7 +285,8 @@ export default function CustomerPortal() {
         try {
             await redeemReward({
                 customer: customerData.id,
-                reward: reward.id
+                reward: reward.id,
+                date_claimed: new Date().toISOString()
             });
 
             toast({
@@ -353,12 +355,12 @@ export default function CustomerPortal() {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="absolute -right-2 -top-2 text-muted-foreground hover:text-purple-600"
+                                                className="absolute -right-2 -top-2 text-muted-foreground hover:text-amber-600"
                                                 onClick={openEditModal}
                                             >
                                                 <Edit className="w-4 h-4" />
                                             </Button>
-                                            <Avatar className="h-24 w-24 border-4 border-purple-100 mb-4">
+                                            <Avatar className="h-24 w-24 border-4 border-amber-100 mb-4">
                                                 {customerData.photo ? (
                                                     <img
                                                         src={customerData.photo.startsWith('http') ? customerData.photo : `http://localhost:8000${customerData.photo}`}
@@ -366,7 +368,7 @@ export default function CustomerPortal() {
                                                         className="h-full w-full object-cover"
                                                     />
                                                 ) : (
-                                                    <AvatarFallback className="bg-purple-600 text-white text-2xl">
+                                                    <AvatarFallback className="bg-amber-600 text-white text-2xl">
                                                         {customerData.name.split(' ').map(n => n[0]).join('')}
                                                     </AvatarFallback>
                                                 )}
@@ -411,15 +413,15 @@ export default function CustomerPortal() {
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         <Card className="animate-fade-in">
                                             <CardContent className="pt-6">
-                                                <div className="text-center p-4 rounded-xl bg-gradient-to-br from-purple-700 to-purple-500 text-white">
-                                                    <p className="text-purple-100 mb-1 text-sm">Loyalty Points</p>
+                                                <div className="text-center p-4 rounded-xl bg-gradient-to-br from-amber-700 to-amber-500 text-white">
+                                                    <p className="text-amber-100 mb-1 text-sm">Loyalty Points</p>
                                                     <div className="text-5xl font-bold">{customerData.points}</div>
                                                 </div>
                                             </CardContent>
                                         </Card>
                                         <Card className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
                                             <CardContent className="pt-6 text-center">
-                                                <DollarSign className="w-8 h-8 mx-auto text-purple-600 mb-2" />
+                                                <DollarSign className="w-8 h-8 mx-auto text-amber-600 mb-2" />
                                                 <p className="text-2xl font-display font-semibold text-foreground">
                                                     KES {statistics.total_spent.toLocaleString()}
                                                 </p>
@@ -428,7 +430,7 @@ export default function CustomerPortal() {
                                         </Card>
                                         <Card className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
                                             <CardContent className="pt-6 text-center">
-                                                <ShoppingBag className="w-8 h-8 mx-auto text-pink-600 mb-2" />
+                                                <ShoppingBag className="w-8 h-8 mx-auto text-orange-600 mb-2" />
                                                 <p className="text-2xl font-display font-semibold text-foreground">
                                                     {statistics.total_visits}
                                                 </p>
@@ -441,7 +443,7 @@ export default function CustomerPortal() {
                                     <Card className="animate-fade-in">
                                         <CardHeader>
                                             <CardTitle className="font-display text-lg flex items-center gap-2">
-                                                <Gift className="w-5 h-5 text-purple-600" />
+                                                <Gift className="w-5 h-5 text-amber-600" />
                                                 Available Rewards
                                             </CardTitle>
                                         </CardHeader>
@@ -463,7 +465,7 @@ export default function CustomerPortal() {
                                                                 <div>
                                                                     <div className="flex items-center gap-2 mb-1">
                                                                         <h3 className="font-semibold text-lg">{reward.name}</h3>
-                                                                        <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                                                                        <Badge variant="secondary" className="bg-amber-100 text-amber-700">
                                                                             {reward.type}
                                                                         </Badge>
                                                                         {!isEligible && (
@@ -483,12 +485,12 @@ export default function CustomerPortal() {
                                                                     )}
                                                                 </div>
                                                                 <div className="text-right">
-                                                                    <div className="font-bold text-purple-700 text-lg">
+                                                                    <div className="font-bold text-amber-700 text-lg">
                                                                         {reward.points_required > 0 ? `${reward.points_required} pts` : `${reward.visits_required} visits`}
                                                                     </div>
                                                                     <Button
                                                                         variant={isEligible ? "link" : "ghost"}
-                                                                        className={isEligible ? "text-purple-600 p-0 h-auto font-medium" : "text-muted-foreground p-0 h-auto font-medium cursor-not-allowed"}
+                                                                        className={isEligible ? "text-amber-600 p-0 h-auto font-medium" : "text-muted-foreground p-0 h-auto font-medium cursor-not-allowed"}
                                                                         onClick={() => isEligible && handleRedeemReward(reward)}
                                                                         disabled={!isEligible}
                                                                     >
@@ -568,14 +570,14 @@ export default function CustomerPortal() {
                                 <Button
                                     onClick={() => setSelectedCategory('all')}
                                     variant={selectedCategory === 'all' ? 'default' : 'outline'}
-                                    className={selectedCategory === 'all' ? 'bg-purple-600 hover:bg-purple-700' : ''}
+                                    className={selectedCategory === 'all' ? 'bg-amber-600 hover:bg-amber-700' : ''}
                                 >
                                     All Services
                                 </Button>
                                 <Button
                                     onClick={() => setSelectedCategory('hair')}
                                     variant={selectedCategory === 'hair' ? 'default' : 'outline'}
-                                    className={selectedCategory === 'hair' ? 'bg-purple-600 hover:bg-purple-700' : ''}
+                                    className={selectedCategory === 'hair' ? 'bg-amber-600 hover:bg-amber-700' : ''}
                                 >
                                     <Scissors className="w-4 h-4 mr-2" />
                                     Hair
@@ -599,7 +601,7 @@ export default function CustomerPortal() {
                                 <Button
                                     onClick={() => setSelectedCategory('spa')}
                                     variant={selectedCategory === 'spa' ? 'default' : 'outline'}
-                                    className={selectedCategory === 'spa' ? 'bg-pink-600 hover:bg-pink-700' : ''}
+                                    className={selectedCategory === 'spa' ? 'bg-orange-600 hover:bg-orange-700' : ''}
                                 >
                                     <Waves className="w-4 h-4 mr-2" />
                                     Spa
@@ -651,7 +653,7 @@ export default function CustomerPortal() {
 
                                     return (
                                         <div key={category} className="mb-8">
-                                            <h2 className="text-2xl font-display font-semibold mb-4 text-purple-900 flex items-center gap-2">
+                                            <h2 className="text-2xl font-display font-semibold mb-4 text-amber-900 flex items-center gap-2">
                                                 <Icon className="w-6 h-6" />
                                                 {category.charAt(0).toUpperCase() + category.slice(1)} Services
                                             </h2>
@@ -659,13 +661,13 @@ export default function CustomerPortal() {
                                                 {categoryServices.map((service) => {
                                                     const status = getBookingStatus(service.id);
                                                     return (
-                                                        <Card key={service.id} className="hover:shadow-lg transition-all duration-300 border-purple-100">
+                                                        <Card key={service.id} className="hover:shadow-lg transition-all duration-300 border-amber-100">
                                                             <CardContent className="p-6">
                                                                 <div className="flex justify-between items-start mb-4">
                                                                     <Badge className={categoryColors[category as keyof typeof categoryColors] || categoryColors.other}>
                                                                         {service.category}
                                                                     </Badge>
-                                                                    <span className="font-bold text-lg text-purple-700">
+                                                                    <span className="font-bold text-lg text-amber-700">
                                                                         KES {parseFloat(service.price).toLocaleString()}
                                                                     </span>
                                                                 </div>
@@ -693,7 +695,7 @@ export default function CustomerPortal() {
                                                                     ) : (
                                                                         <Button
                                                                             onClick={() => initiateBooking(service)}
-                                                                            className="bg-purple-600 hover:bg-purple-700 text-white"
+                                                                            className="bg-amber-600 hover:bg-amber-700 text-white"
                                                                         >
                                                                             <Plus className="w-4 h-4 mr-2" />
                                                                             Book Now
@@ -765,13 +767,13 @@ export default function CustomerPortal() {
                             <div className="grid gap-4 py-4">
                                 <div className="flex flex-col items-center gap-4 mb-4">
                                     <div className="relative group">
-                                        <Avatar className="h-24 w-24 border-2 border-purple-100">
+                                        <Avatar className="h-24 w-24 border-2 border-amber-100">
                                             {editPhoto ? (
                                                 <img src={URL.createObjectURL(editPhoto)} alt="Preview" className="h-full w-full object-cover" />
                                             ) : customerData.photo ? (
                                                 <img src={customerData.photo.startsWith('http') ? customerData.photo : `http://localhost:8000${customerData.photo}`} alt="Profile" className="h-full w-full object-cover" />
                                             ) : (
-                                                <AvatarFallback className="bg-purple-600 text-white text-2xl">
+                                                <AvatarFallback className="bg-amber-600 text-white text-2xl">
                                                     {customerData.name.split(' ').map(n => n[0]).join('')}
                                                 </AvatarFallback>
                                             )}

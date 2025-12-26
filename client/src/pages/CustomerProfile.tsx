@@ -29,7 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 const statusColors: any = {
   active: 'bg-green-100 text-green-700 border-green-200',
   inactive: 'bg-gray-100 text-gray-500 border-gray-200',
-  vip: 'bg-purple-100 text-purple-700 border-purple-200',
+  vip: 'bg-amber-100 text-amber-700 border-amber-200',
 };
 
 export default function CustomerProfile() {

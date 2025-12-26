@@ -261,9 +261,9 @@ class Booking(models.Model):
         # Visit.save() handles updating customer points/visit count automatically via its own save method
 
     def _send_approval_email(self):
+        import threading
         from django.conf import settings
         if not self.customer.email:
-            print(f"Warning: Customer {self.customer.name} has no email address. Skipping approval email.")
             return
 
         subject = 'Your Booking Has Been Approved'
@@ -281,13 +281,19 @@ Thank you for choosing our service.
 Best regards,
 ClientPulse Team'''
 
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL,
-            [self.customer.email, settings.DEFAULT_FROM_EMAIL],
-            fail_silently=False,
-        )
+        def send():
+            try:
+                send_mail(
+                    subject,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [self.customer.email, settings.DEFAULT_FROM_EMAIL],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                print(f"Error sending approval email: {e}")
+
+        threading.Thread(target=send).start()
 
 
 class CustomerReward(models.Model):

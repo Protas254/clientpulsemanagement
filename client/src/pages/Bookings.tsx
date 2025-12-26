@@ -177,7 +177,7 @@ export default function Bookings() {
         return (
             <AppLayout title="Bookings" subtitle="Loading...">
                 <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
                 </div>
             </AppLayout>
         );
@@ -199,9 +199,9 @@ export default function Bookings() {
                             {statusFilter === 'all' ? 'Pending' : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
                         </p>
                         <p className={`text-2xl font-bold ${statusFilter === 'pending' || statusFilter === 'all' ? 'text-yellow-600' :
-                                statusFilter === 'confirmed' ? 'text-green-600' :
-                                    statusFilter === 'completed' ? 'text-blue-600' :
-                                        'text-red-600'
+                            statusFilter === 'confirmed' ? 'text-green-600' :
+                                statusFilter === 'completed' ? 'text-blue-600' :
+                                    'text-red-600'
                             }`}>
                             {statusFilter === 'all'
                                 ? allBookings.filter(b => b.status === 'pending').length
@@ -212,7 +212,7 @@ export default function Bookings() {
                 </div>
                 <Button
                     onClick={() => setShowNewBooking(true)}
-                    className="bg-purple-600 hover:bg-purple-700"
+                    className="bg-amber-600 hover:bg-amber-700"
                 >
                     <Calendar className="w-4 h-4 mr-2" />
                     New Booking
@@ -406,7 +406,7 @@ export default function Bookings() {
                             />
                         </div>
 
-                        <Button onClick={handleCreateBooking} className="w-full bg-purple-600 hover:bg-purple-700">
+                        <Button onClick={handleCreateBooking} className="w-full bg-amber-600 hover:bg-amber-700">
                             Create Booking
                         </Button>
                     </div>

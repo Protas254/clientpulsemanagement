@@ -41,7 +41,7 @@ const categoryIcons = {
 };
 
 const categoryColors = {
-    hair: 'bg-purple-100 text-purple-700',
+    hair: 'bg-amber-100 text-amber-700',
     salon: 'bg-amber-100 text-amber-700',
     barber: 'bg-blue-100 text-blue-700',
     spa: 'bg-pink-100 text-pink-700',
@@ -113,6 +113,7 @@ export default function Services() {
         try {
             const serviceData = {
                 ...formData,
+                category: formData.category as any,
                 duration: parseInt(formData.duration),
             };
 
@@ -120,7 +121,7 @@ export default function Services() {
                 await updateService(editingService.id, serviceData);
                 toast({ title: 'Success', description: 'Service updated successfully' });
             } else {
-                await createService(serviceData);
+                await createService(serviceData as any);
                 toast({ title: 'Success', description: 'Service created successfully' });
             }
             setIsDialogOpen(false);
@@ -179,7 +180,7 @@ export default function Services() {
         return (
             <AppLayout title="Services" subtitle="Loading services...">
                 <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
                 </div>
             </AppLayout>
         );
@@ -195,14 +196,14 @@ export default function Services() {
                 <Button
                     onClick={() => setSelectedCategory('all')}
                     variant={selectedCategory === 'all' ? 'default' : 'outline'}
-                    className={selectedCategory === 'all' ? 'bg-purple-600 hover:bg-purple-700' : ''}
+                    className={selectedCategory === 'all' ? 'bg-amber-600 hover:bg-amber-700' : ''}
                 >
                     All Services
                 </Button>
                 <Button
                     onClick={() => setSelectedCategory('hair')}
                     variant={selectedCategory === 'hair' ? 'default' : 'outline'}
-                    className={selectedCategory === 'hair' ? 'bg-purple-600 hover:bg-purple-700' : ''}
+                    className={selectedCategory === 'hair' ? 'bg-amber-600 hover:bg-amber-700' : ''}
                 >
                     <Scissors className="w-4 h-4 mr-2" />
                     Hair
@@ -226,7 +227,7 @@ export default function Services() {
                 <Button
                     onClick={() => setSelectedCategory('spa')}
                     variant={selectedCategory === 'spa' ? 'default' : 'outline'}
-                    className={selectedCategory === 'spa' ? 'bg-pink-600 hover:bg-pink-700' : ''}
+                    className={selectedCategory === 'spa' ? 'bg-orange-600 hover:bg-orange-700' : ''}
                 >
                     <Waves className="w-4 h-4 mr-2" />
                     Spa
@@ -255,7 +256,7 @@ export default function Services() {
 
                 return (
                     <div key={category} className="mb-8">
-                        <h2 className="text-2xl font-display font-semibold mb-4 text-purple-900 flex items-center gap-2">
+                        <h2 className="text-2xl font-display font-semibold mb-4 text-amber-900 flex items-center gap-2">
                             <Icon className="w-6 h-6" />
                             {category.charAt(0).toUpperCase() + category.slice(1)} Services
                         </h2>
@@ -263,7 +264,7 @@ export default function Services() {
                             {categoryServices.map((service) => (
                                 <Card
                                     key={service.id}
-                                    className={`hover:shadow-lg transition border-2 ${service.is_active ? 'border-purple-200' : 'border-gray-200 opacity-60'
+                                    className={`hover:shadow-lg transition border-2 ${service.is_active ? 'border-amber-200' : 'border-gray-200 opacity-60'
                                         }`}
                                 >
                                     <CardContent className="p-6">
@@ -291,7 +292,7 @@ export default function Services() {
                                             </DropdownMenu>
                                         </div>
 
-                                        <h3 className="text-lg font-semibold text-purple-900 mb-2">
+                                        <h3 className="text-lg font-semibold text-amber-900 mb-2">
                                             {service.name}
                                         </h3>
 
@@ -303,7 +304,7 @@ export default function Services() {
 
                                         <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
                                             <div>
-                                                <p className="text-2xl font-bold text-purple-700">
+                                                <p className="text-2xl font-bold text-amber-700">
                                                     KES {parseFloat(service.price).toLocaleString()}
                                                 </p>
                                                 <p className="text-sm text-gray-500">{service.duration} minutes</p>
@@ -330,7 +331,7 @@ export default function Services() {
 
             {/* Floating Add Button */}
             <Button
-                className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
                 size="icon"
                 onClick={() => handleOpenDialog()}
             >
