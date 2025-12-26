@@ -32,6 +32,7 @@ import { Calendar, Clock, User, CheckCircle, XCircle, AlertCircle } from 'lucide
 import { format } from 'date-fns';
 
 export default function Bookings() {
+    const [allBookings, setAllBookings] = useState<Booking[]>([]);
     const [bookings, setBookings] = useState<Booking[]>([]);
     const [customers, setCustomers] = useState<Customer[]>([]);
     const [services, setServices] = useState<Service[]>([]);
@@ -66,7 +67,6 @@ export default function Bookings() {
     const loadData = async () => {
         try {
             const params: any = {};
-            if (statusFilter !== 'all') params.status = statusFilter;
             if (searchQuery) params.search = searchQuery;
 
             const [bookingsData, customersData, servicesData, staffData] = await Promise.all([
@@ -75,7 +75,16 @@ export default function Bookings() {
                 fetchServices(),
                 fetchStaff(),
             ]);
-            setBookings(bookingsData);
+
+            setAllBookings(bookingsData);
+
+            // Filter bookings for the table
+            if (statusFilter === 'all') {
+                setBookings(bookingsData);
+            } else {
+                setBookings(bookingsData.filter(b => b.status === statusFilter));
+            }
+
             setCustomers(customersData);
             setServices(servicesData);
             setStaff(staffData);
@@ -181,14 +190,23 @@ export default function Bookings() {
         >
             <div className="mb-6 flex justify-between items-center">
                 <div className="flex gap-4">
-                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
+                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 min-w-[120px]">
                         <p className="text-sm text-gray-500">Total Bookings</p>
-                        <p className="text-2xl font-bold text-gray-900">{bookings.length}</p>
+                        <p className="text-2xl font-bold text-gray-900">{allBookings.length}</p>
                     </div>
-                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-                        <p className="text-sm text-gray-500">Pending</p>
-                        <p className="text-2xl font-bold text-yellow-600">
-                            {bookings.filter(b => b.status === 'pending').length}
+                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 min-w-[120px]">
+                        <p className="text-sm text-gray-500">
+                            {statusFilter === 'all' ? 'Pending' : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
+                        </p>
+                        <p className={`text-2xl font-bold ${statusFilter === 'pending' || statusFilter === 'all' ? 'text-yellow-600' :
+                                statusFilter === 'confirmed' ? 'text-green-600' :
+                                    statusFilter === 'completed' ? 'text-blue-600' :
+                                        'text-red-600'
+                            }`}>
+                            {statusFilter === 'all'
+                                ? allBookings.filter(b => b.status === 'pending').length
+                                : allBookings.filter(b => b.status === statusFilter).length
+                            }
                         </p>
                     </div>
                 </div>
