@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchDailyStats, fetchDashboardStats, DailyStats, DashboardStats } from '@/services/api';
+import { Button } from '@/components/ui/button';
 import { Users, TrendingUp, Scissors, Sparkles, Calendar } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -49,6 +50,39 @@ export default function Dashboard() {
       title="📊 Client Dashboard"
       subtitle="Welcome back! Here's your business overview."
     >
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <Button
+          onClick={() => window.location.href = '/customers?add=true'}
+          className="h-16 bg-purple-600 hover:bg-purple-700 text-white flex items-center justify-center gap-3 rounded-xl shadow-md hover:shadow-lg transition-all"
+        >
+          <Users className="w-5 h-5" />
+          <span className="font-semibold">Add New Customer</span>
+        </Button>
+        <Button
+          onClick={() => window.location.href = '/bookings?add=true'}
+          className="h-16 bg-pink-600 hover:bg-pink-700 text-white flex items-center justify-center gap-3 rounded-xl shadow-md hover:shadow-lg transition-all"
+        >
+          <Calendar className="w-5 h-5" />
+          <span className="font-semibold">New Booking</span>
+        </Button>
+        <Button
+          onClick={() => window.location.href = '/services'}
+          variant="outline"
+          className="h-16 border-purple-200 text-purple-700 hover:bg-purple-50 flex items-center justify-center gap-3 rounded-xl shadow-sm transition-all"
+        >
+          <Scissors className="w-5 h-5" />
+          <span className="font-semibold">Manage Services</span>
+        </Button>
+        <Button
+          onClick={() => window.location.href = '/reports'}
+          variant="outline"
+          className="h-16 border-pink-200 text-pink-700 hover:bg-pink-50 flex items-center justify-center gap-3 rounded-xl shadow-sm transition-all"
+        >
+          <TrendingUp className="w-5 h-5" />
+          <span className="font-semibold">View Reports</span>
+        </Button>
+      </div>
       {/* Today's Stats */}
       <div className="mb-6">
         <h2 className="text-2xl font-display font-semibold mb-4 text-purple-900">
@@ -63,7 +97,7 @@ export default function Dashboard() {
           />
           <StatCard
             title="Revenue Today"
-            value={`KES ${dailyStats?.revenue.toLocaleString() || 0}`}
+            value={`KES ${(dailyStats?.revenue || 0).toLocaleString()}`}
             icon={<TrendingUp className="w-6 h-6 text-pink-600" />}
             variant="accent"
           />
@@ -71,39 +105,6 @@ export default function Dashboard() {
             title="Total Customers"
             value={dashboardStats?.total_customers || 0}
             icon={<Sparkles className="w-6 h-6 text-purple-600" />}
-          />
-        </div>
-      </div>
-
-      {/* Monthly Overview */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-display font-semibold mb-4 text-purple-900">
-          Monthly Overview
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard
-            title="This Month's Revenue"
-            value={`KES ${dashboardStats?.current_month_sales.toLocaleString() || 0}`}
-            icon={<TrendingUp className="w-6 h-6 text-purple-600" />}
-            trend={{
-              value: dashboardStats?.sales_growth || 0,
-              isPositive: (dashboardStats?.sales_growth || 0) >= 0
-            }}
-          />
-          <StatCard
-            title="Total Visits"
-            value={dashboardStats?.total_transactions || 0}
-            icon={<Calendar className="w-6 h-6 text-pink-600" />}
-          />
-          <StatCard
-            title="Active Customers"
-            value={dashboardStats?.active_customers || 0}
-            icon={<Users className="w-6 h-6 text-purple-600" />}
-          />
-          <StatCard
-            title="Average Per Visit"
-            value={`KES ${dashboardStats?.avg_order.toLocaleString() || 0}`}
-            icon={<Scissors className="w-6 h-6 text-pink-600" />}
           />
         </div>
       </div>
@@ -143,6 +144,39 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Monthly Overview */}
+      <div className="mb-6">
+        <h2 className="text-2xl font-display font-semibold mb-4 text-purple-900">
+          Monthly Overview
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard
+            title="This Month's Revenue"
+            value={`KES ${(dashboardStats?.current_month_sales || 0).toLocaleString()}`}
+            icon={<TrendingUp className="w-6 h-6 text-purple-600" />}
+            trend={{
+              value: dashboardStats?.sales_growth || 0,
+              isPositive: (dashboardStats?.sales_growth || 0) >= 0
+            }}
+          />
+          <StatCard
+            title="Total Visits"
+            value={dashboardStats?.total_transactions || 0}
+            icon={<Calendar className="w-6 h-6 text-pink-600" />}
+          />
+          <StatCard
+            title="Active Customers"
+            value={dashboardStats?.active_customers || 0}
+            icon={<Users className="w-6 h-6 text-purple-600" />}
+          />
+          <StatCard
+            title="Average Per Visit"
+            value={`KES ${(dashboardStats?.avg_order || 0).toLocaleString()}`}
+            icon={<Scissors className="w-6 h-6 text-pink-600" />}
+          />
+        </div>
+      </div>
+
       {/* Staff Performance Today */}
       {dailyStats && dailyStats.staff_performance.length > 0 && (
         <div className="mb-6">
@@ -177,21 +211,21 @@ export default function Dashboard() {
           className="p-6 bg-gradient-to-br from-purple-500 to-purple-700 text-white rounded-lg shadow-lg hover:shadow-xl transition transform hover:scale-105 cursor-pointer"
         >
           <h3 className="text-xl font-bold mb-2">New Walk-In</h3>
-          <p className="text-purple-100">Record a new customer visit</p>
+          <p className="text-purple-100">Record a visit</p>
         </a>
         <a
           href="/customers"
           className="p-6 bg-gradient-to-br from-pink-500 to-pink-700 text-white rounded-lg shadow-lg hover:shadow-xl transition transform hover:scale-105 cursor-pointer"
         >
           <h3 className="text-xl font-bold mb-2">Customers</h3>
-          <p className="text-pink-100">View and manage customers</p>
+          <p className="text-pink-100">Manage clients</p>
         </a>
         <a
           href="/services"
           className="p-6 bg-gradient-to-br from-purple-600 to-pink-600 text-white rounded-lg shadow-lg hover:shadow-xl transition transform hover:scale-105 cursor-pointer"
         >
           <h3 className="text-xl font-bold mb-2">Services</h3>
-          <p className="text-purple-100">Manage your service menu</p>
+          <p className="text-purple-100">Manage menu</p>
         </a>
       </div>
     </AppLayout>

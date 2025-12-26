@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { TopNav } from '@/components/layout/TopNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Scissors, Gift, ArrowRight, LogOut, Mail, Phone, MapPin, Calendar, DollarSign, ShoppingBag, Plus, Check, Clock, Waves, Hand, Smile, MoreVertical } from 'lucide-react';
+import { Scissors, Gift, ArrowRight, Mail, Phone, MapPin, Calendar, DollarSign, ShoppingBag, Plus, Check, Clock, Waves, Hand, Smile, MoreVertical } from 'lucide-react';
 import { Reward, Service, fetchServices, createBooking, fetchBookings, Booking, redeemReward, checkRewards } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
@@ -62,6 +63,8 @@ const statusColors = {
 
 const categoryIcons = {
     hair: Scissors,
+    salon: Scissors,
+    barber: Scissors,
     spa: Waves,
     nails: Hand,
     facial: Smile,
@@ -70,6 +73,8 @@ const categoryIcons = {
 
 const categoryColors = {
     hair: 'bg-purple-100 text-purple-700',
+    salon: 'bg-amber-100 text-amber-700',
+    barber: 'bg-blue-100 text-blue-700',
     spa: 'bg-pink-100 text-pink-700',
     nails: 'bg-rose-100 text-rose-700',
     facial: 'bg-fuchsia-100 text-fuchsia-700',
@@ -151,11 +156,6 @@ export default function CustomerPortal() {
         }
     };
 
-    const handleLogout = () => {
-        localStorage.removeItem('customer_data');
-        navigate('/login');
-    };
-
     const initiateBooking = (service: Service) => {
         setSelectedService(service);
         setBookingDate('');
@@ -163,6 +163,8 @@ export default function CustomerPortal() {
     };
 
     const handleConfirmBooking = async () => {
+        console.log('Confirming booking...', { customerData, selectedService, bookingDate, bookingTime });
+
         if (!customerData || !selectedService || !bookingDate || !bookingTime) {
             toast({
                 title: "Error",
@@ -173,9 +175,22 @@ export default function CustomerPortal() {
         }
 
         setBookingLoading(true);
-        const dateTime = new Date(`${bookingDate}T${bookingTime}`);
 
         try {
+            // Ensure date and time are combined correctly
+            const dateTimeStr = `${bookingDate}T${bookingTime}`;
+            const dateTime = new Date(dateTimeStr);
+
+            if (isNaN(dateTime.getTime())) {
+                throw new Error("Invalid date or time selected.");
+            }
+
+            console.log('Sending booking request...', {
+                customer: customerData.id,
+                service: selectedService.id,
+                booking_date: dateTime.toISOString(),
+            });
+
             await createBooking({
                 customer: customerData.id,
                 service: selectedService.id,
@@ -191,10 +206,11 @@ export default function CustomerPortal() {
             });
             setSelectedService(null);
             loadBookings(customerData.id); // Refresh bookings to update UI
-        } catch (error) {
+        } catch (error: any) {
+            console.error('Booking failed:', error);
             toast({
                 title: "Booking Failed",
-                description: "Could not process your booking request. Please try again.",
+                description: error.message || "Could not process your booking request. Please try again.",
                 variant: "destructive"
             });
         } finally {
@@ -248,21 +264,7 @@ export default function CustomerPortal() {
 
     return (
         <div className="min-h-screen bg-background flex flex-col">
-            {/* Header */}
-            <header className="border-b border-border/40 bg-card/50 backdrop-blur-xl sticky top-0 z-50">
-                <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="p-2 rounded-lg bg-purple-100">
-                            <Scissors className="w-6 h-6 text-purple-600" />
-                        </div>
-                        <span className="text-xl font-display font-bold text-foreground">ClientPulse</span>
-                    </div>
-                    <Button variant="ghost" onClick={handleLogout} className="text-muted-foreground hover:text-foreground">
-                        <LogOut className="w-4 h-4 mr-2" />
-                        Logout
-                    </Button>
-                </div>
-            </header>
+            <TopNav title={`Hello, ${customerData.name}`} subtitle="Customer Portal" />
 
             <main className="flex-1 container mx-auto px-4 py-8">
                 <div className="max-w-6xl mx-auto space-y-8">
@@ -460,7 +462,7 @@ export default function CustomerPortal() {
                                                     ))}
                                                     {purchases.map((purchase) => (
                                                         <div
-                                                            key={`p-KES{purchase.id}`}
+                                                            key={`p-${purchase.id}`}
                                                             className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
                                                         >
                                                             <div>
@@ -501,6 +503,22 @@ export default function CustomerPortal() {
                                 >
                                     <Scissors className="w-4 h-4 mr-2" />
                                     Hair
+                                </Button>
+                                <Button
+                                    onClick={() => setSelectedCategory('salon')}
+                                    variant={selectedCategory === 'salon' ? 'default' : 'outline'}
+                                    className={selectedCategory === 'salon' ? 'bg-amber-600 hover:bg-amber-700' : ''}
+                                >
+                                    <Scissors className="w-4 h-4 mr-2" />
+                                    Salon
+                                </Button>
+                                <Button
+                                    onClick={() => setSelectedCategory('barber')}
+                                    variant={selectedCategory === 'barber' ? 'default' : 'outline'}
+                                    className={selectedCategory === 'barber' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                                >
+                                    <Scissors className="w-4 h-4 mr-2" />
+                                    Barber
                                 </Button>
                                 <Button
                                     onClick={() => setSelectedCategory('spa')}

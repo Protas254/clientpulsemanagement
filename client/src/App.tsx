@@ -22,6 +22,9 @@ import Visits from "./pages/Visits";
 import Bookings from "./pages/Bookings";
 import Staff from "./pages/Staff";
 import Dashboard from "./pages/Dashboard";
+import LandingPage from "./pages/LandingPage";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -33,7 +36,9 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="" element={<Login />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/portal" element={<CustomerPortal />} />

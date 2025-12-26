@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Customer, Sale, Reward, Service, Visit, StaffMember, Booking, CustomerReward
+from .models import Customer, Sale, Reward, Service, Visit, StaffMember, Booking, CustomerReward, ContactMessage, Notification
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -93,4 +93,16 @@ class CustomerRewardSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = CustomerReward
+        fields = '__all__'
+
+
+class ContactMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContactMessage
+        fields = '__all__'
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
         fields = '__all__'

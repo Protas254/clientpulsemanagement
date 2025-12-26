@@ -1,7 +1,7 @@
 export interface Service {
     id: number;
     name: string;
-    category: 'hair' | 'spa' | 'nails' | 'facial' | 'other';
+    category: 'hair' | 'spa' | 'nails' | 'facial' | 'salon' | 'barber' | 'other';
     price: string;
     duration: number;
     description: string;
@@ -105,10 +105,13 @@ const API_URL = 'http://localhost:8000/api/';
 
 const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
-    return {
+    const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'Authorization': token ? `Token ${token}` : '',
     };
+    if (token) {
+        headers['Authorization'] = `Token ${token}`;
+    }
+    return headers;
 };
 
 // Website functions removed as requested
@@ -545,7 +548,8 @@ export const createBooking = async (booking: Omit<Booking, 'id' | 'created_at' |
         body: JSON.stringify(booking),
     });
     if (!response.ok) {
-        throw new Error('Failed to create booking');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.error || JSON.stringify(errorData) || 'Failed to create booking');
     }
     return response.json();
 };
@@ -615,4 +619,104 @@ export const redeemReward = async (data: { customer: number; reward: number; dat
         throw new Error('Failed to redeem reward');
     }
     return response.json();
+};
+
+export const initiateStkPush = async (data: { phone_number: string; amount: string; account_reference?: string; transaction_desc?: string }) => {
+    const response = await fetch(`${API_URL}mpesa/stk-push/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to initiate STK push: ${errorText}`);
+    }
+    return response.json();
+};
+
+export interface ContactMessage {
+    id?: number;
+    full_name: string;
+    phone: string;
+    email: string;
+    subject: string;
+    message: string;
+    created_at?: string;
+}
+
+export const sendContactMessage = async (message: ContactMessage): Promise<ContactMessage> => {
+    const response = await fetch(`${API_URL}contact-messages/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(message),
+    });
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to send message: ${errorText}`);
+    }
+    return response.json();
+};
+
+export const fetchContactMessages = async (): Promise<ContactMessage[]> => {
+    const response = await fetch(`${API_URL}contact-messages/`, {
+        headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch contact messages');
+    }
+    return response.json();
+};
+
+export interface Notification {
+    id: number;
+    recipient_type: 'customer' | 'admin' | 'staff';
+    customer?: number;
+    user?: number;
+    staff?: number;
+    title: string;
+    message: string;
+    is_read: boolean;
+    created_at: string;
+}
+
+export const fetchNotifications = async (customerId?: number): Promise<Notification[]> => {
+    const url = customerId
+        ? `${API_URL}notifications/?customer_id=${customerId}`
+        : `${API_URL}notifications/`;
+
+    const response = await fetch(url, {
+        headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch notifications');
+    }
+    return response.json();
+};
+
+export const markNotificationAsRead = async (id: number): Promise<void> => {
+    const response = await fetch(`${API_URL}notifications/${id}/mark_as_read/`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to mark notification as read');
+    }
+};
+
+export const markAllNotificationsAsRead = async (customerId?: number): Promise<void> => {
+    const response = await fetch(`${API_URL}notifications/mark_all_as_read/`, {
+        method: 'POST',
+        headers: {
+            ...getAuthHeaders(),
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ customer_id: customerId }),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to mark all notifications as read');
+    }
 };

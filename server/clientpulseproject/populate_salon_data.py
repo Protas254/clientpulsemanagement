@@ -14,17 +14,24 @@ from clientapp.models import Service, StaffMember, Reward
 def populate_services():
     """Create common salon/spa services"""
     services_data = [
-        # Hair Services
-        {'name': 'Haircut - Men', 'category': 'hair', 'price': 300, 'duration': 30, 'description': 'Standard men\'s haircut'},
+        # Barber Services
+        {'name': 'Haircut - Men', 'category': 'barber', 'price': 300, 'duration': 30, 'description': 'Standard men\'s haircut'},
         {'name': 'Haircut - Women', 'category': 'hair', 'price': 500, 'duration': 45, 'description': 'Women\'s haircut and styling'},
-        {'name': 'Haircut - Kids', 'category': 'hair', 'price': 200, 'duration': 20, 'description': 'Children\'s haircut'},
-        {'name': 'Shave', 'category': 'hair', 'price': 150, 'duration': 15, 'description': 'Clean shave'},
-        {'name': 'Beard Trim', 'category': 'hair', 'price': 200, 'duration': 20, 'description': 'Beard grooming and styling'},
+        {'name': 'Haircut - Kids', 'category': 'barber', 'price': 200, 'duration': 20, 'description': 'Children\'s haircut'},
+        {'name': 'Shave', 'category': 'barber', 'price': 150, 'duration': 15, 'description': 'Clean shave'},
+        {'name': 'Beard Trim', 'category': 'barber', 'price': 200, 'duration': 20, 'description': 'Beard grooming and styling'},
         {'name': 'Hair Wash', 'category': 'hair', 'price': 100, 'duration': 15, 'description': 'Hair washing and conditioning'},
         {'name': 'Braiding - Basic', 'category': 'hair', 'price': 800, 'duration': 120, 'description': 'Basic braiding styles'},
         {'name': 'Braiding - Complex', 'category': 'hair', 'price': 1500, 'duration': 180, 'description': 'Complex braiding styles'},
         {'name': 'Hair Treatment', 'category': 'hair', 'price': 1000, 'duration': 60, 'description': 'Deep conditioning treatment'},
         {'name': 'Hair Coloring', 'category': 'hair', 'price': 2000, 'duration': 90, 'description': 'Full hair coloring service'},
+        {'name': 'Hair Relaxing', 'category': 'salon', 'price': 1200, 'duration': 60, 'description': 'Chemical hair relaxing'},
+        {'name': 'Blow Dry & Style', 'category': 'salon', 'price': 500, 'duration': 45, 'description': 'Professional blow dry and styling'},
+        {'name': 'Weaving - Installation', 'category': 'salon', 'price': 2500, 'duration': 150, 'description': 'Hair weaving installation'},
+        {'name': 'Dreadlocks - Installation', 'category': 'salon', 'price': 5000, 'duration': 300, 'description': 'Starting new dreadlocks'},
+        {'name': 'Dreadlocks - Retouch', 'category': 'salon', 'price': 1500, 'duration': 90, 'description': 'Dreadlocks maintenance and retouch'},
+        {'name': 'Wig Installation', 'category': 'salon', 'price': 1500, 'duration': 60, 'description': 'Professional wig fitting and styling'},
+        {'name': 'Hair Steaming', 'category': 'salon', 'price': 600, 'duration': 30, 'description': 'Deep steam treatment for hair health'},
         
         # Spa & Massage
         {'name': 'Full Body Massage', 'category': 'spa', 'price': 3000, 'duration': 90, 'description': 'Relaxing full body massage'},
@@ -53,8 +60,9 @@ def populate_services():
     ]
     
     created_count = 0
+    updated_count = 0
     for service_data in services_data:
-        service, created = Service.objects.get_or_create(
+        service, created = Service.objects.update_or_create(
             name=service_data['name'],
             defaults=service_data
         )
@@ -62,9 +70,10 @@ def populate_services():
             created_count += 1
             print(f"✓ Created service: {service.name}")
         else:
-            print(f"- Service already exists: {service.name}")
+            updated_count += 1
+            print(f"↻ Updated service: {service.name}")
     
-    print(f"\nTotal services created: {created_count}/{len(services_data)}")
+    print(f"\nTotal services: {len(services_data)} (Created: {created_count}, Updated: {updated_count})")
 
 
 def populate_staff():

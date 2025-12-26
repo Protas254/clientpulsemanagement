@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.core.mail import send_mail
+from django.contrib.auth.models import User
 
 # Create your models here.
 
@@ -10,6 +11,7 @@ class StaffMember(models.Model):
     """Staff members (barbers, stylists, therapists) who provide services"""
     name = models.CharField(max_length=200)
     phone = models.CharField(max_length=20)
+    email = models.EmailField(blank=True, null=True)
     is_active = models.BooleanField(default=True)
     joined_date = models.DateField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -57,6 +59,19 @@ class Customer(models.Model):
     preferred_staff = models.ForeignKey(StaffMember, on_delete=models.SET_NULL, null=True, blank=True, related_name='preferred_customers')
     service_notes = models.TextField(blank=True, help_text="Style preferences, allergies, special notes")
 
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if is_new:
+            # Notification: New Customer (Admin)
+            for admin in User.objects.filter(is_superuser=True):
+                create_notification(
+                    title="New Customer Registered",
+                    message=f"New customer registered: {self.name}.",
+                    recipient_type='admin',
+                    user=admin
+                )
+
     def __str__(self):
         return self.name
 
@@ -87,9 +102,18 @@ class Visit(models.Model):
         if is_new:
             self.customer.visit_count += 1
             # Add points: 1 point per currency unit
-            self.customer.points += int(self.total_amount)
+            points_earned = int(self.total_amount)
+            self.customer.points += points_earned
             self.customer.last_purchase = self.visit_date.date()
             self.customer.save()
+            
+            # Notification: Points Earned
+            create_notification(
+                title="Points Earned",
+                message=f"You earned {points_earned} points today. Total points: {self.customer.points}.",
+                recipient_type='customer',
+                customer=self.customer
+            )
 
 
 # Keep Sale model for backward compatibility
@@ -144,16 +168,14 @@ class Booking(models.Model):
         return f"{self.customer.name} - {self.service.name} - {self.booking_date}"
 
     def save(self, *args, **kwargs):
-        # Check if status changed to confirmed (approved)
+        is_new = self.pk is None
         send_approval = False
         create_visit = False
 
-        if self.pk:
+        if not is_new:
             old_instance = Booking.objects.get(pk=self.pk)
             if old_instance.status != 'confirmed' and self.status == 'confirmed':
                 send_approval = True
-            
-            # Check if status changed to completed
             if old_instance.status != 'completed' and self.status == 'completed':
                 create_visit = True
         else:
@@ -164,7 +186,33 @@ class Booking(models.Model):
             
         super().save(*args, **kwargs)
 
+        if is_new:
+            # Notification: New Booking (Admin & Staff)
+            # Notify all superusers
+            for admin in User.objects.filter(is_superuser=True):
+                create_notification(
+                    title="New Booking",
+                    message=f"New booking from {self.customer.name} for {self.service.name}.",
+                    recipient_type='admin',
+                    user=admin
+                )
+            
+            if self.staff_member:
+                create_notification(
+                    title="New Appointment Assigned",
+                    message=f"Upcoming appointment: {self.customer.name} - {self.service.name} - {self.booking_date.strftime('%H:%M')}.",
+                    recipient_type='staff',
+                    staff=self.staff_member
+                )
+
         if send_approval:
+            # Notification: Appointment Confirmation
+            create_notification(
+                title="Appointment Confirmation",
+                message=f"Hello {self.customer.name}, your {self.service.name} appointment is confirmed for {self.booking_date.strftime('%Y-%m-%d at %H:%M')}.",
+                recipient_type='customer',
+                customer=self.customer
+            )
             self._send_approval_email()
         
         if create_visit:
@@ -234,5 +282,100 @@ class CustomerReward(models.Model):
     date_redeemed = models.DateTimeField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        old_status = None
+        if not is_new:
+            old_status = CustomerReward.objects.get(pk=self.pk).status
+            
+        super().save(*args, **kwargs)
+        
+        if is_new:
+            # Notification: Reward Unlocked
+            create_notification(
+                title="Reward Unlocked",
+                message=f"Congratulations! You've earned a {self.reward.name}. Show this message to redeem.",
+                recipient_type='customer',
+                customer=self.customer
+            )
+            
+        if old_status != 'redeemed' and self.status == 'redeemed':
+            # Notification: Reward Redeemed (Admin)
+            for admin in User.objects.filter(is_superuser=True):
+                create_notification(
+                    title="Reward Redeemed",
+                    message=f"A reward has been redeemed by {self.customer.name} - {self.reward.name}.",
+                    recipient_type='admin',
+                    user=admin
+                )
+
     def __str__(self):
         return f"{self.customer.name} - {self.reward.name}"
+
+
+class ContactMessage(models.Model):
+    full_name = models.CharField(max_length=200)
+    phone = models.CharField(max_length=20)
+    email = models.EmailField()
+    subject = models.CharField(max_length=255)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.full_name} - {self.subject}"
+
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = [
+        ('customer', 'Customer'),
+        ('admin', 'Admin'),
+        ('staff', 'Staff'),
+    ]
+    
+    recipient_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    staff = models.ForeignKey(StaffMember, on_delete=models.CASCADE, null=True, blank=True, related_name='notifications')
+    
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.title} - {self.created_at}"
+
+def create_notification(title, message, recipient_type, customer=None, user=None, staff=None, send_email=False):
+    """Helper to create a notification and optionally send an email"""
+    notification = Notification.objects.create(
+        title=title,
+        message=message,
+        recipient_type=recipient_type,
+        customer=customer,
+        user=user,
+        staff=staff
+    )
+    
+    if send_email:
+        recipient_email = None
+        if recipient_type == 'customer' and customer:
+            recipient_email = customer.email
+        elif recipient_type == 'admin' and user:
+            recipient_email = user.email
+        elif recipient_type == 'staff' and staff:
+            recipient_email = staff.email
+        
+        if recipient_email:
+            try:
+                from django.conf import settings
+                send_mail(
+                    title,
+                    message,
+                    settings.DEFAULT_FROM_EMAIL,
+                    [recipient_email],
+                    fail_silently=True,
+                )
+            except Exception as e:
+                print(f"Error sending email: {e}")
+    
+    return notification

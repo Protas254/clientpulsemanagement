@@ -267,7 +267,7 @@ export default function CustomerProfile() {
                           <p className="text-sm text-muted-foreground mb-4">{reward.description}</p>
                         </div>
                         <Button disabled variant="outline" className="w-full">
-                          {customer.points >= reward.points_required ? 'Eligible (Redeem in Portal)' : `Need KES{reward.points_required - customer.points} more pts`}
+                          {customer.points >= reward.points_required ? 'Eligible (Redeem in Portal)' : `Need ${reward.points_required - customer.points} more pts`}
                         </Button>
                       </div>
                     ))}

@@ -23,6 +23,14 @@ export default function Customers() {
 
   useEffect(() => {
     loadCustomers();
+
+    // Check for ?add=true in URL
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('add') === 'true') {
+      setIsFormOpen(true);
+      // Clean up URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, []);
 
   const loadCustomers = async () => {

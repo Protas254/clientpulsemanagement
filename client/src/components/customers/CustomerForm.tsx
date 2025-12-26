@@ -25,7 +25,7 @@ const customerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   phone: z.string().min(10, 'Phone number is required'),
-  location: z.string().min(2, 'Location is required'),
+  location: z.string().optional(),
   status: z.enum(['active', 'inactive', 'vip']),
   notes: z.string().optional(),
 });
@@ -142,10 +142,10 @@ export function CustomerForm({ customer, onSubmit, onCancel }: CustomerFormProps
             <FormItem>
               <FormLabel>Notes</FormLabel>
               <FormControl>
-                <Textarea 
+                <Textarea
                   placeholder="Additional notes about the customer..."
                   className="min-h-24"
-                  {...field} 
+                  {...field}
                 />
               </FormControl>
               <FormMessage />

@@ -123,46 +123,43 @@ const Signup = () => {
   return (
     <div className="min-h-screen flex">
       {/* Left side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-purple-900 via-purple-800 to-pink-700 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/90 via-purple-800/80 to-pink-700/30" />
-
-        {/* Decorative circles */}
-        <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-pink-500/10 blur-3xl" />
-        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-pink-500/15 blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-purple-400/10 blur-2xl" />
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
+        {/* Background Image with Overlay */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="/hero-bg.jpg"
+            alt="Luxury Salon Background"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-chocolate-dark/95 via-chocolate-dark/80 to-chocolate-dark/40" />
+        </div>
 
         <div className="relative z-10 flex flex-col items-center justify-center w-full p-12 text-center">
           {/* Logo */}
-          <div className="mb-8 p-5 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20">
-            <Scissors className="h-16 w-16 text-white" />
+          <div className="mb-8 p-3 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl">
+            <img src="/logo.png" alt="ClientPulse Logo" className="h-24 w-24 object-contain" />
           </div>
 
-          <h1 className="text-5xl font-display font-bold text-white mb-4">
+          <h1 className="text-6xl font-display font-bold text-white mb-4 tracking-tight">
             ClientPulse
           </h1>
-          <p className="text-xl text-purple-100 font-light max-w-md">
-            Salon, Spa & Kinyozi Management System
+          <p className="text-xl text-cream/80 font-light max-w-md leading-relaxed">
+            The all-in-one management and loyalty platform for modern beauty businesses.
           </p>
 
-          <div className="mt-16 space-y-6">
-            <div className="flex items-center gap-4 text-white/80">
-              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
-                <span className="text-white text-lg font-bold">1</span>
+          <div className="mt-16 space-y-6 w-full max-w-sm">
+            {[
+              { num: "1", text: "Track services & appointments" },
+              { num: "2", text: "Manage loyalty & memberships" },
+              { num: "3", text: "Enhance client experience" }
+            ].map((item, i) => (
+              <div key={i} className="flex items-center gap-4 text-white/90 bg-white/5 backdrop-blur-sm p-4 rounded-xl border border-white/10 hover:bg-white/10 transition-all">
+                <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center shrink-0 shadow-lg">
+                  <span className="text-accent-foreground text-lg font-bold">{item.num}</span>
+                </div>
+                <span className="text-left font-medium">{item.text}</span>
               </div>
-              <span className="text-left">Track services & appointments</span>
-            </div>
-            <div className="flex items-center gap-4 text-white/80">
-              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
-                <span className="text-white text-lg font-bold">2</span>
-              </div>
-              <span className="text-left">Manage loyalty & memberships</span>
-            </div>
-            <div className="flex items-center gap-4 text-white/80">
-              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
-                <span className="text-white text-lg font-bold">3</span>
-              </div>
-              <span className="text-left">Enhance client experience</span>
-            </div>
+            ))}
           </div>
         </div>
       </div>
@@ -212,7 +209,7 @@ const Signup = () => {
                     placeholder="name@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="h-12 bg-muted/50 border-border focus:border-purple-500 focus:ring-purple-500/30"
+                    className="h-12 bg-muted/50 border-border focus:border-accent focus:ring-accent/30"
                   />
                 </div>
 
@@ -227,7 +224,7 @@ const Signup = () => {
                       placeholder="Enter your password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="h-12 bg-muted/50 border-border focus:border-purple-500 focus:ring-purple-500/30 pr-12"
+                      className="h-12 bg-muted/50 border-border focus:border-accent focus:ring-accent/30 pr-12"
                     />
                     <button
                       type="button"
@@ -249,7 +246,7 @@ const Signup = () => {
                     placeholder="Confirm your password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="h-12 bg-muted/50 border-border focus:border-purple-500 focus:ring-purple-500/30"
+                    className="h-12 bg-muted/50 border-border focus:border-accent focus:ring-accent/30"
                   />
                 </div>
 
@@ -258,20 +255,20 @@ const Signup = () => {
                     id="terms-admin"
                     checked={agreeTerms}
                     onCheckedChange={(checked) => setAgreeTerms(checked as boolean)}
-                    className="border-border data-[state=checked]:bg-purple-600 mt-0.5"
+                    className="border-border data-[state=checked]:bg-accent mt-0.5"
                   />
                   <Label htmlFor="terms-admin" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
                     I agree to the{" "}
-                    <span className="text-purple-600 hover:underline cursor-pointer">Terms of Service</span>
+                    <span className="text-accent hover:underline cursor-pointer">Terms of Service</span>
                     {" "}and{" "}
-                    <span className="text-purple-600 hover:underline cursor-pointer">Privacy Policy</span>
+                    <span className="text-accent hover:underline cursor-pointer">Privacy Policy</span>
                   </Label>
                 </div>
 
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-12 bg-purple-600 hover:bg-purple-700 text-white font-medium text-base shadow-lg shadow-purple-200 transition-all duration-300 hover:shadow-xl"
+                  className="w-full h-12 bg-accent hover:bg-caramel text-accent-foreground font-bold text-base shadow-lg shadow-accent/20 transition-all duration-300 hover:shadow-xl"
                 >
                   {isLoading ? (
                     <div className="flex items-center gap-2">
@@ -297,7 +294,7 @@ const Signup = () => {
                     placeholder="John Doe"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    className="h-12 bg-muted/50 border-border focus:border-purple-500 focus:ring-purple-500/30"
+                    className="h-12 bg-muted/50 border-border focus:border-accent focus:ring-accent/30"
                   />
                 </div>
 
@@ -311,7 +308,7 @@ const Signup = () => {
                     placeholder="name@example.com"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
-                    className="h-12 bg-muted/50 border-border focus:border-purple-500 focus:ring-purple-500/30"
+                    className="h-12 bg-muted/50 border-border focus:border-accent focus:ring-accent/30"
                   />
                 </div>
 
@@ -325,7 +322,7 @@ const Signup = () => {
                     placeholder="+1 (555) 000-0000"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    className="h-12 bg-muted/50 border-border focus:border-purple-500 focus:ring-purple-500/30"
+                    className="h-12 bg-muted/50 border-border focus:border-accent focus:ring-accent/30"
                   />
                 </div>
 
@@ -334,20 +331,20 @@ const Signup = () => {
                     id="terms-customer"
                     checked={agreeTerms}
                     onCheckedChange={(checked) => setAgreeTerms(checked as boolean)}
-                    className="border-border data-[state=checked]:bg-purple-600 mt-0.5"
+                    className="border-border data-[state=checked]:bg-accent mt-0.5"
                   />
                   <Label htmlFor="terms-customer" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
                     I agree to the{" "}
-                    <span className="text-purple-600 hover:underline cursor-pointer">Terms of Service</span>
+                    <span className="text-accent hover:underline cursor-pointer">Terms of Service</span>
                     {" "}and{" "}
-                    <span className="text-purple-600 hover:underline cursor-pointer">Privacy Policy</span>
+                    <span className="text-accent hover:underline cursor-pointer">Privacy Policy</span>
                   </Label>
                 </div>
 
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full h-12 bg-purple-600 hover:bg-purple-700 text-white font-medium text-base shadow-lg shadow-purple-200 transition-all duration-300 hover:shadow-xl"
+                  className="w-full h-12 bg-accent hover:bg-caramel text-accent-foreground font-bold text-base shadow-lg shadow-accent/20 transition-all duration-300 hover:shadow-xl"
                 >
                   {isLoading ? (
                     <div className="flex items-center gap-2">
@@ -379,7 +376,7 @@ const Signup = () => {
             <Button
               type="button"
               variant="outline"
-              className="h-12 border-border hover:bg-muted/50 hover:border-purple-200 transition-all"
+              className="h-12 border-border hover:bg-muted/50 hover:border-accent/20 transition-all"
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
                 <path
@@ -408,7 +405,7 @@ const Signup = () => {
             Already have an account?{" "}
             <Link
               to="/login"
-              className="text-purple-600 hover:text-purple-700 font-medium transition-colors"
+              className="text-accent hover:text-caramel font-bold transition-colors"
             >
               Sign in
             </Link>

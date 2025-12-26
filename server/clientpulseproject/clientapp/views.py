@@ -3,14 +3,15 @@ from django.db import models
 from rest_framework import generics, status, permissions, viewsets
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from .models import Customer, Sale, Reward, Service, Visit, StaffMember, Booking, CustomerReward
+from .models import Customer, Sale, Reward, Service, Visit, StaffMember, Booking, CustomerReward, ContactMessage, Notification
 from .serializers import (
     UserSerializer, CustomerSerializer, 
     SaleSerializer, RewardSerializer, ServiceSerializer, VisitSerializer, StaffMemberSerializer,
-    BookingSerializer, CustomerRewardSerializer
+    BookingSerializer, CustomerRewardSerializer, ContactMessageSerializer,
+    NotificationSerializer
 )
 from django.db.models import Sum, Count, Avg, Q, F
 from django.db.models.functions import TruncMonth
@@ -50,7 +51,11 @@ class ServiceViewSet(viewsets.ModelViewSet):
     """API endpoint for services (haircut, massage, etc.)"""
     queryset = Service.objects.all()
     serializer_class = ServiceSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
     
     def get_queryset(self):
         queryset = Service.objects.all()
@@ -70,7 +75,11 @@ class StaffMemberViewSet(viewsets.ModelViewSet):
     """API endpoint for staff members (barbers, stylists, therapists)"""
     queryset = StaffMember.objects.all()
     serializer_class = StaffMemberSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
     
     def get_queryset(self):
         queryset = StaffMember.objects.all()
@@ -572,7 +581,11 @@ class BookingViewSet(viewsets.ModelViewSet):
     """API endpoint for bookings"""
     queryset = Booking.objects.all()
     serializer_class = BookingSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_permissions(self):
+        if self.action in ['create', 'list']:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
     
     def get_queryset(self):
         queryset = Booking.objects.all().select_related('customer', 'service', 'staff_member')
@@ -661,3 +674,67 @@ class RewardsStatsView(APIView):
             'active_rewards': active_rewards,
             'pending_redemptions': pending_redemptions
         })
+
+from .mpesa import MpesaClient
+
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def initiate_stk_push(request):
+    phone_number = request.data.get('phone_number')
+    amount = request.data.get('amount')
+    account_reference = request.data.get('account_reference', 'Payment')
+    transaction_desc = request.data.get('transaction_desc', 'Payment Description')
+
+    if not phone_number or not amount:
+        return Response({"error": "Phone number and amount are required"}, status=400)
+
+    cl = MpesaClient()
+    response = cl.stk_push(phone_number, amount, account_reference, transaction_desc)
+    
+    return Response(response)
+
+
+class ContactMessageViewSet(viewsets.ModelViewSet):
+    queryset = ContactMessage.objects.all()
+    serializer_class = ContactMessageSerializer
+    
+    def get_permissions(self):
+        if self.action == 'create':
+            return [permissions.AllowAny()]
+        return [permissions.IsAdminUser()]
+
+
+class NotificationViewSet(viewsets.ModelViewSet):
+    queryset = Notification.objects.all()
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.AllowAny] # We'll filter in get_queryset
+    
+    def get_queryset(self):
+        queryset = Notification.objects.all()
+        
+        # Admin view
+        if self.request.user.is_authenticated and self.request.user.is_superuser:
+            return queryset.filter(recipient_type='admin', user=self.request.user).order_by('-created_at')
+        
+        # Customer view (via query param for now, or we could use a custom header)
+        customer_id = self.request.query_params.get('customer_id')
+        if customer_id:
+            return queryset.filter(recipient_type='customer', customer_id=customer_id).order_by('-created_at')
+            
+        return queryset.none()
+
+    @action(detail=True, methods=['post'])
+    def mark_as_read(self, request, pk=None):
+        notification = self.get_object()
+        notification.is_read = True
+        notification.save()
+        return Response({'status': 'notification marked as read'})
+
+    @action(detail=False, methods=['post'])
+    def mark_all_as_read(self, request):
+        customer_id = request.data.get('customer_id')
+        if request.user.is_authenticated and request.user.is_superuser:
+            Notification.objects.filter(recipient_type='admin', user=request.user, is_read=False).update(is_read=True)
+        elif customer_id:
+            Notification.objects.filter(recipient_type='customer', customer_id=customer_id, is_read=False).update(is_read=True)
+        return Response({'status': 'all notifications marked as read'})

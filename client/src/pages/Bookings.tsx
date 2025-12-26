@@ -53,6 +53,14 @@ export default function Bookings() {
 
     useEffect(() => {
         loadData();
+
+        // Check for ?add=true in URL
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('add') === 'true') {
+            setShowNewBooking(true);
+            // Clean up URL
+            window.history.replaceState({}, '', window.location.pathname);
+        }
     }, [statusFilter, searchQuery]); // Reload when status filter or search query changes
 
     const loadData = async () => {
@@ -92,7 +100,7 @@ export default function Bookings() {
             return;
         }
 
-        const dateTime = new Date(`KES{bookingDate}TKES{bookingTime}`);
+        const dateTime = new Date(`${bookingDate}T${bookingTime}`);
 
         try {
             await createBooking({
@@ -126,7 +134,7 @@ export default function Bookings() {
             await updateBooking(id, { status });
             toast({
                 title: 'Success',
-                description: `Booking KES{status}`,
+                description: `Booking ${status}`,
             });
             loadData();
         } catch (error) {

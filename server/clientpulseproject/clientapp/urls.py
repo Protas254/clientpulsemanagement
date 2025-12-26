@@ -8,7 +8,8 @@ from .views import (
     RewardListCreate, RewardDetail, 
     CustomerRewardCheckView, CustomerSignupView, CustomerPortalDetailsView,
     ServiceViewSet, VisitViewSet, StaffMemberViewSet,
-    AnalyticsView, BookingViewSet, CustomerRewardViewSet, RewardsStatsView
+    AnalyticsView, BookingViewSet, CustomerRewardViewSet, RewardsStatsView,
+    initiate_stk_push, ContactMessageViewSet, NotificationViewSet
 )
 
 # Router for ViewSets
@@ -18,6 +19,8 @@ router.register(r'visits', VisitViewSet, basename='visit')
 router.register(r'staff', StaffMemberViewSet, basename='staff')
 router.register(r'bookings', BookingViewSet, basename='booking')
 router.register(r'customer-rewards', CustomerRewardViewSet, basename='customer-reward')
+router.register(r'contact-messages', ContactMessageViewSet, basename='contact-message')
+router.register(r'notifications', NotificationViewSet, basename='notification')
 
 urlpatterns = [
     # Router URLs (services, visits, staff)
@@ -50,4 +53,7 @@ urlpatterns = [
     path('rewards/<int:pk>/', RewardDetail.as_view(), name='reward-detail'),
     path('rewards/stats/', RewardsStatsView.as_view(), name='rewards-stats'),
     path('check-rewards/', CustomerRewardCheckView.as_view(), name='check-rewards'),
+    
+    # M-Pesa
+    path('mpesa/stk-push/', initiate_stk_push, name='initiate-stk-push'),
 ]

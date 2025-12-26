@@ -1,6 +1,5 @@
 from django.contrib import admin
-from django.contrib import admin
-from .models import Customer, Sale, Reward, Service, Visit, StaffMember, Booking, CustomerReward
+from .models import Customer, Sale, Reward, Service, Visit, StaffMember, Booking, CustomerReward, ContactMessage, Notification, create_notification
 
 
 @admin.register(Service)
@@ -25,6 +24,7 @@ class CustomerAdmin(admin.ModelAdmin):
     list_filter = ['status', 'created_at']
     readonly_fields = ['created_at', 'points', 'visit_count']
     filter_horizontal = ['favorite_services']
+    actions = ['send_promotion']
     fieldsets = (
         ('Basic Information', {
             'fields': ('name', 'email', 'phone')
@@ -42,6 +42,25 @@ class CustomerAdmin(admin.ModelAdmin):
             'fields': ('notes', 'created_at')
         }),
     )
+
+    def send_promotion(self, request, queryset):
+        for customer in queryset:
+            create_notification(
+                title="Special Promotion",
+                message="This week only! 10% off all services at ClientPulse Salon.",
+                recipient_type='customer',
+                customer=customer
+            )
+        self.message_user(request, f"Promotion sent to {queryset.count()} customers.")
+    send_promotion.short_description = "Send 10% Discount Promotion"
+
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ['title', 'recipient_type', 'is_read', 'created_at']
+    list_filter = ['recipient_type', 'is_read', 'created_at']
+    search_fields = ['title', 'message']
+    readonly_fields = ['created_at']
 
 
 @admin.register(Visit)
@@ -116,3 +135,11 @@ class CustomerRewardAdmin(admin.ModelAdmin):
     list_filter = ['status', 'date_claimed']
     readonly_fields = ['date_claimed']
     autocomplete_fields = ['customer', 'reward']
+
+
+@admin.register(ContactMessage)
+class ContactMessageAdmin(admin.ModelAdmin):
+    list_display = ['full_name', 'email', 'phone', 'subject', 'created_at']
+    search_fields = ['full_name', 'email', 'subject', 'message']
+    list_filter = ['created_at']
+    readonly_fields = ['created_at']

@@ -111,6 +111,10 @@ export default {
           "0%": { backgroundPosition: "-200% 0" },
           "100%": { backgroundPosition: "200% 0" },
         },
+        "bounce-slow": {
+          "0%, 100%": { transform: "translateY(-5%)", animationTimingFunction: "cubic-bezier(0.8, 0, 1, 1)" },
+          "50%": { transform: "translateY(0)", animationTimingFunction: "cubic-bezier(0, 0, 0.2, 1)" },
+        }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -119,6 +123,7 @@ export default {
         "slide-in": "slide-in 0.3s ease-out",
         "scale-in": "scale-in 0.2s ease-out",
         shimmer: "shimmer 2s infinite linear",
+        "bounce-slow": "bounce-slow 3s infinite",
       },
     },
   },

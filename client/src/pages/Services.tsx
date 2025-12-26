@@ -32,6 +32,8 @@ import {
 
 const categoryIcons = {
     hair: Scissors,
+    salon: Scissors,
+    barber: Scissors,
     spa: Waves,
     nails: Hand,
     facial: Smile,
@@ -40,6 +42,8 @@ const categoryIcons = {
 
 const categoryColors = {
     hair: 'bg-purple-100 text-purple-700',
+    salon: 'bg-amber-100 text-amber-700',
+    barber: 'bg-blue-100 text-blue-700',
     spa: 'bg-pink-100 text-pink-700',
     nails: 'bg-rose-100 text-rose-700',
     facial: 'bg-fuchsia-100 text-fuchsia-700',
@@ -148,7 +152,7 @@ export default function Services() {
     const handleToggleStatus = async (service: Service) => {
         try {
             await updateService(service.id, { is_active: !service.is_active });
-            toast({ title: 'Success', description: `Service KES{service.is_active ? 'deactivated' : 'activated'}` });
+            toast({ title: 'Success', description: `Service ${service.is_active ? 'deactivated' : 'activated'}` });
             loadServices();
         } catch (error) {
             toast({
@@ -202,6 +206,22 @@ export default function Services() {
                 >
                     <Scissors className="w-4 h-4 mr-2" />
                     Hair
+                </Button>
+                <Button
+                    onClick={() => setSelectedCategory('salon')}
+                    variant={selectedCategory === 'salon' ? 'default' : 'outline'}
+                    className={selectedCategory === 'salon' ? 'bg-amber-600 hover:bg-amber-700' : ''}
+                >
+                    <Scissors className="w-4 h-4 mr-2" />
+                    Salon
+                </Button>
+                <Button
+                    onClick={() => setSelectedCategory('barber')}
+                    variant={selectedCategory === 'barber' ? 'default' : 'outline'}
+                    className={selectedCategory === 'barber' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                >
+                    <Scissors className="w-4 h-4 mr-2" />
+                    Barber
                 </Button>
                 <Button
                     onClick={() => setSelectedCategory('spa')}
@@ -345,6 +365,8 @@ export default function Services() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="hair">Hair</SelectItem>
+                                        <SelectItem value="salon">Salon</SelectItem>
+                                        <SelectItem value="barber">Barber</SelectItem>
                                         <SelectItem value="spa">Spa</SelectItem>
                                         <SelectItem value="nails">Nails</SelectItem>
                                         <SelectItem value="facial">Facial</SelectItem>
