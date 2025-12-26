@@ -36,7 +36,22 @@ class LoginView(APIView):
         user = authenticate(username=username, password=password)
         if user:
             token, _ = Token.objects.get_or_create(user=user)
-            return Response({'token': token.key, 'user_id': user.id, 'username': user.username, 'is_superuser': user.is_superuser})
+            full_name = user.get_full_name() or user.username
+            photo_url = None
+            if hasattr(user, 'profile') and user.profile.photo:
+                photo_url = request.build_absolute_uri(user.profile.photo.url)
+            
+            return Response({
+                'token': token.key, 
+                'user_id': user.id, 
+                'username': user.username, 
+                'full_name': full_name,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'email': user.email,
+                'photo': photo_url,
+                'is_superuser': user.is_superuser
+            })
         return Response({'error': 'Invalid Credentials'}, status=status.HTTP_400_BAD_REQUEST)
 
 class UserListView(generics.ListAPIView):
@@ -755,3 +770,33 @@ class CustomerProfileUpdateView(APIView):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=400)
+
+class AdminProfileUpdateView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def patch(self, request):
+        user = request.user
+        
+        # Update User fields
+        if 'first_name' in request.data:
+            user.first_name = request.data['first_name']
+        if 'last_name' in request.data:
+            user.last_name = request.data['last_name']
+        if 'email' in request.data:
+            user.email = request.data['email']
+        user.save()
+        
+        # Update Profile photo
+        if 'photo' in request.FILES:
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            profile.photo = request.FILES['photo']
+            profile.save()
+            
+        # Return updated user data
+        serializer = UserSerializer(user)
+        data = serializer.data
+        if hasattr(user, 'profile') and user.profile.photo:
+            data['photo'] = request.build_absolute_uri(user.profile.photo.url)
+        data['full_name'] = user.get_full_name() or user.username
+        
+        return Response(data)

@@ -732,3 +732,17 @@ export const markAllNotificationsAsRead = async (customerId?: number): Promise<v
         throw new Error('Failed to mark all notifications as read');
     }
 };
+
+export const updateAdminProfile = async (data: FormData) => {
+    const response = await fetch(`${API_URL}admin/update-profile/`, {
+        method: 'PATCH',
+        headers: {
+            'Authorization': `Token ${localStorage.getItem('token')}`,
+        },
+        body: data,
+    });
+    if (!response.ok) {
+        throw new Error('Failed to update admin profile');
+    }
+    return response.json();
+};

@@ -15,7 +15,7 @@ import {
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { title: 'Dashboard', url: '/', icon: LayoutDashboard },
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
   { title: 'Bookings', url: '/bookings', icon: Calendar },
   { title: 'Staff', url: '/staff', icon: UserCog },
   { title: 'Customers', url: '/customers', icon: Users },
@@ -31,7 +31,7 @@ export function Sidebar() {
     <aside className="w-64 min-h-screen bg-sidebar text-sidebar-foreground flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-sidebar-border">
-        <div className="flex items-center gap-3">
+        <NavLink to="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
           <div className="w-10 h-10 rounded-xl bg-sidebar-primary flex items-center justify-center">
             <Scissors className="w-5 h-5 text-sidebar-primary-foreground" />
           </div>
@@ -39,7 +39,7 @@ export function Sidebar() {
             <h1 className="font-display text-xl font-semibold text-sidebar-foreground">ClientPulse</h1>
             <p className="text-xs text-sidebar-foreground/60">Salon & Spa Manager</p>
           </div>
-        </div>
+        </NavLink>
       </div>
 
       {/* Navigation */}

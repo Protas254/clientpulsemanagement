@@ -45,10 +45,13 @@ export default function Dashboard() {
     );
   }
 
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const adminName = user.full_name || user.username || 'Admin';
+
   return (
     <AppLayout
       title="📊 Client Dashboard"
-      subtitle="Welcome back! Here's your business overview."
+      subtitle={`Welcome back ${adminName}! Here's your business overview.`}
     >
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

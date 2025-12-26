@@ -2,12 +2,19 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Customer, Sale, Reward, Service, Visit, StaffMember, Booking, CustomerReward, ContactMessage, Notification
+from .models import Customer, Sale, Reward, Service, Visit, StaffMember, Booking, CustomerReward, ContactMessage, Notification, UserProfile
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = ['photo']
 
 class UserSerializer(serializers.ModelSerializer):
+    photo = serializers.ImageField(source='profile.photo', read_only=True)
+    
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password']
+        fields = ['id', 'username', 'email', 'password', 'photo', 'first_name', 'last_name']
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):

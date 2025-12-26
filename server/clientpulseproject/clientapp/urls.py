@@ -10,7 +10,7 @@ from .views import (
     ServiceViewSet, VisitViewSet, StaffMemberViewSet,
     AnalyticsView, BookingViewSet, CustomerRewardViewSet, RewardsStatsView,
     initiate_stk_push, ContactMessageViewSet, NotificationViewSet,
-    CustomerProfileUpdateView
+    CustomerProfileUpdateView, AdminProfileUpdateView
 )
 
 # Router for ViewSets
@@ -32,6 +32,7 @@ urlpatterns = [
     path('login/', LoginView.as_view(), name='login'),
     path('customer-signup/', CustomerSignupView.as_view(), name='customer-signup'),
     path('users/', UserListView.as_view(), name='user-list'),
+    path('admin/update-profile/', AdminProfileUpdateView.as_view(), name='admin-profile-update'),
     
     # Customers
     path('customers/', CustomerListCreate.as_view(), name='customer-list-create'),
