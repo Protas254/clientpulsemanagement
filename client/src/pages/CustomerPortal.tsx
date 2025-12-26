@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { TopNav } from '@/components/layout/TopNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Scissors, Gift, ArrowRight, Mail, Phone, MapPin, Calendar, DollarSign, ShoppingBag, Plus, Check, Clock, Waves, Hand, Smile, MoreVertical } from 'lucide-react';
-import { Reward, Service, fetchServices, createBooking, fetchBookings, Booking, redeemReward, checkRewards } from '@/services/api';
+import { Scissors, Gift, ArrowRight, Mail, Phone, MapPin, Calendar, DollarSign, ShoppingBag, Plus, Check, Clock, Waves, Hand, Smile, MoreVertical, Edit, Camera } from 'lucide-react';
+import { Reward, Service, fetchServices, createBooking, fetchBookings, Booking, redeemReward, checkRewards, updateCustomerProfile } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -31,6 +31,7 @@ interface CustomerData {
     points: number;
     last_purchase: string | null;
     created_at: string;
+    photo?: string;
 }
 
 interface Purchase {
@@ -95,8 +96,67 @@ export default function CustomerPortal() {
     const [bookingTime, setBookingTime] = useState('');
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
+    // Profile edit state
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editName, setEditName] = useState('');
+    const [editEmail, setEditEmail] = useState('');
+    const [editPhone, setEditPhone] = useState('');
+    const [editPhoto, setEditPhoto] = useState<File | null>(null);
+    const [isUpdating, setIsUpdating] = useState(false);
+
     const navigate = useNavigate();
     const { toast } = useToast();
+
+    const openEditModal = () => {
+        if (customerData) {
+            setEditName(customerData.name);
+            setEditEmail(customerData.email);
+            setEditPhone(customerData.phone);
+            setIsEditModalOpen(true);
+        }
+    };
+
+    const handleUpdateProfile = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!customerData) return;
+
+        setIsUpdating(true);
+        try {
+            const formData = new FormData();
+            formData.append('name', editName);
+            formData.append('email', editEmail);
+            formData.append('phone', editPhone);
+            if (editPhoto) {
+                formData.append('photo', editPhoto);
+            }
+
+            const updatedCustomer = await updateCustomerProfile(customerData.id, formData);
+            setCustomerData(updatedCustomer);
+
+            // Update local storage
+            const storedData = localStorage.getItem('customer_data');
+            if (storedData) {
+                const parsed = JSON.parse(storedData);
+                parsed.customer = updatedCustomer;
+                localStorage.setItem('customer_data', JSON.stringify(parsed));
+            }
+
+            toast({
+                title: "Profile Updated",
+                description: "Your profile has been successfully updated.",
+            });
+            setIsEditModalOpen(false);
+            setEditPhoto(null);
+        } catch (error) {
+            toast({
+                title: "Update Failed",
+                description: "Could not update profile. Please try again.",
+                variant: "destructive"
+            });
+        } finally {
+            setIsUpdating(false);
+        }
+    };
 
     useEffect(() => {
         const storedData = localStorage.getItem('customer_data');
@@ -289,11 +349,27 @@ export default function CustomerPortal() {
                                 {/* Profile Card */}
                                 <Card className="lg:col-span-1 animate-fade-in">
                                     <CardContent className="pt-6">
-                                        <div className="flex flex-col items-center text-center">
+                                        <div className="flex flex-col items-center text-center relative">
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="absolute -right-2 -top-2 text-muted-foreground hover:text-purple-600"
+                                                onClick={openEditModal}
+                                            >
+                                                <Edit className="w-4 h-4" />
+                                            </Button>
                                             <Avatar className="h-24 w-24 border-4 border-purple-100 mb-4">
-                                                <AvatarFallback className="bg-purple-600 text-white text-2xl">
-                                                    {customerData.name.split(' ').map(n => n[0]).join('')}
-                                                </AvatarFallback>
+                                                {customerData.photo ? (
+                                                    <img
+                                                        src={customerData.photo.startsWith('http') ? customerData.photo : `http://localhost:8000${customerData.photo}`}
+                                                        alt={customerData.name}
+                                                        className="h-full w-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <AvatarFallback className="bg-purple-600 text-white text-2xl">
+                                                        {customerData.name.split(' ').map(n => n[0]).join('')}
+                                                    </AvatarFallback>
+                                                )}
                                             </Avatar>
                                             <h2 className="font-display text-xl font-semibold text-foreground mb-2">
                                                 {customerData.name}
@@ -676,6 +752,82 @@ export default function CustomerPortal() {
                                 {bookingLoading ? 'Booking...' : 'Confirm Booking'}
                             </Button>
                         </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Edit Profile Dialog */}
+                <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Edit Profile</DialogTitle>
+                        </DialogHeader>
+                        <form onSubmit={handleUpdateProfile}>
+                            <div className="grid gap-4 py-4">
+                                <div className="flex flex-col items-center gap-4 mb-4">
+                                    <div className="relative group">
+                                        <Avatar className="h-24 w-24 border-2 border-purple-100">
+                                            {editPhoto ? (
+                                                <img src={URL.createObjectURL(editPhoto)} alt="Preview" className="h-full w-full object-cover" />
+                                            ) : customerData.photo ? (
+                                                <img src={customerData.photo.startsWith('http') ? customerData.photo : `http://localhost:8000${customerData.photo}`} alt="Profile" className="h-full w-full object-cover" />
+                                            ) : (
+                                                <AvatarFallback className="bg-purple-600 text-white text-2xl">
+                                                    {customerData.name.split(' ').map(n => n[0]).join('')}
+                                                </AvatarFallback>
+                                            )}
+                                        </Avatar>
+                                        <label
+                                            htmlFor="photo-upload"
+                                            className="absolute inset-0 flex items-center justify-center bg-black/40 text-white rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity"
+                                        >
+                                            <Camera className="w-6 h-6" />
+                                        </label>
+                                        <input
+                                            id="photo-upload"
+                                            type="file"
+                                            accept="image/*"
+                                            className="hidden"
+                                            onChange={(e) => setEditPhoto(e.target.files?.[0] || null)}
+                                        />
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">Click to upload new photo</p>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="edit-name">Full Name</Label>
+                                    <Input
+                                        id="edit-name"
+                                        value={editName}
+                                        onChange={(e) => setEditName(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="edit-email">Email Address</Label>
+                                    <Input
+                                        id="edit-email"
+                                        type="email"
+                                        value={editEmail}
+                                        onChange={(e) => setEditEmail(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="edit-phone">Phone Number</Label>
+                                    <Input
+                                        id="edit-phone"
+                                        value={editPhone}
+                                        onChange={(e) => setEditPhone(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+                                <Button type="submit" disabled={isUpdating}>
+                                    {isUpdating ? 'Updating...' : 'Save Changes'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
                     </DialogContent>
                 </Dialog>
             </main>

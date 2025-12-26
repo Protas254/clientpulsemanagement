@@ -58,6 +58,7 @@ class Customer(models.Model):
     favorite_services = models.ManyToManyField(Service, blank=True, related_name='favorited_by')
     preferred_staff = models.ForeignKey(StaffMember, on_delete=models.SET_NULL, null=True, blank=True, related_name='preferred_customers')
     service_notes = models.TextField(blank=True, help_text="Style preferences, allergies, special notes")
+    photo = models.ImageField(upload_to='customer_photos/', null=True, blank=True)
 
     def save(self, *args, **kwargs):
         is_new = self.pk is None

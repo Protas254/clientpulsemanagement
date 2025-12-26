@@ -712,9 +712,9 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Notification.objects.all()
         
-        # Admin view
+        # Admin view - Show all admin notifications to any superuser
         if self.request.user.is_authenticated and self.request.user.is_superuser:
-            return queryset.filter(recipient_type='admin', user=self.request.user).order_by('-created_at')
+            return queryset.filter(recipient_type='admin').order_by('-created_at')
         
         # Customer view (via query param for now, or we could use a custom header)
         customer_id = self.request.query_params.get('customer_id')
@@ -738,3 +738,20 @@ class NotificationViewSet(viewsets.ModelViewSet):
         elif customer_id:
             Notification.objects.filter(recipient_type='customer', customer_id=customer_id, is_read=False).update(is_read=True)
         return Response({'status': 'all notifications marked as read'})
+
+class CustomerProfileUpdateView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def patch(self, request, pk):
+        try:
+            customer = Customer.objects.get(pk=pk)
+        except Customer.DoesNotExist:
+            return Response({'error': 'Customer not found'}, status=404)
+        
+        # For the portal, we allow updates if they provide the correct ID.
+        # The frontend will send the data.
+        serializer = CustomerSerializer(customer, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)

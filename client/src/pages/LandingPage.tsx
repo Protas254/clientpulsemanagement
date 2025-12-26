@@ -117,7 +117,7 @@ const LandingPage = () => {
                 <div className="container mx-auto px-4">
                     <div className="text-center max-w-3xl mx-auto mb-16">
                         <h2 className="text-3xl md:text-5xl font-display font-bold mb-6 text-chocolate-dark">
-                            Everything you need to run a <span className="text-accent">successful salon</span>
+                            Everything you need to run a <span className="text-accent">successful business</span>
                         </h2>
                         <p className="text-lg text-muted-foreground">
                             Our comprehensive suite of tools helps you manage every aspect of your business from a single, intuitive dashboard.
@@ -209,7 +209,7 @@ const LandingPage = () => {
                                 <div className="bg-primary rounded-3xl p-8 md:p-12 text-primary-foreground">
                                     <h2 className="text-3xl md:text-4xl font-display font-bold mb-6">Ready to transform your salon?</h2>
                                     <p className="text-lg opacity-90 mb-8">
-                                        Join hundreds of successful salon owners who have scaled their business with ClientPulse.
+                                        Join hundreds of successful business owners who have scaled their business with ClientPulse.
                                     </p>
                                     <ul className="space-y-4 mb-8">
                                         <li className="flex items-center gap-3">
@@ -257,7 +257,7 @@ const LandingPage = () => {
                                 name: "Starter",
                                 price: "2,500",
                                 description: "Perfect for solo stylists and small barbershops.",
-                                features: ["Up to 100 clients", "Basic loyalty program", "Digital receipts", "Email support"],
+                                features: ["Up to 30 clients", "Basic loyalty program", "Digital receipts", "Email support"],
                                 buttonText: "Start Starter Trial",
                                 popular: false
                             },
@@ -265,7 +265,7 @@ const LandingPage = () => {
                                 name: "Professional",
                                 price: "5,000",
                                 description: "Ideal for growing salons with multiple staff members.",
-                                features: ["Unlimited clients", "Advanced loyalty rules", "Staff management", "M-Pesa integration", "Priority support"],
+                                features: ["100 clients", "24/7 WhatsApp Support", "Advanced loyalty rules", "Staff management", "M-Pesa integration", "Priority support"],
                                 buttonText: "Start Pro Trial",
                                 popular: true
                             },
@@ -273,7 +273,7 @@ const LandingPage = () => {
                                 name: "Enterprise",
                                 price: "12,000",
                                 description: "For large spas and multi-location beauty businesses.",
-                                features: ["Multiple locations", "Custom branding", "API access", "Dedicated account manager", "24/7 Phone support"],
+                                features: ["Unlimited clients", "24/7 WhatsApp Support", "Multiple locations", "Custom branding", "API access", "Dedicated account manager", "24/7 Phone support"],
                                 buttonText: "Contact Sales",
                                 popular: false
                             }

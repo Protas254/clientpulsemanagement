@@ -9,7 +9,8 @@ from .views import (
     CustomerRewardCheckView, CustomerSignupView, CustomerPortalDetailsView,
     ServiceViewSet, VisitViewSet, StaffMemberViewSet,
     AnalyticsView, BookingViewSet, CustomerRewardViewSet, RewardsStatsView,
-    initiate_stk_push, ContactMessageViewSet, NotificationViewSet
+    initiate_stk_push, ContactMessageViewSet, NotificationViewSet,
+    CustomerProfileUpdateView
 )
 
 # Router for ViewSets
@@ -36,6 +37,7 @@ urlpatterns = [
     path('customers/', CustomerListCreate.as_view(), name='customer-list-create'),
     path('customers/<int:pk>/', CustomerDetail.as_view(), name='customer-detail'),
     path('customers/<int:pk>/portal-details/', CustomerPortalDetailsView.as_view(), name='customer-portal-details'),
+    path('customers/<int:pk>/update-profile/', CustomerProfileUpdateView.as_view(), name='customer-profile-update'),
     path('customers/<int:customer_id>/service-history/', CustomerServiceHistoryView.as_view(), name='customer-service-history'),
     
     # Sales (backward compatibility)

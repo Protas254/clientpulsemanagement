@@ -47,6 +47,7 @@ export interface Customer {
     favorite_services?: Service[];
     preferred_staff?: StaffMember;
     service_notes?: string;
+    photo?: string;
 }
 
 export interface Sale {
@@ -328,6 +329,17 @@ export const updateCustomer = async (id: number, customer: Partial<Customer>) =>
     });
     if (!response.ok) {
         throw new Error('Failed to update customer');
+    }
+    return response.json();
+};
+
+export const updateCustomerProfile = async (id: number, data: FormData) => {
+    const response = await fetch(`${API_URL}customers/${id}/update-profile/`, {
+        method: 'PATCH',
+        body: data,
+    });
+    if (!response.ok) {
+        throw new Error('Failed to update profile');
     }
     return response.json();
 };

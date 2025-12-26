@@ -110,9 +110,17 @@ export default function CustomerProfile() {
           <CardContent className="pt-6">
             <div className="flex flex-col items-center text-center">
               <Avatar className="h-24 w-24 border-4 border-caramel/20 mb-4">
-                <AvatarFallback className="bg-secondary text-secondary-foreground text-2xl">
-                  {customer.name.split(' ').map((n: string) => n[0]).join('')}
-                </AvatarFallback>
+                {customer.photo ? (
+                  <img
+                    src={customer.photo.startsWith('http') ? customer.photo : `http://localhost:8000${customer.photo}`}
+                    alt={customer.name}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <AvatarFallback className="bg-secondary text-secondary-foreground text-2xl">
+                    {customer.name.split(' ').map((n: string) => n[0]).join('')}
+                  </AvatarFallback>
+                )}
               </Avatar>
               <h2 className="font-display text-xl font-semibold text-foreground mb-2">
                 {customer.name}

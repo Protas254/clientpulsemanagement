@@ -259,9 +259,9 @@ const Signup = () => {
                   />
                   <Label htmlFor="terms-admin" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
                     I agree to the{" "}
-                    <span className="text-accent hover:underline cursor-pointer">Terms of Service</span>
+                    <Link to="/terms" className="text-accent hover:underline cursor-pointer">Terms of Service</Link>
                     {" "}and{" "}
-                    <span className="text-accent hover:underline cursor-pointer">Privacy Policy</span>
+                    <Link to="/privacy" className="text-accent hover:underline cursor-pointer">Privacy Policy</Link>
                   </Label>
                 </div>
 
@@ -335,9 +335,9 @@ const Signup = () => {
                   />
                   <Label htmlFor="terms-customer" className="text-sm text-muted-foreground cursor-pointer leading-relaxed">
                     I agree to the{" "}
-                    <span className="text-accent hover:underline cursor-pointer">Terms of Service</span>
+                    <Link to="/terms" className="text-accent hover:underline cursor-pointer">Terms of Service</Link>
                     {" "}and{" "}
-                    <span className="text-accent hover:underline cursor-pointer">Privacy Policy</span>
+                    <Link to="/privacy" className="text-accent hover:underline cursor-pointer">Privacy Policy</Link>
                   </Label>
                 </div>
 
