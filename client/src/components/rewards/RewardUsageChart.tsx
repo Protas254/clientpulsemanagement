@@ -1,8 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { monthlyRewardUsage } from '@/data/rewardsData';
 
-export function RewardUsageChart() {
+interface RewardUsageChartProps {
+  data?: { month: string; redeemed: number; points: number }[];
+}
+
+export function RewardUsageChart({ data }: RewardUsageChartProps) {
   return (
     <Card className="bg-card border-border/50">
       <CardHeader>
@@ -11,7 +14,7 @@ export function RewardUsageChart() {
       <CardContent>
         <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={monthlyRewardUsage}>
+            <LineChart data={data || []}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
               <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />

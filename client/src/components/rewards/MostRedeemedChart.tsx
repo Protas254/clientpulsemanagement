@@ -1,8 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { mostRedeemedRewards } from '@/data/rewardsData';
 
-export function MostRedeemedChart() {
+interface MostRedeemedChartProps {
+  data?: { name: string; count: number }[];
+}
+
+export function MostRedeemedChart({ data }: MostRedeemedChartProps) {
   return (
     <Card className="bg-card border-border/50">
       <CardHeader>
@@ -11,7 +14,7 @@ export function MostRedeemedChart() {
       <CardContent>
         <div className="h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={mostRedeemedRewards} layout="vertical">
+            <BarChart data={data || []} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12} />
               <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={12} width={100} />

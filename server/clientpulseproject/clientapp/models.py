@@ -7,13 +7,34 @@ from django.contrib.auth.models import User
 
 # Create your models here.
 
+class Tenant(models.Model):
+    name = models.CharField(max_length=200)
+    business_type = models.CharField(max_length=50) # Kinyozi, Salon, Spa
+    city = models.CharField(max_length=100)
+    phone_number = models.CharField(max_length=20)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=False) # Approved or not
+    
+    def __str__(self):
+        return self.name
+
 class UserProfile(models.Model):
-    """Extra profile information for system users (admins)"""
+    """Extra profile information for system users (admins, staff)"""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     photo = models.ImageField(upload_to='admin_photos/', null=True, blank=True)
     
+    # Multi-tenancy fields
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
+    ROLE_CHOICES = [
+        ('platform_admin', 'Platform Admin'),
+        ('tenant_admin', 'Tenant Admin'),
+        ('staff', 'Staff'),
+        ('customer', 'Customer'),
+    ]
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='tenant_admin')
+    
     def __str__(self):
-        return f"{self.user.username}'s Profile"
+        return f"{self.user.username}'s Profile ({self.role})"
 
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -30,6 +51,8 @@ def save_user_profile(sender, instance, **kwargs):
 
 class StaffMember(models.Model):
     """Staff members (barbers, stylists, therapists) who provide services"""
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='staff_profile')
     name = models.CharField(max_length=200)
     phone = models.CharField(max_length=20)
     email = models.EmailField(blank=True, null=True)
@@ -43,6 +66,7 @@ class StaffMember(models.Model):
 
 class Service(models.Model):
     """Services offered (haircut, shave, braiding, massage, facial, etc.)"""
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
     CATEGORY_CHOICES = [
         ('hair', 'Hair Services'),
         ('spa', 'Spa & Massage'),
@@ -64,6 +88,8 @@ class Service(models.Model):
 
 
 class Customer(models.Model):
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, related_name='customer_profile')
     name = models.CharField(max_length=200)
     email = models.EmailField()
     phone = models.CharField(max_length=20)
@@ -100,6 +126,7 @@ class Customer(models.Model):
 
 class Visit(models.Model):
     """Customer visit/appointment with services rendered"""
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
     PAYMENT_STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('paid', 'Paid'),
@@ -140,6 +167,7 @@ class Visit(models.Model):
 
 # Keep Sale model for backward compatibility
 class Sale(models.Model):
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='sales')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     description = models.CharField(max_length=255)
@@ -150,6 +178,7 @@ class Sale(models.Model):
 
 
 class Reward(models.Model):
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=200)
     description = models.TextField()
     points_required = models.IntegerField()
@@ -170,6 +199,7 @@ class Reward(models.Model):
 
 class Booking(models.Model):
     """Customer appointment booking"""
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('confirmed', 'Confirmed'),
@@ -298,6 +328,7 @@ ClientPulse Team'''
 
 class CustomerReward(models.Model):
     """Track rewards claimed by customers"""
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
     STATUS_CHOICES = [
         ('pending', 'Pending Redemption'),
         ('redeemed', 'Redeemed/Used'),
@@ -342,6 +373,7 @@ class CustomerReward(models.Model):
 
 
 class ContactMessage(models.Model):
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
     full_name = models.CharField(max_length=200)
     phone = models.CharField(max_length=20)
     email = models.EmailField()
@@ -354,6 +386,7 @@ class ContactMessage(models.Model):
 
 
 class Notification(models.Model):
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
     NOTIFICATION_TYPES = [
         ('customer', 'Customer'),
         ('admin', 'Admin'),

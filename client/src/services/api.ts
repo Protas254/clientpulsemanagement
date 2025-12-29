@@ -129,13 +129,28 @@ export const register = async (userData: any) => {
     return response.json();
 };
 
-export const registerCustomer = async (customer: Omit<Customer, 'id' | 'created_at' | 'points' | 'status' | 'visit_count'>) => {
+export const registerBusiness = async (data: any) => {
+    const response = await fetch(`${API_URL}business-register/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to register business: ${response.status} ${errorText}`);
+    }
+    return response.json();
+};
+
+export const registerCustomer = async (customerData: any) => {
     const response = await fetch(`${API_URL}customer-signup/`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify(customer),
+        body: JSON.stringify(customerData),
     });
     if (!response.ok) {
         const errorText = await response.text();
@@ -153,7 +168,27 @@ export const login = async (credentials: any) => {
         body: JSON.stringify(credentials),
     });
     if (!response.ok) {
-        throw new Error('Failed to login');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to login');
+    }
+    return response.json();
+};
+
+export interface Tenant {
+    id: number;
+    name: string;
+    business_type: string;
+    city: string;
+}
+
+export const searchTenants = async (query: string): Promise<Tenant[]> => {
+    const response = await fetch(`${API_URL}tenants/search/?search=${encodeURIComponent(query)}`, {
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+    if (!response.ok) {
+        throw new Error('Failed to search tenants');
     }
     return response.json();
 };
@@ -583,9 +618,11 @@ export interface RewardsStats {
     total_rewards_created: number;
     total_rewards_claimed: number;
     active_rewards: number;
-    eligible_rewards: Reward[];
-    redemptions: CustomerReward[];
+    eligible_rewards?: Reward[];
+    redemptions?: CustomerReward[];
     pending_redemptions: number;
+    monthly_usage?: { month: string; redeemed: number; points: number }[];
+    most_redeemed?: { name: string; count: number }[];
 }
 
 export const fetchRewardsStats = async (): Promise<RewardsStats> => {
@@ -732,6 +769,16 @@ export const markAllNotificationsAsRead = async (customerId?: number): Promise<v
     if (!response.ok) {
         throw new Error('Failed to mark all notifications as read');
     }
+};
+
+export const fetchUserProfile = async () => {
+    const response = await fetch(`${API_URL}admin/update-profile/`, {
+        headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch user profile');
+    }
+    return response.json();
 };
 
 export const updateAdminProfile = async (data: FormData) => {

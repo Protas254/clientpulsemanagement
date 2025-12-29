@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Scissors, Eye, EyeOff, User, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { register, registerCustomer } from "../services/api";
+import { registerBusiness, registerCustomer, searchTenants, Tenant } from "../services/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Signup = () => {
@@ -17,18 +17,31 @@ const Signup = () => {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Business form state
+  const [businessName, setBusinessName] = useState("");
+  const [businessType, setBusinessType] = useState("Salon");
+  const [ownerName, setOwnerName] = useState("");
+  const [city, setCity] = useState("");
+  const [phone, setPhone] = useState("");
+
   // Customer form state
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [customerPassword, setCustomerPassword] = useState("");
+  const [customerConfirmPassword, setCustomerConfirmPassword] = useState("");
+  const [tenantSearchQuery, setTenantSearchQuery] = useState("");
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+  const [isSearchingTenants, setIsSearchingTenants] = useState(false);
 
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleAdminSignup = async (e: React.FormEvent) => {
+  const handleBusinessSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email || !password) {
+    if (!email || !password || !businessName || !city || !phone || !ownerName) {
       toast({
         title: "Error",
         description: "Please fill in all fields",
@@ -58,16 +71,31 @@ const Signup = () => {
     setIsLoading(true);
 
     try {
-      await register({ username: email, email, password });
+      await registerBusiness({
+        business_name: businessName,
+        business_type: businessType,
+        city,
+        phone_number: phone,
+        owner_name: ownerName,
+        email,
+        password,
+        confirm_password: confirmPassword
+      });
       toast({
-        title: "Account created!",
-        description: "Your admin account has been created successfully. Please login.",
+        title: "Application Submitted!",
+        description: "Your business application is under review. You'll be notified once approved.",
       });
       navigate("/login");
-    } catch (error) {
+    } catch (error: any) {
+      // Extract error message from response if possible
+      let errorMessage = "Failed to submit application";
+      if (error.message && error.message.includes("400")) {
+        errorMessage = "Registration failed. Please check your inputs (Email might be taken).";
+      }
+
       toast({
         title: "Error",
-        description: "Failed to create account",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -75,13 +103,46 @@ const Signup = () => {
     }
   };
 
+  const handleTenantSearch = async (query: string) => {
+    setTenantSearchQuery(query);
+    if (query.length < 2) {
+      setTenants([]);
+      return;
+    }
+
+    setIsSearchingTenants(true);
+    try {
+      const results = await searchTenants(query);
+      setTenants(results);
+    } catch (error) {
+      console.error("Failed to search tenants", error);
+    } finally {
+      setIsSearchingTenants(false);
+    }
+  };
+
+  const selectTenant = (tenant: Tenant) => {
+    setSelectedTenant(tenant);
+    setTenantSearchQuery(tenant.name);
+    setTenants([]); // Hide results
+  };
+
   const handleCustomerSignup = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!customerName || !customerEmail || !customerPhone) {
+    if (!customerName || !customerEmail || !customerPhone || !selectedTenant || !customerPassword) {
       toast({
         title: "Error",
-        description: "Please fill in all fields",
+        description: "Please fill in all fields and select a business",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (customerPassword !== customerConfirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
         variant: "destructive",
       });
       return;
@@ -100,9 +161,12 @@ const Signup = () => {
 
     try {
       await registerCustomer({
-        name: customerName,
+        full_name: customerName,
         email: customerEmail,
-        phone: customerPhone
+        phone_number: customerPhone,
+        password: customerPassword,
+        confirm_password: customerConfirmPassword,
+        tenant_id: selectedTenant.id
       });
       toast({
         title: "Registration successful!",
@@ -189,7 +253,7 @@ const Signup = () => {
             <TabsList className="grid w-full grid-cols-2 mb-8">
               <TabsTrigger value="admin" className="flex items-center gap-2">
                 <Shield className="w-4 h-4" />
-                Admin
+                Business Owner
               </TabsTrigger>
               <TabsTrigger value="customer" className="flex items-center gap-2">
                 <User className="w-4 h-4" />
@@ -198,7 +262,38 @@ const Signup = () => {
             </TabsList>
 
             <TabsContent value="admin">
-              <form onSubmit={handleAdminSignup} className="space-y-5">
+              <form onSubmit={handleBusinessSignup} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="ownerName" className="text-foreground">Owner Full Name</Label>
+                  <Input id="ownerName" value={ownerName} onChange={(e) => setOwnerName(e.target.value)} className="h-12 bg-muted/50" placeholder="John Doe" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="businessName" className="text-foreground">Business Name</Label>
+                  <Input id="businessName" value={businessName} onChange={(e) => setBusinessName(e.target.value)} className="h-12 bg-muted/50" placeholder="My Salon" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="businessType" className="text-foreground">Type</Label>
+                    <select
+                      id="businessType"
+                      value={businessType}
+                      onChange={(e) => setBusinessType(e.target.value)}
+                      className="flex h-12 w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <option value="Salon">Salon</option>
+                      <option value="Kinyozi">Kinyozi</option>
+                      <option value="Spa">Spa</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="city" className="text-foreground">City</Label>
+                    <Input id="city" value={city} onChange={(e) => setCity(e.target.value)} className="h-12 bg-muted/50" placeholder="Nairobi" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone" className="text-foreground">Phone Number</Label>
+                  <Input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} className="h-12 bg-muted/50" placeholder="0712345678" />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-foreground">
                     Email Address
@@ -276,7 +371,7 @@ const Signup = () => {
                       <span>Creating account...</span>
                     </div>
                   ) : (
-                    "Create Admin Account"
+                    "Submit Application"
                   )}
                 </Button>
               </form>
@@ -324,6 +419,78 @@ const Signup = () => {
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     className="h-12 bg-muted/50 border-border focus:border-accent focus:ring-accent/30"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="customerPassword" className="text-foreground">
+                    Password
+                  </Label>
+                  <Input
+                    id="customerPassword"
+                    type="password"
+                    placeholder="Create a password"
+                    value={customerPassword}
+                    onChange={(e) => setCustomerPassword(e.target.value)}
+                    className="h-12 bg-muted/50 border-border focus:border-accent focus:ring-accent/30"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="customerConfirmPassword" className="text-foreground">
+                    Confirm Password
+                  </Label>
+                  <Input
+                    id="customerConfirmPassword"
+                    type="password"
+                    placeholder="Confirm your password"
+                    value={customerConfirmPassword}
+                    onChange={(e) => setCustomerConfirmPassword(e.target.value)}
+                    className="h-12 bg-muted/50 border-border focus:border-accent focus:ring-accent/30"
+                  />
+                </div>
+
+                <div className="space-y-2 relative">
+                  <Label htmlFor="tenantSearch" className="text-foreground">
+                    Find Your Business
+                  </Label>
+                  <Input
+                    id="tenantSearch"
+                    type="text"
+                    placeholder="Search by business name..."
+                    value={tenantSearchQuery}
+                    onChange={(e) => handleTenantSearch(e.target.value)}
+                    className="h-12 bg-muted/50 border-border focus:border-accent focus:ring-accent/30"
+                  />
+                  {isSearchingTenants && (
+                    <div className="absolute right-3 top-10">
+                      <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
+
+                  {tenants.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-zinc-900 border border-border rounded-md shadow-lg max-h-60 overflow-auto">
+                      {tenants.map((tenant) =>
+                        <div
+                          key={tenant.id}
+                          onClick={() => selectTenant(tenant)}
+                          className="p-3 hover:bg-muted cursor-pointer transition-colors border-b border-border last:border-0"
+                        >
+                          <div className="font-medium">{tenant.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {tenant.business_type} • {tenant.city} <br />
+                            <span className="text-accent/80">Owner: {tenant.owner_name}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {selectedTenant && (
+                    <div className="mt-2 p-2 bg-accent/10 border border-accent/20 rounded text-sm text-accent-foreground flex justify-between items-center">
+                      <span>Selected: <strong>{selectedTenant.name}</strong></span>
+                      <button type="button" onClick={() => setSelectedTenant(null)} className="text-xs underline">Change</button>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-start space-x-2">

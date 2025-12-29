@@ -10,7 +10,8 @@ from .views import (
     ServiceViewSet, VisitViewSet, StaffMemberViewSet,
     AnalyticsView, BookingViewSet, CustomerRewardViewSet, RewardsStatsView,
     initiate_stk_push, ContactMessageViewSet, NotificationViewSet,
-    CustomerProfileUpdateView, AdminProfileUpdateView
+    CustomerProfileUpdateView, AdminProfileUpdateView, BusinessRegistrationView,
+    TenantSearchView
 )
 
 # Router for ViewSets
@@ -29,8 +30,10 @@ urlpatterns = [
     
     # Authentication
     path('register/', RegisterView.as_view(), name='register'),
+    path('business-register/', BusinessRegistrationView.as_view(), name='business-register'),
     path('login/', LoginView.as_view(), name='login'),
     path('customer-signup/', CustomerSignupView.as_view(), name='customer-signup'),
+    path('tenants/search/', TenantSearchView.as_view(), name='tenant-search'),
     path('users/', UserListView.as_view(), name='user-list'),
     path('admin/update-profile/', AdminProfileUpdateView.as_view(), name='admin-profile-update'),
     

@@ -14,6 +14,7 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [customerIdentifier, setCustomerIdentifier] = useState("");
+  const [customerPassword, setCustomerPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -42,10 +43,10 @@ const Login = () => {
         description: "You have successfully logged in",
       });
       navigate("/index");
-    } catch (error) {
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Invalid credentials",
+        title: "Login Failed",
+        description: error.message || "Invalid credentials",
         variant: "destructive",
       });
     } finally {
@@ -56,10 +57,10 @@ const Login = () => {
   const handleCustomerLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!customerIdentifier.trim()) {
+    if (!customerIdentifier.trim() || !customerPassword) {
       toast({
         title: "Error",
-        description: "Please enter your name or email",
+        description: "Please enter your name/email and password",
         variant: "destructive",
       });
       return;
@@ -68,19 +69,28 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const data = await checkRewards(customerIdentifier);
-      // Store customer data for the portal
-      localStorage.setItem('customer_data', JSON.stringify(data));
+      // 1. Login to get token
+      const loginData = await login({ username: customerIdentifier, password: customerPassword });
+      localStorage.setItem('token', loginData.token);
+      localStorage.setItem('user', JSON.stringify(loginData));
+
+      // 2. Fetch customer data for portal
+      // We use the identifier provided, or the email from login response if available
+      const identifierToUse = loginData.email || customerIdentifier;
+      const customerData = await checkRewards(identifierToUse);
+
+      localStorage.setItem('customer_data', JSON.stringify(customerData));
 
       toast({
         title: "Welcome!",
-        description: `Logged in as ${data.customer.name}`,
+        description: `Logged in as ${customerData.customer.name}`,
       });
       navigate("/portal");
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Login error:", error);
       toast({
-        title: "Error",
-        description: "Customer not found",
+        title: "Login Failed",
+        description: error.message || "Invalid credentials",
         variant: "destructive",
       });
     } finally {
@@ -253,6 +263,29 @@ const Login = () => {
                   <p className="text-sm text-muted-foreground">
                     Use the name or email you registered with to access your rewards.
                   </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="customer-password" className="text-foreground">
+                    Password
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="customer-password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      value={customerPassword}
+                      onChange={(e) => setCustomerPassword(e.target.value)}
+                      className="h-12 bg-muted/50 border-border focus:border-accent focus:ring-accent/30 pr-12"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
+                  </div>
                 </div>
 
                 <Button

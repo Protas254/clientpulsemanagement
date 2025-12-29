@@ -6,12 +6,12 @@ from rest_framework.views import APIView
 from rest_framework.decorators import action, api_view, permission_classes
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from .models import Customer, Sale, Reward, Service, Visit, StaffMember, Booking, CustomerReward, ContactMessage, Notification
+from .models import Customer, Sale, Reward, Service, Visit, StaffMember, Booking, CustomerReward, ContactMessage, Notification, Tenant, UserProfile
 from .serializers import (
     UserSerializer, CustomerSerializer, 
     SaleSerializer, RewardSerializer, ServiceSerializer, VisitSerializer, StaffMemberSerializer,
     BookingSerializer, CustomerRewardSerializer, ContactMessageSerializer,
-    NotificationSerializer
+    NotificationSerializer, BusinessRegistrationSerializer, CustomerSignupSerializer, TenantSerializer
 )
 from django.db.models import Sum, Count, Avg, Q, F
 from django.db.models.functions import TruncMonth
@@ -25,6 +25,41 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.AllowAny]
 
+class BusinessRegistrationView(APIView):
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        serializer = BusinessRegistrationSerializer(data=request.data)
+        if serializer.is_valid():
+            data = serializer.validated_data
+            
+            # Create Tenant (Inactive)
+            tenant = Tenant.objects.create(
+                name=data['business_name'],
+                business_type=data['business_type'],
+                city=data['city'],
+                phone_number=data['phone_number'],
+                is_active=False
+            )
+            
+            # Create User (Owner)
+            user = User.objects.create_user(
+                username=data['email'],
+                email=data['email'],
+                password=data['password'],
+                first_name=data['owner_name'].split(' ')[0],
+                last_name=' '.join(data['owner_name'].split(' ')[1:]) if ' ' in data['owner_name'] else ''
+            )
+            
+            # Update Profile
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            profile.tenant = tenant
+            profile.role = 'tenant_admin'
+            profile.save()
+            
+            return Response({'message': 'Application submitted successfully. Pending review.'}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 from rest_framework.authtoken.models import Token
 
 class LoginView(APIView):
@@ -33,6 +68,23 @@ class LoginView(APIView):
     def post(self, request):
         username = request.data.get('username')
         password = request.data.get('password')
+        
+        # Resolve username if email or customer name is provided
+        if username:
+            # 1. Check if it's an email
+            if '@' in username:
+                user_obj = User.objects.filter(email=username).first()
+                if user_obj:
+                    username = user_obj.username
+            else:
+                # 2. Check if it's a Customer Name (and not a direct username match)
+                # We only check this if direct authentication fails or to preemptively find the user
+                # But authenticate() needs the exact username.
+                # Let's try to find a customer with this name
+                customer = Customer.objects.filter(name__iexact=username).first()
+                if customer and customer.user:
+                    username = customer.user.username
+                    
         user = authenticate(username=username, password=password)
         if user:
             token, _ = Token.objects.get_or_create(user=user)
@@ -40,6 +92,23 @@ class LoginView(APIView):
             photo_url = None
             if hasattr(user, 'profile') and user.profile.photo:
                 photo_url = request.build_absolute_uri(user.profile.photo.url)
+            
+            role = 'admin' if user.is_superuser else 'staff'
+            tenant_id = None
+            tenant_name = None
+            
+            if hasattr(user, 'profile'):
+                role = user.profile.role
+                if user.profile.tenant:
+                    # Check if tenant is active (approved)
+                    if role == 'tenant_admin' and not user.profile.tenant.is_active:
+                        return Response(
+                            {'error': 'Your business account is pending approval. You will be notified once approved.'}, 
+                            status=status.HTTP_403_FORBIDDEN
+                        )
+                    
+                    tenant_id = user.profile.tenant.id
+                    tenant_name = user.profile.tenant.name
             
             return Response({
                 'token': token.key, 
@@ -50,15 +119,24 @@ class LoginView(APIView):
                 'last_name': user.last_name,
                 'email': user.email,
                 'photo': photo_url,
-                'is_superuser': user.is_superuser
+                'is_superuser': user.is_superuser,
+                'role': role,
+                'tenant_id': tenant_id,
+                'tenant_name': tenant_name
             })
         return Response({'error': 'Invalid Credentials'}, status=status.HTTP_400_BAD_REQUEST)
 
 class UserListView(generics.ListAPIView):
-    queryset = User.objects.all()
     serializer_class = UserSerializer
-    # In a real app, restrict this to admins
-    # permission_classes = [permissions.IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = User.objects.all()
+        if not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                # Filter users who have a profile linked to the same tenant
+                queryset = queryset.filter(profile__tenant=self.request.user.profile.tenant)
+        return queryset
 
 
 # Service ViewSet
@@ -74,6 +152,12 @@ class ServiceViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         queryset = Service.objects.all()
+        
+        # Filter by tenant
+        if self.request.user.is_authenticated and not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+        
         # Filter by active status if requested
         is_active = self.request.query_params.get('is_active', None)
         if is_active is not None:
@@ -83,6 +167,12 @@ class ServiceViewSet(viewsets.ModelViewSet):
         if category:
             queryset = queryset.filter(category=category)
         return queryset.order_by('category', 'name')
+        
+    def perform_create(self, serializer):
+        if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+            serializer.save(tenant=self.request.user.profile.tenant)
+        else:
+            serializer.save()
 
 
 # Staff Member ViewSet
@@ -98,11 +188,23 @@ class StaffMemberViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         queryset = StaffMember.objects.all()
+        
+        # Filter by tenant
+        if self.request.user.is_authenticated and not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+                
         # Filter by active status if requested
         is_active = self.request.query_params.get('is_active', None)
         if is_active is not None:
             queryset = queryset.filter(is_active=is_active.lower() == 'true')
         return queryset.order_by('name')
+
+    def perform_create(self, serializer):
+        if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+            serializer.save(tenant=self.request.user.profile.tenant)
+        else:
+            serializer.save()
 
 
 # Visit ViewSet
@@ -114,6 +216,13 @@ class VisitViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         queryset = Visit.objects.all().select_related('customer', 'staff_member').prefetch_related('services')
+        
+        # Filter by tenant
+        if self.request.user.is_authenticated and not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+            elif hasattr(self.request.user, 'customer_profile'):
+                 queryset = queryset.filter(customer=self.request.user.customer_profile)
         
         # Filter by customer if requested
         customer_id = self.request.query_params.get('customer', None)
@@ -132,7 +241,11 @@ class VisitViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         """Create visit and update customer loyalty points"""
-        visit = serializer.save()
+        tenant = None
+        if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+            tenant = self.request.user.profile.tenant
+            
+        visit = serializer.save(tenant=tenant)
         customer = visit.customer
         
         # Points are now handled in Visit.save() model method
@@ -155,6 +268,12 @@ class CustomerListCreate(generics.ListCreateAPIView):
     
     def get_queryset(self):
         queryset = Customer.objects.all()
+        
+        # Filter by tenant
+        if self.request.user.is_authenticated and not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+        
         # Search by phone, name, or email
         search = self.request.query_params.get('search', None)
         if search:
@@ -164,6 +283,12 @@ class CustomerListCreate(generics.ListCreateAPIView):
                 Q(email__icontains=search)
             )
         return queryset.order_by('-created_at')
+
+    def perform_create(self, serializer):
+        if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+            serializer.save(tenant=self.request.user.profile.tenant)
+        else:
+            serializer.save()
 
 class CustomerDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Customer.objects.all()
@@ -209,8 +334,15 @@ class DailyStatsView(APIView):
     def get(self, request):
         today = timezone.now().date()
         
+        tenant = None
+        if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.tenant:
+            tenant = request.user.profile.tenant
+        
         # Today's visits
         today_visits = Visit.objects.filter(visit_date__date=today)
+        if tenant:
+            today_visits = today_visits.filter(tenant=tenant)
+            
         customers_served_today = today_visits.count()
         revenue_today = today_visits.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
         
@@ -261,12 +393,23 @@ class DashboardStatsView(APIView):
         current_month = timezone.now().month
         last_month = current_month - 1 if current_month > 1 else 12
         
+        tenant = None
+        if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.tenant:
+            tenant = request.user.profile.tenant
+            
+        visits_qs = Visit.objects.all()
+        customers_qs = Customer.objects.all()
+        
+        if tenant:
+            visits_qs = visits_qs.filter(tenant=tenant)
+            customers_qs = customers_qs.filter(tenant=tenant)
+        
         # Use Visit model instead of Sale for more accurate tracking
-        current_month_revenue = Visit.objects.filter(
+        current_month_revenue = visits_qs.filter(
             visit_date__month=current_month
         ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
         
-        last_month_revenue = Visit.objects.filter(
+        last_month_revenue = visits_qs.filter(
             visit_date__month=last_month
         ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
         
@@ -274,11 +417,11 @@ class DashboardStatsView(APIView):
         if last_month_revenue > 0:
             sales_growth = ((current_month_revenue - last_month_revenue) / last_month_revenue) * 100
             
-        total_visits = Visit.objects.count()
-        avg_visit_amount = Visit.objects.aggregate(Avg('total_amount'))['total_amount__avg'] or 0
+        total_visits = visits_qs.count()
+        avg_visit_amount = visits_qs.aggregate(Avg('total_amount'))['total_amount__avg'] or 0
         
-        total_customers = Customer.objects.count()
-        active_customers = Customer.objects.filter(
+        total_customers = customers_qs.count()
+        active_customers = customers_qs.filter(
             visits__visit_date__gte=timezone.now() - timedelta(days=30)
         ).distinct().count()
         
@@ -304,10 +447,18 @@ class AnalyticsView(APIView):
     def get(self, request):
         today = timezone.now().date()
         last_12_months = today - timedelta(days=365)
+        
+        tenant = None
+        if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.tenant:
+            tenant = request.user.profile.tenant
+
+        visits_qs = Visit.objects.all()
+        if tenant:
+            visits_qs = visits_qs.filter(tenant=tenant)
 
         # 1. Monthly Sales & Customer Acquisition (Last 12 Months)
         # We'll aggregate visits by month
-        monthly_stats = Visit.objects.filter(
+        monthly_stats = visits_qs.filter(
             visit_date__date__gte=last_12_months
         ).annotate(
             month=TruncMonth('visit_date')
@@ -340,10 +491,15 @@ class AnalyticsView(APIView):
         # To make it look good for the chart, we'll generate some realistic looking data 
         # based on the current counts.
         
-        total_customers = Customer.objects.count()
-        active_count = Customer.objects.filter(status='active').count()
-        vip_count = Customer.objects.filter(status='vip').count()
-        inactive_count = Customer.objects.filter(status='inactive').count()
+        # 2. Customer Growth (Active vs VIP vs Inactive)
+        customers_qs = Customer.objects.all()
+        if tenant:
+            customers_qs = customers_qs.filter(tenant=tenant)
+            
+        total_customers = customers_qs.count()
+        active_count = customers_qs.filter(status='active').count()
+        vip_count = customers_qs.filter(status='vip').count()
+        inactive_count = customers_qs.filter(status='inactive').count()
 
         # Generate 6 months of growth data
         growth_data = []
@@ -360,18 +516,18 @@ class AnalyticsView(APIView):
             })
 
         # 3. Retention Stats
-        total_customers = Customer.objects.count()
-        total_visits = Visit.objects.count()
+        total_customers = customers_qs.count()
+        total_visits = visits_qs.count()
         
         # Retention Rate: % of customers with > 1 visit
-        retained_customers = Customer.objects.filter(visit_count__gt=1).count()
+        retained_customers = customers_qs.filter(visit_count__gt=1).count()
         retention_rate = (retained_customers / total_customers * 100) if total_customers > 0 else 0
         
         # Avg Visits per Client
         avg_visits = (total_visits / total_customers) if total_customers > 0 else 0
         
         # Avg Visit Value
-        total_revenue = Visit.objects.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        total_revenue = visits_qs.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
         avg_visit_value = (total_revenue / total_visits) if total_visits > 0 else 0
 
         return Response({
@@ -396,13 +552,21 @@ class TopCustomersView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def get(self, request):
+        tenant = None
+        if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.tenant:
+            tenant = request.user.profile.tenant
+            
+        customers_qs = Customer.objects.all()
+        if tenant:
+            customers_qs = customers_qs.filter(tenant=tenant)
+            
         # Top by visit count
-        top_by_visits = Customer.objects.filter(
+        top_by_visits = customers_qs.filter(
             visit_count__gt=0
         ).order_by('-visit_count')[:10]
         
         # Top by spending
-        top_by_spending = Customer.objects.annotate(
+        top_by_spending = customers_qs.annotate(
             total_spent=Sum('visits__total_amount')
         ).filter(total_spent__isnull=False).order_by('-total_spent')[:10]
         
@@ -586,10 +750,51 @@ class CustomerPortalDetailsView(APIView):
 # Website Management
 # Removed CustomerWebsite views as requested
 
-class CustomerSignupView(generics.CreateAPIView):
-    queryset = Customer.objects.all()
-    serializer_class = CustomerSerializer
+class CustomerSignupView(APIView):
     permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        serializer = CustomerSignupSerializer(data=request.data)
+        if serializer.is_valid():
+            data = serializer.validated_data
+            
+            try:
+                tenant = Tenant.objects.get(id=data['tenant_id'])
+            except Tenant.DoesNotExist:
+                return Response({'error': 'Invalid Tenant ID'}, status=400)
+                
+            if User.objects.filter(email=data.get('email')).exists():
+                 return Response({'error': 'Email already registered'}, status=400)
+
+            # Create User
+            username = data.get('email') or data['phone_number']
+            
+            user = User.objects.create_user(
+                username=username,
+                email=data.get('email', ''),
+                password=data['password'],
+                first_name=data['full_name'].split(' ')[0],
+                last_name=' '.join(data['full_name'].split(' ')[1:]) if ' ' in data['full_name'] else ''
+            )
+            
+            # Create Customer Profile
+            customer = Customer.objects.create(
+                user=user,
+                tenant=tenant,
+                name=data['full_name'],
+                phone=data['phone_number'],
+                email=data.get('email', ''),
+                status='ACTIVE'
+            )
+            
+            # Update UserProfile (for role)
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            profile.tenant = tenant
+            profile.role = 'customer'
+            profile.save()
+            
+            return Response({'message': 'Account created successfully'}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class BookingViewSet(viewsets.ModelViewSet):
@@ -604,6 +809,13 @@ class BookingViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         queryset = Booking.objects.all().select_related('customer', 'service', 'staff_member')
+        
+        # Filter by tenant
+        if self.request.user.is_authenticated and not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+            elif hasattr(self.request.user, 'customer_profile'):
+                 queryset = queryset.filter(customer=self.request.user.customer_profile)
         
         # Filter by customer if requested
         customer_id = self.request.query_params.get('customer', None)
@@ -625,6 +837,15 @@ class BookingViewSet(viewsets.ModelViewSet):
             
         return queryset.order_by('-booking_date')
 
+    def perform_create(self, serializer):
+        tenant = None
+        if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+            tenant = self.request.user.profile.tenant
+        elif hasattr(self.request.user, 'customer_profile') and self.request.user.customer_profile.tenant:
+            tenant = self.request.user.customer_profile.tenant
+            
+        serializer.save(tenant=tenant)
+
 
 class CustomerRewardViewSet(viewsets.ModelViewSet):
     """API endpoint for customer rewards"""
@@ -634,6 +855,13 @@ class CustomerRewardViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         queryset = CustomerReward.objects.all().select_related('customer', 'reward')
+        
+        # Filter by tenant
+        if self.request.user.is_authenticated and not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+            elif hasattr(self.request.user, 'customer_profile'):
+                 queryset = queryset.filter(customer=self.request.user.customer_profile)
         
         # Filter by customer if requested
         customer_id = self.request.query_params.get('customer', None)
@@ -672,23 +900,77 @@ class RewardsStatsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     
     def get(self, request):
-        total_rewards_created = Reward.objects.count()
+        tenant = None
+        if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.tenant:
+            tenant = request.user.profile.tenant
+            
+        rewards_qs = Reward.objects.all()
+        customer_rewards_qs = CustomerReward.objects.all()
+        
+        if tenant:
+            rewards_qs = rewards_qs.filter(tenant=tenant)
+            customer_rewards_qs = customer_rewards_qs.filter(tenant=tenant)
+            
+        total_rewards_created = rewards_qs.count()
         
         # Total rewards claimed (CustomerReward entries)
-        total_rewards_claimed = CustomerReward.objects.count()
+        total_rewards_claimed = customer_rewards_qs.count()
         
         # Active rewards (Reward objects that are active)
-        active_rewards = Reward.objects.filter(status='active').count()
+        active_rewards = rewards_qs.filter(status='active').count()
         
         # Pending redemptions (CustomerReward with status 'pending')
-        pending_redemptions = CustomerReward.objects.filter(status='pending').count()
+        pending_redemptions = customer_rewards_qs.filter(status='pending').count()
+
+        # Monthly Usage (Last 6 months)
+        six_months_ago = timezone.now() - timezone.timedelta(days=180)
+        monthly_usage_qs = customer_rewards_qs.filter(date_claimed__gte=six_months_ago)\
+            .annotate(month=TruncMonth('date_claimed'))\
+            .values('month')\
+            .annotate(redeemed=Count('id'))\
+            .order_by('month')
+            
+        monthly_usage = []
+        for entry in monthly_usage_qs:
+            monthly_usage.append({
+                'month': entry['month'].strftime('%b'),
+                'redeemed': entry['redeemed'],
+                'points': 0 # Placeholder, would need aggregation on related Reward.points_required
+            })
+
+        # Most Redeemed
+        most_redeemed_qs = customer_rewards_qs.values('reward__name')\
+            .annotate(count=Count('id'))\
+            .order_by('-count')[:5]
+            
+        most_redeemed = []
+        for entry in most_redeemed_qs:
+            most_redeemed.append({
+                'name': entry['reward__name'],
+                'count': entry['count']
+            })
         
         return Response({
             'total_rewards_created': total_rewards_created,
             'total_rewards_claimed': total_rewards_claimed,
             'active_rewards': active_rewards,
-            'pending_redemptions': pending_redemptions
+            'pending_redemptions': pending_redemptions,
+            'monthly_usage': monthly_usage,
+            'most_redeemed': most_redeemed
         })
+
+class TenantSearchView(generics.ListAPIView):
+    """Public API to search for active businesses/tenants"""
+    queryset = Tenant.objects.filter(is_active=True)
+    serializer_class = TenantSerializer
+    permission_classes = [permissions.AllowAny]
+    
+    def get_queryset(self):
+        queryset = Tenant.objects.filter(is_active=True)
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(name__icontains=search)
+        return queryset.order_by('name')
 
 from .mpesa import MpesaClient
 
@@ -773,6 +1055,20 @@ class CustomerProfileUpdateView(APIView):
 
 class AdminProfileUpdateView(APIView):
     permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        serializer = UserSerializer(user)
+        data = serializer.data
+        if hasattr(user, 'profile') and user.profile.photo:
+            data['photo'] = request.build_absolute_uri(user.profile.photo.url)
+        data['full_name'] = user.get_full_name() or user.username
+        
+        # Add tenant info if available
+        if hasattr(user, 'profile') and user.profile.tenant:
+             data['company_name'] = user.profile.tenant.name
+             
+        return Response(data)
 
     def patch(self, request):
         user = request.user

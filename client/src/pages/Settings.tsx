@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,14 +7,47 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
+import { fetchUserProfile } from '@/services/api';
 
 export default function Settings() {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadUser();
+  }, []);
+
+  const loadUser = async () => {
+    try {
+      const data = await fetchUserProfile();
+      setUser(data);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load profile information",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSave = () => {
     toast({
       title: "Settings saved",
       description: "Your preferences have been updated successfully.",
     });
   };
+
+  if (loading) {
+    return (
+      <AppLayout title="Settings" subtitle="Manage your account and preferences">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout title="Settings" subtitle="Manage your account and preferences">
@@ -28,20 +62,20 @@ export default function Settings() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name</Label>
-                <Input id="firstName" defaultValue="John" />
+                <Input id="firstName" defaultValue={user?.first_name} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lastName">Last Name</Label>
-                <Input id="lastName" defaultValue="Doe" />
+                <Input id="lastName" defaultValue={user?.last_name} />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue="john@company.com" />
+              <Input id="email" type="email" defaultValue={user?.email} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="company">Company Name</Label>
-              <Input id="company" defaultValue="Acme Inc." />
+              <Input id="company" defaultValue={user?.company_name || user?.tenant_name} />
             </div>
           </CardContent>
         </Card>

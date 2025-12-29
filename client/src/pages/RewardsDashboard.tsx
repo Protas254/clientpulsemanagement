@@ -78,8 +78,8 @@ export default function RewardsDashboard() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <RewardUsageChart />
-        <MostRedeemedChart />
+        <RewardUsageChart data={stats.monthly_usage} />
+        <MostRedeemedChart data={stats.most_redeemed} />
       </div>
 
       {/* Rules Card */}
