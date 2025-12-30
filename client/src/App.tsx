@@ -25,6 +25,9 @@ import Dashboard from "./pages/Dashboard";
 import LandingPage from "./pages/LandingPage";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import TenantManagement from "./pages/TenantManagement";
+import SubscriptionPlans from "./pages/SubscriptionPlans";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -42,6 +45,12 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/portal" element={<CustomerPortal />} />
+          {/* Super Admin Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/super-admin" element={<SuperAdminDashboard />} />
+            <Route path="/super-admin/tenant/:tenantId" element={<TenantManagement />} />
+            <Route path="/super-admin/plans" element={<SubscriptionPlans />} />
+          </Route>
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="/index" element={<Dashboard />} />

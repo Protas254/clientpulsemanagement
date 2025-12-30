@@ -11,7 +11,7 @@ from .views import (
     AnalyticsView, BookingViewSet, CustomerRewardViewSet, RewardsStatsView,
     initiate_stk_push, ContactMessageViewSet, NotificationViewSet,
     CustomerProfileUpdateView, AdminProfileUpdateView, BusinessRegistrationView,
-    TenantSearchView
+    TenantSearchView, TenantViewSet, SubscriptionPlanViewSet, TenantSubscriptionViewSet
 )
 
 # Router for ViewSets
@@ -23,11 +23,11 @@ router.register(r'bookings', BookingViewSet, basename='booking')
 router.register(r'customer-rewards', CustomerRewardViewSet, basename='customer-reward')
 router.register(r'contact-messages', ContactMessageViewSet, basename='contact-message')
 router.register(r'notifications', NotificationViewSet, basename='notification')
+router.register(r'tenants', TenantViewSet, basename='tenant')
+router.register(r'subscription-plans', SubscriptionPlanViewSet, basename='subscription-plan')
+router.register(r'tenant-subscriptions', TenantSubscriptionViewSet, basename='tenant-subscription')
 
 urlpatterns = [
-    # Router URLs (services, visits, staff)
-    path('', include(router.urls)),
-    
     # Authentication
     path('register/', RegisterView.as_view(), name='register'),
     path('business-register/', BusinessRegistrationView.as_view(), name='business-register'),
@@ -62,4 +62,7 @@ urlpatterns = [
     
     # M-Pesa
     path('mpesa/stk-push/', initiate_stk_push, name='initiate-stk-push'),
+
+    # Router URLs (services, visits, staff) - Must be last to avoid shadowing custom paths
+    path('', include(router.urls)),
 ]

@@ -1,6 +1,10 @@
 from django.contrib import admin
 from django.contrib import admin
-from .models import Customer, Sale, Reward, Service, Visit, StaffMember, Booking, CustomerReward, ContactMessage, Notification, create_notification, Tenant, UserProfile
+from .models import (
+    Tenant, UserProfile, Service, StaffMember, Customer, Visit, Sale, Reward, 
+    Booking, CustomerReward, ContactMessage, Notification, SubscriptionPlan,
+    TenantSubscription, PaymentTransaction, create_notification
+)
 
 class ServiceInline(admin.TabularInline):
     model = Service
@@ -57,20 +61,89 @@ class ContactMessageInline(admin.TabularInline):
 
 @admin.register(Tenant)
 class TenantAdmin(admin.ModelAdmin):
-    list_display = ['name', 'business_type', 'city', 'phone_number', 'is_active', 'created_at']
+    list_display = ['name', 'business_type', 'city', 'phone_number', 'is_active', 'created_at', 'get_message_count']
     search_fields = ['name', 'city', 'phone_number']
     list_filter = ['is_active', 'business_type', 'created_at']
     list_editable = ['is_active']
+    
+    # Organize inlines with Contact Messages at the top for easy access
     inlines = [
-        ServiceInline,
-        StaffMemberInline,
+        ContactMessageInline,  # MOVED TO TOP - Easy access for super admin
         BookingInline,
         VisitInline,
-        SaleInline,
+        StaffMemberInline,
+        ServiceInline,
         RewardInline,
+        SaleInline,
         NotificationInline,
-        ContactMessageInline
     ]
+    
+    fieldsets = (
+        ('Business Information', {
+            'fields': ('name', 'business_type', 'city', 'phone_number', 'owner_full_name', 'owner_email')
+        }),
+        ('Status', {
+            'fields': ('is_active', 'created_at'),
+            'description': 'Activate or deactivate this tenant. Active tenants can access the system.'
+        }),
+    )
+    
+    readonly_fields = ['created_at', 'owner_full_name', 'owner_email']
+    
+    # Admin actions
+    actions = ['activate_tenants', 'deactivate_tenants', 'view_tenant_stats']
+    
+    def owner_full_name(self, obj):
+        """Get the full name of the tenant owner"""
+        # Find the tenant admin for this tenant
+        admin_profile = obj.userprofile_set.filter(role='tenant_admin').first()
+        if admin_profile and admin_profile.user:
+            return f"{admin_profile.user.first_name} {admin_profile.user.last_name}"
+        return "No Owner Assigned"
+    
+    def owner_email(self, obj):
+        """Get the email of the tenant owner"""
+        # Find the tenant admin for this tenant
+        admin_profile = obj.userprofile_set.filter(role='tenant_admin').first()
+        if admin_profile and admin_profile.user:
+            return admin_profile.user.email
+        return "No Email"
+
+    
+    def get_message_count(self, obj):
+        """Display count of contact messages for this tenant"""
+        count = obj.contactmessage_set.count()
+        if count > 0:
+            return f'📧 {count} messages'
+        return '—'
+    get_message_count.short_description = 'Contact Messages'
+    
+    def activate_tenants(self, request, queryset):
+        """Activate selected tenants"""
+        updated = queryset.update(is_active=True)
+        self.message_user(request, f'{updated} tenant(s) successfully activated.')
+    activate_tenants.short_description = "✅ Activate selected tenants"
+    
+    def deactivate_tenants(self, request, queryset):
+        """Deactivate selected tenants"""
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f'{updated} tenant(s) successfully deactivated.')
+    deactivate_tenants.short_description = "❌ Deactivate selected tenants"
+    
+    def view_tenant_stats(self, request, queryset):
+        """Display statistics for selected tenants"""
+        stats = []
+        for tenant in queryset:
+            stats.append(f"{tenant.name}: {tenant.customer_set.count()} customers, "
+                        f"{tenant.booking_set.count()} bookings, "
+                        f"{tenant.contactmessage_set.count()} messages")
+        self.message_user(request, " | ".join(stats))
+    view_tenant_stats.short_description = "📊 View statistics for selected tenants"
+    
+    class Media:
+        css = {
+            'all': ('admin/css/custom_admin.css',)
+        }
 
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
@@ -245,7 +318,55 @@ class CustomerRewardAdmin(TenantAdminMixin, admin.ModelAdmin):
 
 @admin.register(ContactMessage)
 class ContactMessageAdmin(TenantAdminMixin, admin.ModelAdmin):
-    list_display = ['full_name', 'tenant', 'email', 'phone', 'subject', 'created_at']
+    list_display = ['full_name', 'tenant', 'email', 'phone', 'subject', 'created_at', 'message_preview']
     search_fields = ['full_name', 'email', 'subject', 'message', 'tenant__name']
     list_filter = ['tenant', 'created_at']
     readonly_fields = ['created_at']
+    
+    fieldsets = (
+        ('Contact Information', {
+            'fields': ('tenant', 'full_name', 'email', 'phone')
+        }),
+        ('Message Details', {
+            'fields': ('subject', 'message'),
+            'classes': ('wide',)
+        }),
+        ('Metadata', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def message_preview(self, obj):
+        """Show a preview of the message"""
+        if len(obj.message) > 50:
+            return obj.message[:50] + '...'
+        return obj.message
+    message_preview.short_description = 'Message Preview'
+    
+    # Make the list view more informative
+    list_per_page = 25
+    date_hierarchy = 'created_at'
+
+
+@admin.register(SubscriptionPlan)
+class SubscriptionPlanAdmin(admin.ModelAdmin):
+    list_display = ['name', 'price', 'interval', 'is_popular', 'is_active']
+    list_editable = ['is_active', 'is_popular']
+    search_fields = ['name', 'description']
+
+@admin.register(TenantSubscription)
+class TenantSubscriptionAdmin(admin.ModelAdmin):
+    list_display = ['tenant', 'plan', 'status', 'start_date', 'next_billing_date']
+    list_filter = ['status', 'plan']
+    search_fields = ['tenant__name']
+    autocomplete_fields = ['tenant', 'plan']
+
+@admin.register(PaymentTransaction)
+class PaymentTransactionAdmin(admin.ModelAdmin):
+    list_display = ['transaction_date', 'tenant', 'plan', 'amount', 'status', 'payment_method']
+    list_filter = ['status', 'payment_method', 'transaction_date']
+    search_fields = ['tenant__name', 'reference_number']
+    readonly_fields = ['transaction_date']
+
+

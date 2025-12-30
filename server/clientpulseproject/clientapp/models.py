@@ -15,6 +15,14 @@ class Tenant(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=False) # Approved or not
     
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('active', 'Active'),
+        ('suspended', 'Suspended'),
+        ('rejected', 'Rejected'),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    
     def __str__(self):
         return self.name
 
@@ -36,7 +44,7 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"{self.user.username}'s Profile ({self.role})"
 
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 
 @receiver(post_save, sender=User)
@@ -440,3 +448,50 @@ def create_notification(title, message, recipient_type, customer=None, user=None
                 print(f"Error sending email: {e}")
     
     return notification
+
+
+class SubscriptionPlan(models.Model):
+    name = models.CharField(max_length=100) # Starter, Professional, Enterprise
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    interval = models.CharField(max_length=20, default='month') # month, year
+    description = models.TextField(blank=True)
+    features = models.TextField(help_text="Comma-separated list of features")
+    is_popular = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} - KES {self.price}/{self.interval}"
+    
+    def get_features_list(self):
+        return [f.strip() for f in self.features.split(',')]
+
+
+class TenantSubscription(models.Model):
+    tenant = models.OneToOneField(Tenant, on_delete=models.CASCADE, related_name='subscription')
+    plan = models.ForeignKey(SubscriptionPlan, on_delete=models.PROTECT)
+    status = models.CharField(max_length=20, default='active') # active, past_due, canceled
+    start_date = models.DateField(auto_now_add=True)
+    next_billing_date = models.DateField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.tenant.name} - {self.plan.name}"
+
+
+class PaymentTransaction(models.Model):
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
+    plan = models.ForeignKey(SubscriptionPlan, on_delete=models.SET_NULL, null=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    transaction_date = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=20, default='pending') # paid, pending, failed
+    reference_number = models.CharField(max_length=100, unique=True)
+    payment_method = models.CharField(max_length=50, default='M-Pesa')
+
+    def __str__(self):
+        return f"{self.tenant.name} - {self.amount} - {self.status}"
+
+
+
+
+

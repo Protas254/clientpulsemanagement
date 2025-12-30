@@ -6,12 +6,17 @@ from rest_framework.views import APIView
 from rest_framework.decorators import action, api_view, permission_classes
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from .models import Customer, Sale, Reward, Service, Visit, StaffMember, Booking, CustomerReward, ContactMessage, Notification, Tenant, UserProfile
+from .models import (
+    Customer, Sale, Reward, Service, Visit, StaffMember, Booking, 
+    CustomerReward, ContactMessage, Notification, Tenant, UserProfile,
+    SubscriptionPlan, TenantSubscription
+)
 from .serializers import (
     UserSerializer, CustomerSerializer, 
     SaleSerializer, RewardSerializer, ServiceSerializer, VisitSerializer, StaffMemberSerializer,
     BookingSerializer, CustomerRewardSerializer, ContactMessageSerializer,
-    NotificationSerializer, BusinessRegistrationSerializer, CustomerSignupSerializer, TenantSerializer
+    NotificationSerializer, BusinessRegistrationSerializer, CustomerSignupSerializer, TenantSerializer,
+    SubscriptionPlanSerializer, TenantSubscriptionSerializer
 )
 from django.db.models import Sum, Count, Avg, Q, F
 from django.db.models.functions import TruncMonth
@@ -1096,3 +1101,103 @@ class AdminProfileUpdateView(APIView):
         data['full_name'] = user.get_full_name() or user.username
         
         return Response(data)
+
+
+# Super Admin - Tenant Management
+class TenantViewSet(viewsets.ModelViewSet):
+    """API endpoint for managing tenants (Super Admin only)"""
+    queryset = Tenant.objects.all()
+    serializer_class = TenantSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        queryset = Tenant.objects.all()
+        # Only superusers can see all tenants
+        if not self.request.user.is_superuser:
+            # Regular users can only see their own tenant
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                queryset = queryset.filter(id=self.request.user.profile.tenant.id)
+            else:
+                queryset = queryset.none()
+        return queryset.order_by('-created_at')
+    
+    @action(detail=True, methods=['get'])
+    def stats(self, request, pk=None):
+        """Get statistics for a specific tenant"""
+        tenant = self.get_object()
+        
+        # Count related objects
+        total_customers = Customer.objects.filter(tenant=tenant).count()
+        total_bookings = Booking.objects.filter(tenant=tenant).count()
+        total_services = Service.objects.filter(tenant=tenant).count()
+        total_staff = StaffMember.objects.filter(tenant=tenant).count()
+        pending_messages = ContactMessage.objects.filter(tenant=tenant).count()
+        
+        return Response({
+            'total_customers': total_customers,
+            'total_bookings': total_bookings,
+            'total_services': total_services,
+            'total_staff': total_staff,
+            'pending_messages': pending_messages,
+        })
+
+class SubscriptionPlanViewSet(viewsets.ModelViewSet):
+    """API endpoint for managing subscription plans"""
+    queryset = SubscriptionPlan.objects.all().order_by('price')
+    serializer_class = SubscriptionPlanSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]
+        return [permissions.IsAdminUser()]
+
+class TenantSubscriptionViewSet(viewsets.ModelViewSet):
+    """API endpoint for managing tenant subscriptions"""
+    queryset = TenantSubscription.objects.all()
+    serializer_class = TenantSubscriptionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        queryset = TenantSubscription.objects.all()
+        # Superusers see all, tenants see only their own
+        if not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+            else:
+                queryset = queryset.none()
+        return queryset
+
+
+
+# Contact Messages ViewSet
+class ContactMessageViewSet(viewsets.ModelViewSet):
+    """API endpoint for contact messages"""
+    queryset = ContactMessage.objects.all()
+    serializer_class = ContactMessageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        queryset = ContactMessage.objects.all()
+        
+        # Filter by tenant if not superuser
+        if not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+            else:
+                queryset = queryset.none()
+        
+        # Allow filtering by tenant via query params (for super admin)
+        tenant_id = self.request.query_params.get('tenant', None)
+        if tenant_id:
+            queryset = queryset.filter(tenant_id=tenant_id)
+        
+        return queryset.order_by('-created_at')
+    
+    def perform_create(self, serializer):
+        # Automatically assign tenant if user has one
+        if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+            serializer.save(tenant=self.request.user.profile.tenant)
+        else:
+            serializer.save()
+

@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Customer, Sale, Reward, Service, Visit, StaffMember, Booking, CustomerReward, ContactMessage, Notification, UserProfile, Tenant
+from .models import Customer, Sale, Reward, Service, Visit, StaffMember, Booking, CustomerReward, ContactMessage, Notification, UserProfile, Tenant, SubscriptionPlan, TenantSubscription
 
 class TenantSerializer(serializers.ModelSerializer):
     owner_name = serializers.SerializerMethodField()
@@ -161,3 +161,22 @@ class CustomerSignupSerializer(serializers.Serializer):
         if data['password'] != data['confirm_password']:
             raise serializers.ValidationError("Passwords do not match")
         return data
+
+class SubscriptionPlanSerializer(serializers.ModelSerializer):
+    features_list = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = SubscriptionPlan
+        fields = '__all__'
+        
+    def get_features_list(self, obj):
+        return obj.get_features_list()
+
+class TenantSubscriptionSerializer(serializers.ModelSerializer):
+    plan_details = SubscriptionPlanSerializer(source='plan', read_only=True)
+    tenant_name = serializers.ReadOnlyField(source='tenant.name')
+    
+    class Meta:
+        model = TenantSubscription
+        fields = '__all__'
+
