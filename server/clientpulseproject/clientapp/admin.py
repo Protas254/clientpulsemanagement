@@ -3,7 +3,8 @@ from django.contrib import admin
 from .models import (
     Tenant, UserProfile, Service, StaffMember, Customer, Visit, Sale, Reward, 
     Booking, CustomerReward, ContactMessage, Notification, SubscriptionPlan,
-    TenantSubscription, PaymentTransaction, create_notification
+    TenantSubscription, PaymentTransaction, create_notification,
+    RewardsDashboard, Reports, Settings, MyNotification
 )
 
 class ServiceInline(admin.TabularInline):
@@ -368,5 +369,26 @@ class PaymentTransactionAdmin(admin.ModelAdmin):
     list_filter = ['status', 'payment_method', 'transaction_date']
     search_fields = ['tenant__name', 'reference_number']
     readonly_fields = ['transaction_date']
+
+
+@admin.register(MyNotification)
+class MyNotificationAdmin(admin.ModelAdmin):
+    list_display = ['title', 'message', 'is_read', 'created_at']
+    list_filter = ['is_read', 'created_at']
+    search_fields = ['title', 'message']
+    readonly_fields = ['created_at', 'title', 'message', 'recipient_type', 'user', 'tenant', 'customer', 'staff']
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_authenticated:
+            return qs.filter(user=request.user)
+        return qs.none()
+    
+    def has_add_permission(self, request):
+        return False
+
+
+
+
 
 

@@ -492,6 +492,35 @@ class PaymentTransaction(models.Model):
         return f"{self.tenant.name} - {self.amount} - {self.status}"
 
 
+# --- Proxy Models for Admin Dashboard Sections ---
+
+class RewardsDashboard(Reward):
+    class Meta:
+        proxy = True
+        verbose_name = 'Rewards Dashboard'
+        verbose_name_plural = 'Rewards Dashboard'
+
+class Reports(Visit):
+    class Meta:
+        proxy = True
+        verbose_name = 'Report'
+        verbose_name_plural = 'Reports'
+
+class Settings(Tenant):
+    class Meta:
+        proxy = True
+        verbose_name = 'Settings'
+        verbose_name_plural = 'Settings'
+
+class MyNotification(Notification):
+    class Meta:
+        proxy = True
+        verbose_name = 'My Notification'
+        verbose_name_plural = 'My Notifications'
+
+
+
+
 
 
 
