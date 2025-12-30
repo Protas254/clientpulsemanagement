@@ -4,7 +4,7 @@ from django.core.mail import send_mail
 from django.contrib.auth.models import User
 from .models import (
     Tenant, Booking, Customer, StaffMember, PaymentTransaction, 
-    Notification, create_notification, UserProfile
+    Notification, create_notification, UserProfile, ContactMessage
 )
 
 # --- TENANT SIGNALS ---
@@ -280,5 +280,33 @@ def payment_notifications(sender, instance, created, **kwargs):
                     message=f"Payment of {instance.amount} failed.",
                     recipient_type='admin',
                     user=admin_profile.user,
+                    send_email=True
+                )
+# --- CONTACT MESSAGE SIGNALS ---
+
+@receiver(post_save, sender=ContactMessage)
+def contact_message_notifications(sender, instance, created, **kwargs):
+    if created:
+        # Notify Tenant Admin
+        tenant = instance.tenant
+        if tenant:
+            admin_profile = tenant.userprofile_set.filter(role='tenant_admin').first()
+            if admin_profile and admin_profile.user:
+                create_notification(
+                    title="New Contact Message",
+                    message=f"You have a new message from {instance.full_name}: {instance.subject}",
+                    recipient_type='admin',
+                    user=admin_profile.user,
+                    send_email=True
+                )
+        else:
+            # If no tenant, it's a platform-level message, notify Super Admins
+            superusers = User.objects.filter(is_superuser=True)
+            for su in superusers:
+                create_notification(
+                    title="New Platform Message",
+                    message=f"New platform message from {instance.full_name}: {instance.subject}",
+                    recipient_type='admin',
+                    user=su,
                     send_email=True
                 )

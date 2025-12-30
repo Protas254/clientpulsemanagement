@@ -1,5 +1,7 @@
 from django.contrib import admin
-from django.contrib import admin
+import csv
+from django.http import HttpResponse
+from django.utils.html import format_html
 from .models import (
     Tenant, UserProfile, Service, StaffMember, Customer, Visit, Sale, Reward, 
     Booking, CustomerReward, ContactMessage, Notification, SubscriptionPlan,
@@ -92,7 +94,7 @@ class TenantAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at', 'owner_full_name', 'owner_email']
     
     # Admin actions
-    actions = ['activate_tenants', 'deactivate_tenants', 'view_tenant_stats']
+    actions = ['activate_tenants', 'deactivate_tenants', 'view_tenant_stats', 'export_tenants_csv']
     
     def owner_full_name(self, obj):
         """Get the full name of the tenant owner"""
@@ -119,6 +121,21 @@ class TenantAdmin(admin.ModelAdmin):
         return '—'
     get_message_count.short_description = 'Contact Messages'
     
+    def export_tenants_csv(self, request, queryset):
+        meta = self.model._meta
+        field_names = [field.name for field in meta.fields]
+        
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename={meta}.csv'
+        writer = csv.writer(response)
+        
+        writer.writerow(field_names)
+        for obj in queryset:
+            row = writer.writerow([getattr(obj, field) for field in field_names])
+        
+        return response
+    export_tenants_csv.short_description = "Export Selected Tenants to CSV"
+
     def activate_tenants(self, request, queryset):
         """Activate selected tenants"""
         updated = queryset.update(is_active=True)
@@ -319,21 +336,22 @@ class CustomerRewardAdmin(TenantAdminMixin, admin.ModelAdmin):
 
 @admin.register(ContactMessage)
 class ContactMessageAdmin(TenantAdminMixin, admin.ModelAdmin):
-    list_display = ['full_name', 'tenant', 'email', 'phone', 'subject', 'created_at', 'message_preview']
+    list_display = ['full_name', 'tenant', 'email', 'subject', 'is_read', 'created_at', 'reply_action']
     search_fields = ['full_name', 'email', 'subject', 'message', 'tenant__name']
-    list_filter = ['tenant', 'created_at']
-    readonly_fields = ['created_at']
+    list_filter = ['tenant', 'is_read', 'created_at']
+    readonly_fields = ['created_at', 'replied_at']
+    actions = ['mark_as_read', 'mark_as_unread']
     
     fieldsets = (
         ('Contact Information', {
             'fields': ('tenant', 'full_name', 'email', 'phone')
         }),
         ('Message Details', {
-            'fields': ('subject', 'message'),
+            'fields': ('subject', 'message', 'is_read'),
             'classes': ('wide',)
         }),
         ('Metadata', {
-            'fields': ('created_at',),
+            'fields': ('created_at', 'replied_at'),
             'classes': ('collapse',)
         }),
     )
@@ -343,7 +361,23 @@ class ContactMessageAdmin(TenantAdminMixin, admin.ModelAdmin):
         if len(obj.message) > 50:
             return obj.message[:50] + '...'
         return obj.message
-    message_preview.short_description = 'Message Preview'
+    message_preview.short_description = 'Message'
+
+    def mark_as_read(self, request, queryset):
+        queryset.update(is_read=True)
+    mark_as_read.short_description = 'Mark selected messages as read'
+    
+    def mark_as_unread(self, request, queryset):
+        queryset.update(is_read=False)
+    mark_as_unread.short_description = 'Mark selected messages as unread'
+    
+    def reply_action(self, obj):
+        return format_html(
+            '<a class="button" href="mailto:{}?subject=Re: {}" style="background-color: #795548; color: white; padding: 2px 10px; border-radius: 4px; text-decoration: none;">Reply</a>',
+            obj.email,
+            obj.subject
+        )
+    reply_action.short_description = 'Action'
     
     # Make the list view more informative
     list_per_page = 25
