@@ -27,9 +27,24 @@ class Tenant(models.Model):
     email = models.EmailField(null=True, blank=True, help_text="Business email for reply-to")
     email_from_name = models.CharField(max_length=255, default="ClientPulse")
     
-    notify_on_booking = models.BooleanField(default=True)
+    # General Notifications
     notify_on_payment = models.BooleanField(default=True)
     notify_on_customer_signup = models.BooleanField(default=True)
+
+    # Emails to CUSTOMERS
+    email_cust_booking_received = models.BooleanField(default=True, help_text="Booking received (pending)")
+    email_cust_booking_approved = models.BooleanField(default=True, help_text="Booking approved")
+    email_cust_booking_rejected = models.BooleanField(default=True, help_text="Booking rejected")
+    email_cust_booking_rescheduled = models.BooleanField(default=True, help_text="Booking rescheduled")
+    email_cust_booking_cancelled = models.BooleanField(default=True, help_text="Booking cancelled by business")
+    email_cust_booking_reminder = models.BooleanField(default=True, help_text="Booking reminder (24h / 2h)")
+    email_cust_booking_noshow = models.BooleanField(default=False, help_text="Booking no-show notice")
+    email_cust_booking_completed = models.BooleanField(default=False, help_text="Booking completed / thank you")
+    
+    # Emails to TENANT
+    email_tenant_new_booking = models.BooleanField(default=True, help_text="New booking alert")
+    email_tenant_booking_cancelled = models.BooleanField(default=True, help_text="Booking cancellation")
+    email_tenant_reschedule_request = models.BooleanField(default=True, help_text="Reschedule request")
     
     def __str__(self):
         return self.name
@@ -210,7 +225,9 @@ class Booking(models.Model):
         ('pending', 'Pending'),
         ('confirmed', 'Confirmed'),
         ('cancelled', 'Cancelled'),
+        ('rejected', 'Rejected'),
         ('completed', 'Completed'),
+        ('no_show', 'No-Show'),
     ]
 
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='bookings')
@@ -402,15 +419,38 @@ def create_notification(title, message, recipient_type, customer=None, user=None
     elif staff:
         tenant = staff.tenant
 
-    # Check tenant preferences if applicable (only for admin/staff notifications)
-    if send_email and tenant and recipient_type in ['admin', 'staff']:
-        if "Booking" in title and not tenant.notify_on_booking:
-            send_email = False
-        elif "Customer" in title and not tenant.notify_on_customer_signup:
-            send_email = False
-        elif "Payment" in title and not tenant.notify_on_payment:
-            send_email = False
-        # Add more as needed
+    # Check tenant preferences if applicable
+    if send_email and tenant:
+        if recipient_type in ['admin', 'staff']:
+            # Tenant/Staff preferences
+            if "New Booking" in title and not tenant.email_tenant_new_booking:
+                send_email = False
+            elif "Booking Cancelled" in title and not tenant.email_tenant_booking_cancelled:
+                send_email = False
+            elif "Reschedule" in title and not tenant.email_tenant_reschedule_request:
+                send_email = False
+            elif "New Customer" in title and not tenant.notify_on_customer_signup:
+                send_email = False
+            elif "Payment" in title and not tenant.notify_on_payment:
+                send_email = False
+        elif recipient_type == 'customer':
+            # Customer preferences
+            if "Booking Received" in title and not tenant.email_cust_booking_received:
+                send_email = False
+            elif "Booking Confirmed" in title and not tenant.email_cust_booking_approved:
+                send_email = False
+            elif "Booking Rejected" in title and not tenant.email_cust_booking_rejected:
+                send_email = False
+            elif "Booking Rescheduled" in title and not tenant.email_cust_booking_rescheduled:
+                send_email = False
+            elif "Booking Cancelled" in title and not tenant.email_cust_booking_cancelled:
+                send_email = False
+            elif "Reminder" in title and not tenant.email_cust_booking_reminder:
+                send_email = False
+            elif "No-Show" in title and not tenant.email_cust_booking_noshow:
+                send_email = False
+            elif any(x in title for x in ["Thank You", "Completed"]) and not tenant.email_cust_booking_completed:
+                send_email = False
 
     notification = Notification.objects.create(
         tenant=tenant,

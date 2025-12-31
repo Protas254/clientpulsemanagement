@@ -176,6 +176,15 @@ def booking_notifications(sender, instance, created, **kwargs):
                 customer=customer,
                 send_email=True
             )
+            # Notify Tenant Admin
+            if admin_user:
+                create_notification(
+                    title="Booking Cancelled",
+                    message=f"Booking for {customer.name} has been cancelled.",
+                    recipient_type='admin',
+                    user=admin_user,
+                    send_email=True
+                )
             # Notify Staff if they were assigned
             if instance.staff_member:
                 create_notification(
@@ -185,6 +194,33 @@ def booking_notifications(sender, instance, created, **kwargs):
                     staff=instance.staff_member,
                     send_email=True
                 )
+        
+        elif new_status == 'rejected':
+            create_notification(
+                title="Booking Rejected",
+                message=f"Unfortunately, your booking for {instance.service.name} has been rejected.",
+                recipient_type='customer',
+                customer=customer,
+                send_email=True
+            )
+            
+        elif new_status == 'no_show':
+            create_notification(
+                title="Booking No-Show",
+                message=f"We missed you! Your booking for {instance.service.name} was marked as a no-show.",
+                recipient_type='customer',
+                customer=customer,
+                send_email=True
+            )
+            
+        elif new_status == 'completed':
+            create_notification(
+                title="Booking Completed - Thank You!",
+                message=f"Thank you for visiting us! We hope you enjoyed your {instance.service.name} service.",
+                recipient_type='customer',
+                customer=customer,
+                send_email=True
+            )
 
     # Rescheduling
     if hasattr(instance, '_old_date') and instance._old_date != instance.booking_date:
@@ -195,6 +231,15 @@ def booking_notifications(sender, instance, created, **kwargs):
             customer=customer,
             send_email=True
         )
+        # Notify Tenant Admin
+        if admin_user:
+            create_notification(
+                title="Booking Rescheduled",
+                message=f"Booking for {customer.name} has been rescheduled to {instance.booking_date.strftime('%Y-%m-%d %H:%M')}.",
+                recipient_type='admin',
+                user=admin_user,
+                send_email=True
+            )
         if instance.staff_member:
              create_notification(
                 title="Appointment Rescheduled",

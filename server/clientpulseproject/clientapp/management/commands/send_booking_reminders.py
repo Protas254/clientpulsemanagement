@@ -22,29 +22,16 @@ class Command(BaseCommand):
             booking_date__range=(start_window, end_window)
         )
         
+        from clientapp.models import create_notification
         for booking in bookings:
             try:
-                subject = 'Reminder: Your appointment is in 30 minutes'
-                message = f"Hello {booking.customer.name},\n\nYour schedule will be ready in 30minutes time for your {booking.service.name} booking.\n\nBooking Details:\n- Service: {booking.service.name}\n- Time: {booking.booking_date.strftime('%H:%M')}\n\nWe look forward to seeing you!\n\nBest regards,\nClientPulse Team"
-                
-                from django.core.mail import EmailMessage
-                tenant = booking.tenant
-                from_email = settings.DEFAULT_FROM_EMAIL
-                reply_to = []
-                
-                if tenant:
-                    from_email = f"{tenant.email_from_name} <{settings.EMAIL_HOST_USER}>"
-                    if tenant.email:
-                        reply_to = [tenant.email]
-
-                email = EmailMessage(
-                    subject=subject,
-                    body=message,
-                    from_email=from_email,
-                    to=[booking.customer.email],
-                    reply_to=reply_to,
+                create_notification(
+                    title="Booking Reminder",
+                    message=f"Hello {booking.customer.name},\n\nYour schedule will be ready in 30 minutes for your {booking.service.name} booking.\n\nBooking Details:\n- Service: {booking.service.name}\n- Time: {booking.booking_date.strftime('%H:%M')}\n\nWe look forward to seeing you!",
+                    recipient_type='customer',
+                    customer=booking.customer,
+                    send_email=True
                 )
-                email.send(fail_silently=False)
                 
                 booking.reminder_sent = True
                 booking.save()

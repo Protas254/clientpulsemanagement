@@ -97,9 +97,22 @@ class TenantAdmin(admin.ModelAdmin):
             'fields': ('email', 'email_from_name'),
             'description': 'Configure how emails appear to your customers.'
         }),
-        ('Notification Preferences', {
-            'fields': ('notify_on_booking', 'notify_on_payment', 'notify_on_customer_signup'),
-            'description': 'Choose which events trigger an email notification to the business owner.'
+        ('Emails to CUSTOMERS', {
+            'fields': (
+                'email_cust_booking_received', 'email_cust_booking_approved', 
+                'email_cust_booking_rejected', 'email_cust_booking_rescheduled', 
+                'email_cust_booking_cancelled', 'email_cust_booking_reminder', 
+                'email_cust_booking_noshow', 'email_cust_booking_completed'
+            ),
+            'description': 'Control which automated emails are sent to your customers.'
+        }),
+        ('Emails to TENANT', {
+            'fields': (
+                'email_tenant_new_booking', 'email_tenant_booking_cancelled', 
+                'email_tenant_reschedule_request', 'notify_on_payment', 
+                'notify_on_customer_signup'
+            ),
+            'description': 'Control which automated emails are sent to the business owner.'
         }),
         ('Status', {
             'fields': ('is_active', 'created_at'),
