@@ -228,15 +228,27 @@ def booking_notifications(sender, instance, created, **kwargs):
 @receiver(post_save, sender=Customer)
 def customer_notifications(sender, instance, created, **kwargs):
     if created:
-        # Notify Tenant Admin
         tenant = instance.tenant
-        admin_profile = tenant.userprofile_set.filter(role='tenant_admin').first()
-        if admin_profile and admin_profile.user:
+        
+        # 1. Notify Tenant Admin(s)
+        admin_profiles = UserProfile.objects.filter(tenant=tenant, role='tenant_admin')
+        for admin_profile in admin_profiles:
+            if admin_profile.user and admin_profile.user.email:
+                create_notification(
+                    title="New Customer Signup",
+                    message=f"Great news! A new customer, {instance.name}, has just registered with {tenant.name}.",
+                    recipient_type='admin',
+                    user=admin_profile.user,
+                    send_email=True
+                )
+        
+        # 2. Notify the Customer (Welcome Email)
+        if instance.email:
             create_notification(
-                title="New Customer",
-                message=f"{instance.name} has joined your business.",
-                recipient_type='admin',
-                user=admin_profile.user,
+                title=f"Welcome to {tenant.name}!",
+                message=f"Hi {instance.name},\n\nThank you for joining {tenant.name}! Your account has been successfully created. You can now log in to our portal to view your rewards and book services.\n\nWe look forward to seeing you soon!",
+                recipient_type='customer',
+                customer=instance,
                 send_email=True
             )
 

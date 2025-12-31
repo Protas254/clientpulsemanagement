@@ -402,13 +402,13 @@ def create_notification(title, message, recipient_type, customer=None, user=None
     elif staff:
         tenant = staff.tenant
 
-    # Check tenant preferences if applicable
-    if send_email and tenant:
-        if title == "New Booking" and not tenant.notify_on_booking:
+    # Check tenant preferences if applicable (only for admin/staff notifications)
+    if send_email and tenant and recipient_type in ['admin', 'staff']:
+        if "Booking" in title and not tenant.notify_on_booking:
             send_email = False
-        elif title == "New Customer" and not tenant.notify_on_customer_signup:
+        elif "Customer" in title and not tenant.notify_on_customer_signup:
             send_email = False
-        elif title == "Payment Successful" and not tenant.notify_on_payment:
+        elif "Payment" in title and not tenant.notify_on_payment:
             send_email = False
         # Add more as needed
 
