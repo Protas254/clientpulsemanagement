@@ -116,17 +116,7 @@ class Customer(models.Model):
     photo = models.ImageField(upload_to='customer_photos/', null=True, blank=True)
 
     def save(self, *args, **kwargs):
-        is_new = self.pk is None
         super().save(*args, **kwargs)
-        if is_new:
-            # Notification: New Customer (Admin)
-            for admin in User.objects.filter(is_superuser=True):
-                create_notification(
-                    title="New Customer Registered",
-                    message=f"New customer registered: {self.name}.",
-                    recipient_type='admin',
-                    user=admin
-                )
 
     def __str__(self):
         return self.name
@@ -418,7 +408,16 @@ class Notification(models.Model):
 
 def create_notification(title, message, recipient_type, customer=None, user=None, staff=None, send_email=False):
     """Helper to create a notification and optionally send an email"""
+    tenant = None
+    if user and hasattr(user, 'profile'):
+        tenant = user.profile.tenant
+    elif customer:
+        tenant = customer.tenant
+    elif staff:
+        tenant = staff.tenant
+
     notification = Notification.objects.create(
+        tenant=tenant,
         title=title,
         message=message,
         recipient_type=recipient_type,

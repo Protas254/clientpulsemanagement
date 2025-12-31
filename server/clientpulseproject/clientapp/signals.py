@@ -237,7 +237,7 @@ def customer_notifications(sender, instance, created, **kwargs):
                 message=f"{instance.name} has joined your business.",
                 recipient_type='admin',
                 user=admin_profile.user,
-                send_email=False # Maybe too spammy for email
+                send_email=True
             )
 
 # --- STAFF SIGNALS ---

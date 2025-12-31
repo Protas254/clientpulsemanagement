@@ -1032,16 +1032,19 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Notification.objects.all()
         
-        # Admin view - Show all admin notifications to any superuser
-        if self.request.user.is_authenticated and self.request.user.is_superuser:
+        if not self.request.user.is_authenticated:
+            # Customer view (via query param for now, or we could use a custom header)
+            customer_id = self.request.query_params.get('customer_id')
+            if customer_id:
+                return queryset.filter(recipient_type='customer', customer_id=customer_id).order_by('-created_at')
+            return queryset.none()
+
+        # Authenticated user (Admin or Staff)
+        if self.request.user.is_superuser:
             return queryset.filter(recipient_type='admin').order_by('-created_at')
         
-        # Customer view (via query param for now, or we could use a custom header)
-        customer_id = self.request.query_params.get('customer_id')
-        if customer_id:
-            return queryset.filter(recipient_type='customer', customer_id=customer_id).order_by('-created_at')
-            
-        return queryset.none()
+        # Tenant Admin or Staff - Show notifications specifically for them
+        return queryset.filter(user=self.request.user).order_by('-created_at')
 
     @action(detail=True, methods=['post'])
     def mark_as_read(self, request, pk=None):
