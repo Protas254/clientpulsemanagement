@@ -179,6 +179,7 @@ export interface Tenant {
     name: string;
     business_type: string;
     city: string;
+    owner_name?: string;
 }
 
 export const searchTenants = async (query: string): Promise<Tenant[]> => {

@@ -48,6 +48,13 @@ class RewardInline(admin.TabularInline):
     show_change_link = True
     fields = ('name', 'type', 'points_required', 'status')
 
+class CustomerInline(admin.TabularInline):
+    model = Customer
+    extra = 0
+    show_change_link = True
+    fields = ('name', 'email', 'phone', 'status', 'points')
+    readonly_fields = ('points',)
+
 class NotificationInline(admin.TabularInline):
     model = Notification
     extra = 0
@@ -71,8 +78,9 @@ class TenantAdmin(admin.ModelAdmin):
     
     # Organize inlines with Contact Messages at the top for easy access
     inlines = [
-        ContactMessageInline,  # MOVED TO TOP - Easy access for super admin
+        ContactMessageInline,
         BookingInline,
+        CustomerInline,
         VisitInline,
         StaffMemberInline,
         ServiceInline,
@@ -84,6 +92,14 @@ class TenantAdmin(admin.ModelAdmin):
     fieldsets = (
         ('Business Information', {
             'fields': ('name', 'business_type', 'city', 'phone_number', 'owner_full_name', 'owner_email')
+        }),
+        ('Email Branding', {
+            'fields': ('email', 'email_from_name'),
+            'description': 'Configure how emails appear to your customers.'
+        }),
+        ('Notification Preferences', {
+            'fields': ('notify_on_booking', 'notify_on_payment', 'notify_on_customer_signup'),
+            'description': 'Choose which events trigger an email notification to the business owner.'
         }),
         ('Status', {
             'fields': ('is_active', 'created_at'),

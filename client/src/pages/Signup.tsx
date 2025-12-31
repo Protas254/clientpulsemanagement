@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -173,10 +173,31 @@ const Signup = () => {
         description: "Your customer profile has been created. You can now access the portal.",
       });
       navigate("/login");
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      let errorMessage = "Failed to register customer";
+
+      // Try to extract the specific error message from the backend
+      if (error.message) {
+        // The error message from api.ts includes the status and body
+        // e.g., "Failed to register customer: 400 {"error":"Email already registered"}"
+        try {
+          const bodyPart = error.message.split('}')[0].split('{')[1];
+          if (bodyPart) {
+            const body = JSON.parse('{' + bodyPart + '}');
+            errorMessage = body.error || body.detail || Object.values(body)[0] as string || errorMessage;
+          }
+        } catch (e) {
+          // If parsing fails, just use the status if available
+          if (error.message.includes("400")) {
+            errorMessage = "Registration failed. Please check if the email or phone is already registered.";
+          }
+        }
+      }
+
       toast({
         title: "Error",
-        description: "Failed to register customer",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

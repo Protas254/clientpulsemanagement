@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,14 +35,32 @@ const Login = () => {
 
     try {
       const data = await login({ username: email, password });
+
+      // Role validation
+      if (data.role === 'customer') {
+        toast({
+          title: "Login Restricted",
+          description: "This is a customer account. Please use the Customer login tab.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data));
 
       toast({
         title: "Welcome back!",
-        description: "You have successfully logged in",
+        description: `Logged in as ${data.full_name}`,
       });
-      navigate("/index");
+
+      // Redirect based on role
+      if (data.role === 'admin') {
+        navigate("/super-admin");
+      } else {
+        navigate("/index");
+      }
     } catch (error: any) {
       toast({
         title: "Login Failed",
@@ -71,6 +89,18 @@ const Login = () => {
     try {
       // 1. Login to get token
       const loginData = await login({ username: customerIdentifier, password: customerPassword });
+
+      // Role validation
+      if (loginData.role !== 'customer') {
+        toast({
+          title: "Login Restricted",
+          description: "This is an admin/staff account. Please use the Admin login tab.",
+          variant: "destructive",
+        });
+        setIsLoading(false);
+        return;
+      }
+
       localStorage.setItem('token', loginData.token);
       localStorage.setItem('user', JSON.stringify(loginData));
 

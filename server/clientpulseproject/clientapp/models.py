@@ -23,6 +23,14 @@ class Tenant(models.Model):
     ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
+    # Email Branding & Notifications
+    email = models.EmailField(null=True, blank=True, help_text="Business email for reply-to")
+    email_from_name = models.CharField(max_length=255, default="ClientPulse")
+    
+    notify_on_booking = models.BooleanField(default=True)
+    notify_on_payment = models.BooleanField(default=True)
+    notify_on_customer_signup = models.BooleanField(default=True)
+    
     def __str__(self):
         return self.name
 
@@ -238,6 +246,18 @@ class Booking(models.Model):
 
         if is_new:
             # Notification: New Booking (Admin & Staff)
+            # Notify Tenant Admin
+            tenant = self.customer.tenant
+            admin_profile = tenant.userprofile_set.filter(role='tenant_admin').first()
+            if admin_profile and admin_profile.user:
+                create_notification(
+                    title="New Booking",
+                    message=f"New booking from {self.customer.name} for {self.service.name}.",
+                    recipient_type='admin',
+                    user=admin_profile.user,
+                    send_email=True
+                )
+            
             # Notify all superusers
             for admin in User.objects.filter(is_superuser=True):
                 create_notification(
@@ -261,9 +281,9 @@ class Booking(models.Model):
                 title="Appointment Confirmation",
                 message=f"Hello {self.customer.name}, your {self.service.name} appointment is confirmed for {self.booking_date.strftime('%Y-%m-%d at %H:%M')}.",
                 recipient_type='customer',
-                customer=self.customer
+                customer=self.customer,
+                send_email=True
             )
-            self._send_approval_email()
         
         if create_visit:
             self._create_visit_from_booking()
@@ -288,40 +308,6 @@ class Booking(models.Model):
         visit.services.add(self.service)
         # Visit.save() handles updating customer points/visit count automatically via its own save method
 
-    def _send_approval_email(self):
-        import threading
-        from django.conf import settings
-        if not self.customer.email:
-            return
-
-        subject = 'Your Booking Has Been Approved'
-        message = f'''Dear {self.customer.name},
-
-Your booking has been approved!
-
-Booking Details:
-- Service: {self.service.name}
-- Date & Time: {self.booking_date.strftime('%Y-%m-%d %H:%M')}
-- Staff Member: {self.staff_member.name if self.staff_member else 'TBA'}
-
-Thank you for choosing our service.
-
-Best regards,
-ClientPulse Team'''
-
-        def send():
-            try:
-                send_mail(
-                    subject,
-                    message,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [self.customer.email, settings.DEFAULT_FROM_EMAIL],
-                    fail_silently=False,
-                )
-            except Exception as e:
-                print(f"Error sending approval email: {e}")
-
-        threading.Thread(target=send).start()
 
 
 class CustomerReward(models.Model):
@@ -416,6 +402,16 @@ def create_notification(title, message, recipient_type, customer=None, user=None
     elif staff:
         tenant = staff.tenant
 
+    # Check tenant preferences if applicable
+    if send_email and tenant:
+        if title == "New Booking" and not tenant.notify_on_booking:
+            send_email = False
+        elif title == "New Customer" and not tenant.notify_on_customer_signup:
+            send_email = False
+        elif title == "Payment Successful" and not tenant.notify_on_payment:
+            send_email = False
+        # Add more as needed
+
     notification = Notification.objects.create(
         tenant=tenant,
         title=title,
@@ -438,16 +434,32 @@ def create_notification(title, message, recipient_type, customer=None, user=None
         if recipient_email:
             import threading
             from django.conf import settings
+            from django.core.mail import EmailMessage
             
             def send():
                 try:
-                    send_mail(
-                        title,
-                        message,
-                        settings.DEFAULT_FROM_EMAIL,
-                        [recipient_email],
-                        fail_silently=True,
+                    # Dynamic branding
+                    from_email = settings.DEFAULT_FROM_EMAIL
+                    reply_to = []
+                    
+                    if tenant:
+                        # Branded as Tenant for customers, or platform-owned for tenants
+                        if recipient_type == 'customer':
+                            from_email = f"{tenant.email_from_name} <{settings.EMAIL_HOST_USER}>"
+                            if tenant.email:
+                                reply_to = [tenant.email]
+                        else:
+                            # For admins/staff, it comes from ClientPulse
+                            from_email = f"ClientPulse <{settings.EMAIL_HOST_USER}>"
+                    
+                    email = EmailMessage(
+                        subject=title,
+                        body=message,
+                        from_email=from_email,
+                        to=[recipient_email],
+                        reply_to=reply_to,
                     )
+                    email.send(fail_silently=False)
                 except Exception as e:
                     print(f"Error sending email: {e}")
             

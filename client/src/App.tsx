@@ -44,15 +44,21 @@ const App = () => (
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
-          <Route path="/portal" element={<CustomerPortal />} />
+
+          {/* Customer Portal - Protected */}
+          <Route element={<ProtectedRoute allowedRoles={['customer']} />}>
+            <Route path="/portal" element={<CustomerPortal />} />
+          </Route>
+
           {/* Super Admin Routes */}
-          <Route element={<ProtectedRoute />}>
+          <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
             <Route path="/super-admin" element={<SuperAdminDashboard />} />
             <Route path="/super-admin/tenant/:tenantId" element={<TenantManagement />} />
             <Route path="/super-admin/plans" element={<SubscriptionPlans />} />
           </Route>
-          {/* Protected Routes */}
-          <Route element={<ProtectedRoute />}>
+
+          {/* Business Admin/Staff Routes */}
+          <Route element={<ProtectedRoute allowedRoles={['tenant_admin', 'staff', 'admin']} />}>
             <Route path="/index" element={<Dashboard />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/services" element={<Services />} />
@@ -61,13 +67,10 @@ const App = () => (
             <Route path="/staff" element={<Staff />} />
             <Route path="/customers" element={<Customers />} />
             <Route path="/customers/:id" element={<CustomerProfile />} />
-            {/* <Route path="/sales" element={<Sales />} /> */}
             <Route path="/rewards" element={<RewardsDashboard />} />
             <Route path="/rewards/manage" element={<RewardsManagement />} />
-            {/* <Route path="/rewards/wallet" element={<CustomerWallet />} /> */}
             <Route path="/reports" element={<Reports />} />
             <Route path="/settings" element={<Settings />} />
-            {/* <Route path="/websites" element={<Websites />} /> */}
             <Route path="/users" element={<Users />} />
           </Route>
           <Route path="*" element={<NotFound />} />

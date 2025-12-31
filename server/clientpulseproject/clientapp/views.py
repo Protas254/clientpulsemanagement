@@ -780,7 +780,7 @@ class CustomerSignupView(APIView):
             except Tenant.DoesNotExist:
                 return Response({'error': 'Invalid Tenant ID'}, status=400)
                 
-            if User.objects.filter(email=data.get('email')).exists():
+            if data.get('email') and User.objects.filter(email=data.get('email')).exists():
                  return Response({'error': 'Email already registered'}, status=400)
 
             # Create User
@@ -1031,20 +1031,35 @@ class NotificationViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         queryset = Notification.objects.all()
+        user = self.request.user
         
-        if not self.request.user.is_authenticated:
+        if not user.is_authenticated:
             # Customer view (via query param for now, or we could use a custom header)
             customer_id = self.request.query_params.get('customer_id')
             if customer_id:
                 return queryset.filter(recipient_type='customer', customer_id=customer_id).order_by('-created_at')
             return queryset.none()
 
-        # Authenticated user (Admin or Staff)
-        if self.request.user.is_superuser:
+        # Authenticated user
+        if user.is_superuser:
             return queryset.filter(recipient_type='admin').order_by('-created_at')
         
-        # Tenant Admin or Staff - Show notifications specifically for them
-        return queryset.filter(user=self.request.user).order_by('-created_at')
+        if hasattr(user, 'profile'):
+            role = user.profile.role
+            tenant = user.profile.tenant
+            
+            if role == 'customer':
+                # Return notifications for this customer
+                return queryset.filter(recipient_type='customer', customer__user=user).order_by('-created_at')
+            
+            elif role in ['tenant_admin', 'staff']:
+                # Return notifications for this user OR general admin notifications for their tenant
+                return queryset.filter(
+                    models.Q(user=user) | 
+                    models.Q(tenant=tenant, recipient_type='admin')
+                ).distinct().order_by('-created_at')
+        
+        return queryset.filter(user=user).order_by('-created_at')
 
     @action(detail=True, methods=['post'])
     def mark_as_read(self, request, pk=None):
@@ -1055,11 +1070,28 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'])
     def mark_all_as_read(self, request):
-        customer_id = request.data.get('customer_id')
-        if request.user.is_authenticated and request.user.is_superuser:
-            Notification.objects.filter(recipient_type='admin', user=request.user, is_read=False).update(is_read=True)
-        elif customer_id:
-            Notification.objects.filter(recipient_type='customer', customer_id=customer_id, is_read=False).update(is_read=True)
+        user = request.user
+        if not user.is_authenticated:
+            customer_id = request.data.get('customer_id')
+            if customer_id:
+                Notification.objects.filter(recipient_type='customer', customer_id=customer_id, is_read=False).update(is_read=True)
+                return Response({'status': 'all customer notifications marked as read'})
+            return Response({'error': 'Not authenticated'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Authenticated
+        if user.is_superuser:
+            Notification.objects.filter(recipient_type='admin', is_read=False).update(is_read=True)
+        elif hasattr(user, 'profile'):
+            role = user.profile.role
+            tenant = user.profile.tenant
+            if role == 'customer':
+                Notification.objects.filter(recipient_type='customer', customer__user=user, is_read=False).update(is_read=True)
+            elif role in ['tenant_admin', 'staff']:
+                Notification.objects.filter(
+                    models.Q(user=user) | models.Q(tenant=tenant, recipient_type='admin'),
+                    is_read=False
+                ).update(is_read=True)
+        
         return Response({'status': 'all notifications marked as read'})
 
 class CustomerProfileUpdateView(APIView):

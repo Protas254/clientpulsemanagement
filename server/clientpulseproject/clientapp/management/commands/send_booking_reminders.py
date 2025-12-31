@@ -27,13 +27,24 @@ class Command(BaseCommand):
                 subject = 'Reminder: Your appointment is in 30 minutes'
                 message = f"Hello {booking.customer.name},\n\nYour schedule will be ready in 30minutes time for your {booking.service.name} booking.\n\nBooking Details:\n- Service: {booking.service.name}\n- Time: {booking.booking_date.strftime('%H:%M')}\n\nWe look forward to seeing you!\n\nBest regards,\nClientPulse Team"
                 
-                send_mail(
-                    subject,
-                    message,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [booking.customer.email],
-                    fail_silently=False,
+                from django.core.mail import EmailMessage
+                tenant = booking.tenant
+                from_email = settings.DEFAULT_FROM_EMAIL
+                reply_to = []
+                
+                if tenant:
+                    from_email = f"{tenant.email_from_name} <{settings.EMAIL_HOST_USER}>"
+                    if tenant.email:
+                        reply_to = [tenant.email]
+
+                email = EmailMessage(
+                    subject=subject,
+                    body=message,
+                    from_email=from_email,
+                    to=[booking.customer.email],
+                    reply_to=reply_to,
                 )
+                email.send(fail_silently=False)
                 
                 booking.reminder_sent = True
                 booking.save()

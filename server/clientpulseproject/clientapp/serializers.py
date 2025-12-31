@@ -152,7 +152,7 @@ class BusinessRegistrationSerializer(serializers.Serializer):
 class CustomerSignupSerializer(serializers.Serializer):
     full_name = serializers.CharField(max_length=200)
     phone_number = serializers.CharField(max_length=20)
-    email = serializers.EmailField(required=False)
+    email = serializers.EmailField(required=False, allow_blank=True)
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
     tenant_id = serializers.IntegerField()
