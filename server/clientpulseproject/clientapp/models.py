@@ -437,17 +437,22 @@ def create_notification(title, message, recipient_type, customer=None, user=None
             recipient_email = staff.email
         
         if recipient_email:
-            try:
-                from django.conf import settings
-                send_mail(
-                    title,
-                    message,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [recipient_email],
-                    fail_silently=True,
-                )
-            except Exception as e:
-                print(f"Error sending email: {e}")
+            import threading
+            from django.conf import settings
+            
+            def send():
+                try:
+                    send_mail(
+                        title,
+                        message,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [recipient_email],
+                        fail_silently=True,
+                    )
+                except Exception as e:
+                    print(f"Error sending email: {e}")
+            
+            threading.Thread(target=send).start()
     
     return notification
 

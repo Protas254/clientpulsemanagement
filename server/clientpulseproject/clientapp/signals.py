@@ -64,7 +64,7 @@ def tenant_notifications(sender, instance, created, **kwargs):
         if admin_user:
             create_notification(
                 title="Business Approved",
-                message=f"Congratulations! Your business '{instance.name}' has been approved.",
+                message=f"Congratulations! Your business '{instance.name}' has been approved. You can now log in to your dashboard.",
                 recipient_type='admin',
                 user=admin_user,
                 send_email=True

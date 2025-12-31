@@ -9,7 +9,7 @@ from django.contrib.auth.models import User
 from .models import (
     Customer, Sale, Reward, Service, Visit, StaffMember, Booking, 
     CustomerReward, ContactMessage, Notification, Tenant, UserProfile,
-    SubscriptionPlan, TenantSubscription
+    SubscriptionPlan, TenantSubscription, create_notification
 )
 from .serializers import (
     UserSerializer, CustomerSerializer, 
@@ -48,6 +48,9 @@ class BusinessRegistrationView(APIView):
             )
             
             # Create User (Owner)
+            if User.objects.filter(username=data['email']).exists():
+                 return Response({'error': 'A user with this email already exists'}, status=status.HTTP_400_BAD_REQUEST)
+
             user = User.objects.create_user(
                 username=data['email'],
                 email=data['email'],
@@ -61,6 +64,15 @@ class BusinessRegistrationView(APIView):
             profile.tenant = tenant
             profile.role = 'tenant_admin'
             profile.save()
+            
+            # Notify Tenant Admin (Application Received)
+            create_notification(
+                title="Application Received",
+                message=f"Hello {data['owner_name']}, your application for '{data['business_name']}' has been received and is under review. You will be notified once approved.",
+                recipient_type='admin',
+                user=user,
+                send_email=True
+            )
             
             return Response({'message': 'Application submitted successfully. Pending review.'}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -774,6 +786,12 @@ class CustomerSignupView(APIView):
             # Create User
             username = data.get('email') or data['phone_number']
             
+            if User.objects.filter(username=username).exists():
+                 return Response({'error': 'Username or Email already registered'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            if Customer.objects.filter(phone=data['phone_number'], tenant=tenant).exists():
+                 return Response({'error': 'Phone number already registered with this business'}, status=status.HTTP_400_BAD_REQUEST)
+
             user = User.objects.create_user(
                 username=username,
                 email=data.get('email', ''),
