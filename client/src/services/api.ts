@@ -67,6 +67,7 @@ export interface DashboardStats {
     avg_order: number;
     total_customers: number;
     active_customers: number;
+    churned_customers: number;
 }
 
 export interface DailyStats {
@@ -568,12 +569,14 @@ export interface Booking {
     created_at: string;
 }
 
-export const fetchBookings = async (params?: { customer?: number; status?: string; search?: string }): Promise<Booking[]> => {
+export const fetchBookings = async (params?: { customer?: number; status?: string; search?: string; start_date?: string; end_date?: string }): Promise<Booking[]> => {
     let url = `${API_URL}bookings/`;
     const queryParams = new URLSearchParams();
     if (params?.customer) queryParams.append('customer', params.customer.toString());
     if (params?.status) queryParams.append('status', params.status);
     if (params?.search) queryParams.append('search', params.search);
+    if (params?.start_date) queryParams.append('start_date', params.start_date);
+    if (params?.end_date) queryParams.append('end_date', params.end_date);
 
     const queryString = queryParams.toString();
     if (queryString) {

@@ -174,10 +174,16 @@ class ServiceViewSet(viewsets.ModelViewSet):
         
         # Filter by tenant
         if self.request.user.is_authenticated and not self.request.user.is_superuser:
-            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
-                queryset = queryset.filter(tenant=self.request.user.profile.tenant)
-            elif hasattr(self.request.user, 'customer_profile') and self.request.user.customer_profile.tenant:
-                queryset = queryset.filter(tenant=self.request.user.customer_profile.tenant)
+            tenant = None
+            if hasattr(self.request.user, 'profile'):
+                tenant = self.request.user.profile.tenant
+            elif hasattr(self.request.user, 'customer_profile'):
+                tenant = self.request.user.customer_profile.tenant
+            
+            if tenant:
+                queryset = queryset.filter(tenant=tenant)
+            else:
+                queryset = queryset.none()
         
         # Filter by active status if requested
         is_active = self.request.query_params.get('is_active', None)
@@ -212,10 +218,16 @@ class StaffMemberViewSet(viewsets.ModelViewSet):
         
         # Filter by tenant
         if self.request.user.is_authenticated and not self.request.user.is_superuser:
-            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
-                queryset = queryset.filter(tenant=self.request.user.profile.tenant)
-            elif hasattr(self.request.user, 'customer_profile') and self.request.user.customer_profile.tenant:
-                queryset = queryset.filter(tenant=self.request.user.customer_profile.tenant)
+            tenant = None
+            if hasattr(self.request.user, 'profile'):
+                tenant = self.request.user.profile.tenant
+            elif hasattr(self.request.user, 'customer_profile'):
+                tenant = self.request.user.customer_profile.tenant
+            
+            if tenant:
+                queryset = queryset.filter(tenant=tenant)
+            else:
+                queryset = queryset.none()
                 
         # Filter by active status if requested
         is_active = self.request.query_params.get('is_active', None)
@@ -242,10 +254,18 @@ class VisitViewSet(viewsets.ModelViewSet):
         
         # Filter by tenant
         if self.request.user.is_authenticated and not self.request.user.is_superuser:
-            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
-                queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+            tenant = None
+            if hasattr(self.request.user, 'profile'):
+                tenant = self.request.user.profile.tenant
+            elif hasattr(self.request.user, 'customer_profile'):
+                tenant = self.request.user.customer_profile.tenant
+            
+            if tenant:
+                queryset = queryset.filter(tenant=tenant)
             elif hasattr(self.request.user, 'customer_profile'):
                  queryset = queryset.filter(customer=self.request.user.customer_profile)
+            else:
+                queryset = queryset.none()
         
         # Filter by customer if requested
         customer_id = self.request.query_params.get('customer', None)
@@ -294,8 +314,14 @@ class CustomerListCreate(generics.ListCreateAPIView):
         
         # Filter by tenant
         if self.request.user.is_authenticated and not self.request.user.is_superuser:
-            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
-                queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+            tenant = None
+            if hasattr(self.request.user, 'profile'):
+                tenant = self.request.user.profile.tenant
+            
+            if tenant:
+                queryset = queryset.filter(tenant=tenant)
+            else:
+                queryset = queryset.none()
         
         # Search by phone, name, or email
         search = self.request.query_params.get('search', None)
@@ -314,9 +340,17 @@ class CustomerListCreate(generics.ListCreateAPIView):
             serializer.save()
 
 class CustomerDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Customer.objects.all()
     serializer_class = CustomerSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Customer.objects.all()
+        if not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+            else:
+                queryset = queryset.none()
+        return queryset
 
 
 # Customer Service History View
@@ -365,20 +399,34 @@ class DailyStatsView(APIView):
         today_visits = Visit.objects.filter(visit_date__date=today)
         if tenant:
             today_visits = today_visits.filter(tenant=tenant)
+        elif not request.user.is_superuser:
+            today_visits = today_visits.none()
             
         customers_served_today = today_visits.count()
         revenue_today = today_visits.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
         
         # Popular services today
         from django.db.models import Count
-        popular_services = Service.objects.filter(
+        popular_services_qs = Service.objects.all()
+        if tenant:
+            popular_services_qs = popular_services_qs.filter(tenant=tenant)
+        elif not request.user.is_superuser:
+            popular_services_qs = popular_services_qs.none()
+
+        popular_services = popular_services_qs.filter(
             visit__visit_date__date=today
         ).annotate(
             times_booked=Count('visit')
         ).order_by('-times_booked')[:5]
         
         # Staff performance today
-        staff_performance = StaffMember.objects.filter(
+        staff_performance_qs = StaffMember.objects.all()
+        if tenant:
+            staff_performance_qs = staff_performance_qs.filter(tenant=tenant)
+        elif not request.user.is_superuser:
+            staff_performance_qs = staff_performance_qs.none()
+
+        staff_performance = staff_performance_qs.filter(
             visits__visit_date__date=today
         ).annotate(
             customers_served=Count('visits'),
@@ -413,8 +461,16 @@ class DashboardStatsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
-        current_month = timezone.now().month
-        last_month = current_month - 1 if current_month > 1 else 12
+        now = timezone.now()
+        current_month = now.month
+        current_year = now.year
+        
+        if current_month == 1:
+            last_month = 12
+            last_month_year = current_year - 1
+        else:
+            last_month = current_month - 1
+            last_month_year = current_year
         
         tenant = None
         if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.tenant:
@@ -429,11 +485,13 @@ class DashboardStatsView(APIView):
         
         # Use Visit model instead of Sale for more accurate tracking
         current_month_revenue = visits_qs.filter(
-            visit_date__month=current_month
+            visit_date__month=current_month,
+            visit_date__year=current_year
         ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
         
         last_month_revenue = visits_qs.filter(
-            visit_date__month=last_month
+            visit_date__month=last_month,
+            visit_date__year=last_month_year
         ).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
         
         sales_growth = 0
@@ -445,8 +503,21 @@ class DashboardStatsView(APIView):
         
         total_customers = customers_qs.count()
         active_customers = customers_qs.filter(
-            visits__visit_date__gte=timezone.now() - timedelta(days=30)
+            visits__visit_date__gte=now - timedelta(days=30)
         ).distinct().count()
+
+        # Churn calculation: Visited last month but not this month
+        last_month_customers = visits_qs.filter(
+            visit_date__month=last_month,
+            visit_date__year=last_month_year
+        ).values_list('customer', flat=True).distinct()
+        
+        this_month_customers = visits_qs.filter(
+            visit_date__month=current_month,
+            visit_date__year=current_year
+        ).values_list('customer', flat=True).distinct()
+        
+        churned_customers_count = len(set(last_month_customers) - set(this_month_customers))
         
         return Response({
             'current_month_sales': float(current_month_revenue),
@@ -456,6 +527,7 @@ class DashboardStatsView(APIView):
             'avg_order': round(float(avg_visit_amount), 2),
             'total_customers': total_customers,
             'active_customers': active_customers,
+            'churned_customers': churned_customers_count,
         })
 
 
@@ -617,9 +689,17 @@ class TopCustomersView(APIView):
 
 # Keep Sale views for backward compatibility
 class SaleListCreate(generics.ListCreateAPIView):
-    queryset = Sale.objects.all()
     serializer_class = SaleSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Sale.objects.all()
+        if not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                queryset = queryset.filter(customer__tenant=self.request.user.profile.tenant)
+            else:
+                queryset = queryset.none()
+        return queryset
 
     def perform_create(self, serializer):
         sale = serializer.save()
@@ -630,21 +710,45 @@ class SaleListCreate(generics.ListCreateAPIView):
         customer.save()
 
 class SaleDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Sale.objects.all()
     serializer_class = SaleSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Sale.objects.all()
+        if not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                queryset = queryset.filter(customer__tenant=self.request.user.profile.tenant)
+            else:
+                queryset = queryset.none()
+        return queryset
 
 
 # Reward Views
 class RewardListCreate(generics.ListCreateAPIView):
-    queryset = Reward.objects.all()
     serializer_class = RewardSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_queryset(self):
+        queryset = Reward.objects.all()
+        if not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+            else:
+                queryset = queryset.none()
+        return queryset
+
 class RewardDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Reward.objects.all()
     serializer_class = RewardSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Reward.objects.all()
+        if not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+            else:
+                queryset = queryset.none()
+        return queryset
 
 
 # Customer Portal/Reward Check
@@ -844,10 +948,18 @@ class BookingViewSet(viewsets.ModelViewSet):
         
         # Filter by tenant or customer
         if self.request.user.is_authenticated and not self.request.user.is_superuser:
-            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
-                queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+            tenant = None
+            if hasattr(self.request.user, 'profile'):
+                tenant = self.request.user.profile.tenant
+            elif hasattr(self.request.user, 'customer_profile'):
+                tenant = self.request.user.customer_profile.tenant
+            
+            if tenant:
+                queryset = queryset.filter(tenant=tenant)
             elif hasattr(self.request.user, 'customer_profile'):
                 queryset = queryset.filter(customer=self.request.user.customer_profile)
+            else:
+                queryset = queryset.none()
         
         # Filter by customer if requested
         customer_id = self.request.query_params.get('customer', None)
@@ -866,6 +978,12 @@ class BookingViewSet(viewsets.ModelViewSet):
                 Q(customer__name__icontains=search_query) |
                 Q(staff_member__name__icontains=search_query)
             )
+            
+        # Filter by date range
+        start_date = self.request.query_params.get('start_date', None)
+        end_date = self.request.query_params.get('end_date', None)
+        if start_date and end_date:
+            queryset = queryset.filter(booking_date__date__range=[start_date, end_date])
             
         return queryset.order_by('-booking_date')
 

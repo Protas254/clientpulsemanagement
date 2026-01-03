@@ -8,6 +8,8 @@ import { Users, TrendingUp, Scissors, Sparkles, Calendar } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { OnboardingWizard } from '@/components/dashboard/OnboardingWizard';
 import { fetchUserProfile } from '@/services/api';
+import { CalendarView } from '@/components/dashboard/CalendarView';
+import { AlertCircle } from 'lucide-react';
 
 export default function Dashboard() {
   const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
@@ -110,6 +112,63 @@ export default function Dashboard() {
           <TrendingUp className="w-5 h-5" />
           <span className="font-semibold">View Reports</span>
         </Button>
+      </div>
+
+      {/* Retention & Churn Section */}
+      <div className="mb-8">
+        <Card className={`border-2 shadow-lg transition-all ${dashboardStats && dashboardStats.churned_customers > 0
+            ? "border-red-200 bg-gradient-to-r from-red-50 to-orange-50 animate-pulse-subtle"
+            : "border-green-100 bg-gradient-to-r from-green-50 to-emerald-50"
+          }`}>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-4">
+              <div className={`p-4 rounded-2xl ${dashboardStats && dashboardStats.churned_customers > 0 ? "bg-red-100" : "bg-green-100"
+                }`}>
+                {dashboardStats && dashboardStats.churned_customers > 0
+                  ? <AlertCircle className="w-8 h-8 text-red-600" />
+                  : <Sparkles className="w-8 h-8 text-green-600" />
+                }
+              </div>
+              <div className="flex-1">
+                <h3 className={`text-xl font-bold ${dashboardStats && dashboardStats.churned_customers > 0 ? "text-red-900" : "text-green-900"
+                  }`}>
+                  {dashboardStats && dashboardStats.churned_customers > 0 ? "Customer Churn Alert" : "Customer Retention: Healthy"}
+                </h3>
+                <p className={`${dashboardStats && dashboardStats.churned_customers > 0 ? "text-red-700" : "text-green-700"
+                  } text-lg`}>
+                  {dashboardStats && dashboardStats.churned_customers > 0
+                    ? <><strong>{dashboardStats.churned_customers}</strong> customers who visited last month haven't booked this month.</>
+                    : "All your customers from last month have returned or booked again! Your retention is at 100%."
+                  }
+                </p>
+                <p className={`${dashboardStats && dashboardStats.churned_customers > 0 ? "text-red-600/80" : "text-green-600/80"
+                  } text-sm mt-1 italic`}>
+                  {dashboardStats && dashboardStats.churned_customers > 0
+                    ? "💡 Pro-tip: Run a \"We miss you\" marketing campaign to bring them back!"
+                    : "✨ Keep up the great service to maintain this perfect score."
+                  }
+                </p>
+              </div>
+              {dashboardStats && dashboardStats.churned_customers > 0 && (
+                <Button
+                  variant="outline"
+                  className="border-red-200 text-red-700 hover:bg-red-100"
+                  onClick={() => window.location.href = '/customers?filter=churned'}
+                >
+                  View Customers
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Interactive Calendar */}
+      <div className="mb-10">
+        <h2 className="text-2xl font-display font-semibold mb-4 text-amber-900">
+          📅 Booking Schedule
+        </h2>
+        <CalendarView />
       </div>
       {/* Today's Stats */}
       <div className="mb-6">
