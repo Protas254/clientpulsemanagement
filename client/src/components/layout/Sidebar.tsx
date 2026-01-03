@@ -11,6 +11,7 @@ import {
   Award,
   Calendar,
   UserCog,
+  Mail,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -23,6 +24,7 @@ const navItems = [
   { title: 'Rewards', url: '/rewards', icon: Gift },
   { title: 'Manage Rewards', url: '/rewards/manage', icon: Award },
   { title: 'Reports', url: '/reports', icon: BarChart3 },
+  { title: 'Contact Messages', url: '/contact-messages', icon: Mail },
   { title: 'Settings', url: '/settings', icon: Settings },
 ];
 

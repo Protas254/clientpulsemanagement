@@ -304,6 +304,7 @@ const Signup = () => {
                       <option value="Salon">Salon</option>
                       <option value="Kinyozi">Kinyozi</option>
                       <option value="Spa">Spa</option>
+                      <option value="Multi-service">Multi-service</option>
                     </select>
                   </div>
                   <div className="space-y-2">

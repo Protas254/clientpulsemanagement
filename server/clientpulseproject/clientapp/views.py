@@ -174,6 +174,8 @@ class ServiceViewSet(viewsets.ModelViewSet):
         if self.request.user.is_authenticated and not self.request.user.is_superuser:
             if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
                 queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+            elif hasattr(self.request.user, 'customer_profile') and self.request.user.customer_profile.tenant:
+                queryset = queryset.filter(tenant=self.request.user.customer_profile.tenant)
         
         # Filter by active status if requested
         is_active = self.request.query_params.get('is_active', None)
@@ -210,6 +212,8 @@ class StaffMemberViewSet(viewsets.ModelViewSet):
         if self.request.user.is_authenticated and not self.request.user.is_superuser:
             if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
                 queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+            elif hasattr(self.request.user, 'customer_profile') and self.request.user.customer_profile.tenant:
+                queryset = queryset.filter(tenant=self.request.user.customer_profile.tenant)
                 
         # Filter by active status if requested
         is_active = self.request.query_params.get('is_active', None)
@@ -833,12 +837,12 @@ class BookingViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         queryset = Booking.objects.all().select_related('customer', 'service', 'staff_member')
         
-        # Filter by tenant
+        # Filter by tenant or customer
         if self.request.user.is_authenticated and not self.request.user.is_superuser:
             if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
                 queryset = queryset.filter(tenant=self.request.user.profile.tenant)
             elif hasattr(self.request.user, 'customer_profile'):
-                 queryset = queryset.filter(customer=self.request.user.customer_profile)
+                queryset = queryset.filter(customer=self.request.user.customer_profile)
         
         # Filter by customer if requested
         customer_id = self.request.query_params.get('customer', None)
@@ -1014,14 +1018,6 @@ def initiate_stk_push(request):
     return Response(response)
 
 
-class ContactMessageViewSet(viewsets.ModelViewSet):
-    queryset = ContactMessage.objects.all()
-    serializer_class = ContactMessageSerializer
-    
-    def get_permissions(self):
-        if self.action == 'create':
-            return [permissions.AllowAny()]
-        return [permissions.IsAdminUser()]
 
 
 class NotificationViewSet(viewsets.ModelViewSet):
@@ -1228,7 +1224,11 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
     """API endpoint for contact messages"""
     queryset = ContactMessage.objects.all()
     serializer_class = ContactMessageSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_permissions(self):
+        if self.action == 'create':
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
     
     def get_queryset(self):
         queryset = ContactMessage.objects.all()
@@ -1239,11 +1239,16 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(tenant=self.request.user.profile.tenant)
             else:
                 queryset = queryset.none()
-        
-        # Allow filtering by tenant via query params (for super admin)
-        tenant_id = self.request.query_params.get('tenant', None)
-        if tenant_id:
-            queryset = queryset.filter(tenant_id=tenant_id)
+        else:
+            # Super Admin:
+            # If tenant param provided, show that tenant's messages
+            # If NO tenant param, show only Platform messages (tenant=None)
+            # This ensures tenant messages don't clutter the global dashboard
+            tenant_id = self.request.query_params.get('tenant', None)
+            if tenant_id:
+                queryset = queryset.filter(tenant_id=tenant_id)
+            else:
+                queryset = queryset.filter(tenant__isnull=True)
         
         return queryset.order_by('-created_at')
     

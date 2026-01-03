@@ -265,7 +265,7 @@ const LandingPage = () => {
                                 name: "Professional",
                                 price: "5,000",
                                 description: "Ideal for growing salons with multiple staff members.",
-                                features: ["100 clients", "24/7 WhatsApp Support", "Advanced loyalty rules", "Staff management", "M-Pesa integration", "Priority support"],
+                                features: ["Multi-service packages", "100 clients", "24/7 WhatsApp Support", "Advanced loyalty rules", "Staff management", "M-Pesa integration", "Priority support"],
                                 buttonText: "Start Pro Trial",
                                 popular: true
                             },
@@ -273,7 +273,7 @@ const LandingPage = () => {
                                 name: "Enterprise",
                                 price: "12,000",
                                 description: "For large spas and multi-location beauty businesses.",
-                                features: ["Unlimited clients", "24/7 WhatsApp Support", "Multiple locations", "Custom branding", "API access", "Dedicated account manager", "24/7 Phone support"],
+                                features: ["Multi-service packages", " Unlimited clients", "24/7 WhatsApp Support", "Multiple locations", "Custom branding", "API access", "Dedicated account manager", "24/7 Phone support"],
                                 buttonText: "Contact Sales",
                                 popular: false
                             }

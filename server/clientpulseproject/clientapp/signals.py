@@ -4,7 +4,7 @@ from django.core.mail import send_mail
 from django.contrib.auth.models import User
 from .models import (
     Tenant, Booking, Customer, StaffMember, PaymentTransaction, 
-    Notification, create_notification, UserProfile, ContactMessage
+    Notification, create_notification, UserProfile, ContactMessage, Service
 )
 
 # --- TENANT SIGNALS ---
@@ -367,3 +367,82 @@ def contact_message_notifications(sender, instance, created, **kwargs):
                     user=su,
                     send_email=True
                 )
+
+# --- SERVICE POPULATION ---
+
+@receiver(post_save, sender=Tenant)
+def populate_tenant_services(sender, instance, created, **kwargs):
+    if created:
+        services_to_create = []
+        
+        kinyozi_services = [
+            ('Haircut (Adult)', 'hair', 500, 30, 'Professional haircut tailored to your style.'),
+            ('Haircut (Kids)', 'hair', 300, 20, 'Gentle, child-friendly haircut.'),
+            ('Beard Trim', 'hair', 200, 15, 'Clean shaping and trimming of the beard.'),
+            ('Beard Shave (Clean Shave)', 'hair', 250, 20, 'Smooth, close shave for a fresh look.'),
+            ('Hairline / Shape-up', 'hair', 150, 10, 'Precise edge-up for a sharp finish.'),
+            ('Hair Wash', 'hair', 200, 15, 'Refreshing wash and scalp cleanse.'),
+            ('Hair Dye (Men)', 'hair', 1000, 45, 'Color treatment for hair or beard.'),
+            ('Scalp Massage', 'hair', 300, 15, 'Relaxing massage to boost blood circulation.'),
+            ('Haircut + Beard Trim', 'packages', 650, 45, 'Complete grooming in one session.'),
+            ('Full Grooming Package', 'packages', 1200, 75, 'Haircut, beard, wash, and finishing touches.'),
+        ]
+        
+        salon_services = [
+            ('Hair Wash & Blow-dry', 'hair', 800, 45, 'Cleanse, dry, and style your hair.'),
+            ('Hair Styling', 'hair', 1500, 60, 'Styling for everyday or special occasions.'),
+            ('Braiding', 'hair', 2500, 180, 'Neat and stylish protective braids.'),
+            ('Weaving / Extensions', 'hair', 3500, 120, 'Hair extensions for length and volume.'),
+            ('Wig Installation', 'hair', 2000, 90, 'Secure and natural-looking wig fitting.'),
+            ('Hair Relaxing', 'hair', 1500, 90, 'Smoothening treatment for easy styling.'),
+            ('Hair Treatment', 'hair', 1200, 45, 'Nourishing care for damaged hair.'),
+            ('Hair Coloring', 'hair', 3000, 120, 'Professional hair color application.'),
+            ('Keratin Treatment', 'hair', 5000, 180, 'Long-lasting smooth and frizz-free hair.'),
+            ('Manicure', 'nails', 800, 45, 'Nail shaping, cleaning, and polish for hands.'),
+            ('Pedicure', 'nails', 1000, 60, 'Foot care, nail grooming, and polish.'),
+            ('Gel Nails', 'nails', 1500, 60, 'Long-lasting gel polish finish.'),
+            ('Acrylic Nails', 'nails', 2500, 90, 'Strong nail extensions with custom shapes.'),
+            ('Nail Art', 'nails', 500, 30, 'Creative designs and decorative nail styling.'),
+            ('Nail Repair', 'nails', 200, 15, 'Fixing broken or damaged nails.'),
+            ('Makeup (Casual)', 'makeup', 1500, 45, 'Light makeup for everyday wear.'),
+            ('Bridal Makeup', 'makeup', 5000, 120, 'Elegant makeup for weddings.'),
+            ('Event Makeup', 'makeup', 3000, 90, 'Glamorous look for special events.'),
+            ('Photoshoot Makeup', 'makeup', 3500, 90, 'Camera-ready professional makeup.'),
+        ]
+        
+        spa_services = [
+            ('Full Body Massage', 'massage', 3500, 60, 'Relaxing massage for overall wellness.'),
+            ('Swedish Massage', 'massage', 3000, 60, 'Gentle massage for relaxation and stress relief.'),
+            ('Deep Tissue Massage', 'massage', 4000, 60, 'Targets muscle tension and pain.'),
+            ('Hot Stone Massage', 'massage', 4500, 90, 'Warm stones for deep muscle relaxation.'),
+            ('Reflexology', 'massage', 2000, 45, 'Pressure-point therapy on feet and hands.'),
+            ('Head & Shoulder Massage', 'massage', 1500, 30, 'Relieves tension in upper body.'),
+            ('Facial Treatment', 'facial', 2500, 45, 'Refreshes and revitalizes the skin.'),
+            ('Deep Cleansing Facial', 'facial', 3000, 60, 'Removes impurities and unclogs pores.'),
+            ('Anti-Aging Facial', 'facial', 4000, 60, 'Improves skin tone and reduces fine lines.'),
+            ('Acne Treatment', 'facial', 3500, 60, 'Targets breakouts and skin irritation.'),
+            ('Body Scrub', 'body', 2500, 45, 'Exfoliates dead skin for smoothness.'),
+            ('Body Wrap', 'body', 3500, 60, 'Nourishing treatment to hydrate and detoxify skin.'),
+            ('Detox Treatment', 'body', 4000, 60, 'Helps remove toxins and refresh the body.'),
+        ]
+        
+        b_type = instance.business_type.lower()
+        
+        if b_type == 'kinyozi':
+            services_to_create = kinyozi_services
+        elif b_type == 'salon':
+            services_to_create = salon_services
+        elif b_type == 'spa':
+            services_to_create = spa_services
+        elif b_type == 'multi-service':
+            services_to_create = kinyozi_services + salon_services + spa_services
+            
+        for name, cat, price, duration, desc in services_to_create:
+            Service.objects.create(
+                tenant=instance,
+                name=name,
+                category=cat,
+                price=price,
+                duration=duration,
+                description=desc
+            )

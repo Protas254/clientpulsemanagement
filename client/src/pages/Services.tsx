@@ -37,6 +37,10 @@ const categoryIcons = {
     spa: Waves,
     nails: Hand,
     facial: Smile,
+    massage: Waves,
+    makeup: Smile,
+    body: Waves,
+    packages: Plus,
     other: MoreVertical,
 };
 
@@ -47,6 +51,10 @@ const categoryColors = {
     spa: 'bg-pink-100 text-pink-700',
     nails: 'bg-rose-100 text-rose-700',
     facial: 'bg-fuchsia-100 text-fuchsia-700',
+    massage: 'bg-indigo-100 text-indigo-700',
+    makeup: 'bg-purple-100 text-purple-700',
+    body: 'bg-emerald-100 text-emerald-700',
+    packages: 'bg-orange-100 text-orange-700',
     other: 'bg-gray-100 text-gray-700',
 };
 
@@ -209,20 +217,28 @@ export default function Services() {
                     Hair
                 </Button>
                 <Button
-                    onClick={() => setSelectedCategory('salon')}
-                    variant={selectedCategory === 'salon' ? 'default' : 'outline'}
-                    className={selectedCategory === 'salon' ? 'bg-amber-600 hover:bg-amber-700' : ''}
+                    onClick={() => setSelectedCategory('massage')}
+                    variant={selectedCategory === 'massage' ? 'default' : 'outline'}
+                    className={selectedCategory === 'massage' ? 'bg-indigo-600 hover:bg-indigo-700' : ''}
                 >
-                    <Scissors className="w-4 h-4 mr-2" />
-                    Salon
+                    <Waves className="w-4 h-4 mr-2" />
+                    Massage
                 </Button>
                 <Button
-                    onClick={() => setSelectedCategory('barber')}
-                    variant={selectedCategory === 'barber' ? 'default' : 'outline'}
-                    className={selectedCategory === 'barber' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                    onClick={() => setSelectedCategory('makeup')}
+                    variant={selectedCategory === 'makeup' ? 'default' : 'outline'}
+                    className={selectedCategory === 'makeup' ? 'bg-purple-600 hover:bg-purple-700' : ''}
                 >
-                    <Scissors className="w-4 h-4 mr-2" />
-                    Barber
+                    <Smile className="w-4 h-4 mr-2" />
+                    Makeup
+                </Button>
+                <Button
+                    onClick={() => setSelectedCategory('body')}
+                    variant={selectedCategory === 'body' ? 'default' : 'outline'}
+                    className={selectedCategory === 'body' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
+                >
+                    <Waves className="w-4 h-4 mr-2" />
+                    Body
                 </Button>
                 <Button
                     onClick={() => setSelectedCategory('spa')}
@@ -247,6 +263,14 @@ export default function Services() {
                 >
                     <Smile className="w-4 h-4 mr-2" />
                     Facial
+                </Button>
+                <Button
+                    onClick={() => setSelectedCategory('packages')}
+                    variant={selectedCategory === 'packages' ? 'default' : 'outline'}
+                    className={selectedCategory === 'packages' ? 'bg-orange-600 hover:bg-orange-700' : ''}
+                >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Packages
                 </Button>
             </div>
 
@@ -366,11 +390,13 @@ export default function Services() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="hair">Hair</SelectItem>
-                                        <SelectItem value="salon">Salon</SelectItem>
-                                        <SelectItem value="barber">Barber</SelectItem>
+                                        <SelectItem value="massage">Massage</SelectItem>
+                                        <SelectItem value="makeup">Makeup</SelectItem>
+                                        <SelectItem value="body">Body Treatments</SelectItem>
                                         <SelectItem value="spa">Spa</SelectItem>
                                         <SelectItem value="nails">Nails</SelectItem>
                                         <SelectItem value="facial">Facial</SelectItem>
+                                        <SelectItem value="packages">Packages</SelectItem>
                                         <SelectItem value="other">Other</SelectItem>
                                     </SelectContent>
                                 </Select>

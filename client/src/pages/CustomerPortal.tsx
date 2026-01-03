@@ -3,7 +3,7 @@ import { TopNav } from '@/components/layout/TopNav';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Scissors, Gift, ArrowRight, Mail, Phone, MapPin, Calendar, DollarSign, ShoppingBag, Plus, Check, Clock, Waves, Hand, Smile, MoreVertical, Edit, Camera } from 'lucide-react';
-import { Reward, Service, fetchServices, createBooking, fetchBookings, Booking, redeemReward, checkRewards, updateCustomerProfile, CustomerReward } from '@/services/api';
+import { Reward, Service, fetchServices, createBooking, fetchBookings, Booking, redeemReward, checkRewards, updateCustomerProfile, CustomerReward, sendContactMessage } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -70,6 +70,10 @@ const categoryIcons = {
     spa: Waves,
     nails: Hand,
     facial: Smile,
+    massage: Waves,
+    makeup: Smile,
+    body: Waves,
+    packages: Plus,
     other: MoreVertical,
 };
 
@@ -80,6 +84,10 @@ const categoryColors = {
     spa: 'bg-pink-100 text-pink-700',
     nails: 'bg-rose-100 text-rose-700',
     facial: 'bg-fuchsia-100 text-fuchsia-700',
+    massage: 'bg-indigo-100 text-indigo-700',
+    makeup: 'bg-purple-100 text-purple-700',
+    body: 'bg-emerald-100 text-emerald-700',
+    packages: 'bg-orange-100 text-orange-700',
     other: 'bg-gray-100 text-gray-700',
 };
 
@@ -104,6 +112,11 @@ export default function CustomerPortal() {
     const [editPhone, setEditPhone] = useState('');
     const [editPhoto, setEditPhoto] = useState<File | null>(null);
     const [isUpdating, setIsUpdating] = useState(false);
+
+    // Contact form state
+    const [contactSubject, setContactSubject] = useState('');
+    const [contactMessage, setContactMessage] = useState('');
+    const [contactLoading, setContactLoading] = useState(false);
 
     const navigate = useNavigate();
     const { toast } = useToast();
@@ -311,6 +324,47 @@ export default function CustomerPortal() {
         }
     };
 
+    const handleSendContactMessage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!customerData) return;
+
+        if (!contactSubject || !contactMessage) {
+            toast({
+                title: "Error",
+                description: "Please fill in all fields.",
+                variant: "destructive"
+            });
+            return;
+        }
+
+        setContactLoading(true);
+        try {
+            await sendContactMessage({
+                full_name: customerData.name,
+                email: customerData.email,
+                phone: customerData.phone,
+                subject: contactSubject,
+                message: contactMessage
+            });
+
+            toast({
+                title: "Message Sent",
+                description: "Your message has been sent to the business owner.",
+            });
+            setContactSubject('');
+            setContactMessage('');
+        } catch (error) {
+            console.error('Failed to send message', error);
+            toast({
+                title: "Error",
+                description: "Failed to send message. Please try again.",
+                variant: "destructive"
+            });
+        } finally {
+            setContactLoading(false);
+        }
+    };
+
     const getBookingStatus = (serviceId: number) => {
         // Find the most recent booking for this service that isn't cancelled or completed
         const booking = bookings.find(b =>
@@ -341,9 +395,10 @@ export default function CustomerPortal() {
                     </div>
 
                     <Tabs defaultValue="dashboard" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2 mb-8 max-w-md mx-auto">
+                        <TabsList className="grid w-full grid-cols-3 mb-8 max-w-md mx-auto">
                             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                             <TabsTrigger value="services">Book Services</TabsTrigger>
+                            <TabsTrigger value="contact">Contact Us</TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="dashboard" className="space-y-6">
@@ -583,20 +638,28 @@ export default function CustomerPortal() {
                                     Hair
                                 </Button>
                                 <Button
-                                    onClick={() => setSelectedCategory('salon')}
-                                    variant={selectedCategory === 'salon' ? 'default' : 'outline'}
-                                    className={selectedCategory === 'salon' ? 'bg-amber-600 hover:bg-amber-700' : ''}
+                                    onClick={() => setSelectedCategory('massage')}
+                                    variant={selectedCategory === 'massage' ? 'default' : 'outline'}
+                                    className={selectedCategory === 'massage' ? 'bg-indigo-600 hover:bg-indigo-700' : ''}
                                 >
-                                    <Scissors className="w-4 h-4 mr-2" />
-                                    Salon
+                                    <Waves className="w-4 h-4 mr-2" />
+                                    Massage
                                 </Button>
                                 <Button
-                                    onClick={() => setSelectedCategory('barber')}
-                                    variant={selectedCategory === 'barber' ? 'default' : 'outline'}
-                                    className={selectedCategory === 'barber' ? 'bg-blue-600 hover:bg-blue-700' : ''}
+                                    onClick={() => setSelectedCategory('makeup')}
+                                    variant={selectedCategory === 'makeup' ? 'default' : 'outline'}
+                                    className={selectedCategory === 'makeup' ? 'bg-purple-600 hover:bg-purple-700' : ''}
                                 >
-                                    <Scissors className="w-4 h-4 mr-2" />
-                                    Barber
+                                    <Smile className="w-4 h-4 mr-2" />
+                                    Makeup
+                                </Button>
+                                <Button
+                                    onClick={() => setSelectedCategory('body')}
+                                    variant={selectedCategory === 'body' ? 'default' : 'outline'}
+                                    className={selectedCategory === 'body' ? 'bg-emerald-600 hover:bg-emerald-700' : ''}
+                                >
+                                    <Waves className="w-4 h-4 mr-2" />
+                                    Body
                                 </Button>
                                 <Button
                                     onClick={() => setSelectedCategory('spa')}
@@ -621,6 +684,14 @@ export default function CustomerPortal() {
                                 >
                                     <Smile className="w-4 h-4 mr-2" />
                                     Facial
+                                </Button>
+                                <Button
+                                    onClick={() => setSelectedCategory('packages')}
+                                    variant={selectedCategory === 'packages' ? 'default' : 'outline'}
+                                    className={selectedCategory === 'packages' ? 'bg-orange-600 hover:bg-orange-700' : ''}
+                                >
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    Packages
                                 </Button>
                             </div>
 
@@ -711,6 +782,55 @@ export default function CustomerPortal() {
                                     );
                                 });
                             })()}
+                        </TabsContent>
+
+                        <TabsContent value="contact" className="space-y-6">
+                            <Card className="max-w-2xl mx-auto">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2">
+                                        <Mail className="w-5 h-5 text-amber-600" />
+                                        Contact Business Owner
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <form onSubmit={handleSendContactMessage} className="space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div className="space-y-2">
+                                                <Label>Full Name</Label>
+                                                <Input value={customerData.name} disabled className="bg-muted" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <Label>Email</Label>
+                                                <Input value={customerData.email} disabled className="bg-muted" />
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="subject">Subject</Label>
+                                            <Input
+                                                id="subject"
+                                                placeholder="What is this regarding?"
+                                                value={contactSubject}
+                                                onChange={(e) => setContactSubject(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="message">Message</Label>
+                                            <textarea
+                                                id="message"
+                                                className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                placeholder="Type your message here..."
+                                                value={contactMessage}
+                                                onChange={(e) => setContactMessage(e.target.value)}
+                                                required
+                                            />
+                                        </div>
+                                        <Button type="submit" className="w-full bg-amber-600 hover:bg-amber-700" disabled={contactLoading}>
+                                            {contactLoading ? 'Sending...' : 'Send Message'}
+                                        </Button>
+                                    </form>
+                                </CardContent>
+                            </Card>
                         </TabsContent>
                     </Tabs>
                 </div>

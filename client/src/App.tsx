@@ -28,6 +28,7 @@ import TermsOfService from "./pages/TermsOfService";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import TenantManagement from "./pages/TenantManagement";
 import SubscriptionPlans from "./pages/SubscriptionPlans";
+import ContactMessages from "./pages/ContactMessages";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -70,6 +71,7 @@ const App = () => (
             <Route path="/rewards" element={<RewardsDashboard />} />
             <Route path="/rewards/manage" element={<RewardsManagement />} />
             <Route path="/reports" element={<Reports />} />
+            <Route path="/contact-messages" element={<ContactMessages />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/users" element={<Users />} />
           </Route>

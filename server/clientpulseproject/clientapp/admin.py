@@ -2,11 +2,12 @@ from django.contrib import admin
 import csv
 from django.http import HttpResponse
 from django.utils.html import format_html
+from django.utils import timezone
 from .models import (
     Tenant, UserProfile, Service, StaffMember, Customer, Visit, Sale, Reward, 
     Booking, CustomerReward, ContactMessage, Notification, SubscriptionPlan,
     TenantSubscription, PaymentTransaction, create_notification,
-    RewardsDashboard, Reports, Settings, MyNotification
+    RewardsDashboard, Reports, Settings, MyNotification, CustomersDashboard
 )
 
 class ServiceInline(admin.TabularInline):
@@ -71,7 +72,7 @@ class ContactMessageInline(admin.TabularInline):
 
 @admin.register(Tenant)
 class TenantAdmin(admin.ModelAdmin):
-    list_display = ['name', 'business_type', 'city', 'phone_number', 'is_active', 'created_at', 'get_message_count']
+    list_display = ['name', 'business_type', 'city', 'phone_number', 'get_customer_count', 'is_active', 'created_at', 'get_message_count']
     search_fields = ['name', 'city', 'phone_number']
     list_filter = ['is_active', 'business_type', 'created_at']
     list_editable = ['is_active']
@@ -149,6 +150,14 @@ class TenantAdmin(admin.ModelAdmin):
             return f'📧 {count} messages'
         return '—'
     get_message_count.short_description = 'Contact Messages'
+
+    def get_customer_count(self, obj):
+        """Display count of customers for this tenant"""
+        count = obj.customer_set.count()
+        if count > 0:
+            return f'👥 {count} customers'
+        return '—'
+    get_customer_count.short_description = 'Customers'
     
     def export_tenants_csv(self, request, queryset):
         meta = self.model._meta
@@ -448,6 +457,100 @@ class MyNotificationAdmin(admin.ModelAdmin):
         return qs.none()
     
     def has_add_permission(self, request):
+        return False
+
+@admin.register(CustomersDashboard)
+class CustomersDashboardAdmin(admin.ModelAdmin):
+    change_list_template = 'admin/customers_dashboard_change_list.html'
+    
+    def changelist_view(self, request, extra_context=None):
+        from django.db.models import Count
+        
+        # Get stats
+        total_customers = Customer.objects.count()
+        active_customers = Customer.objects.filter(status='ACTIVE').count()
+        new_this_month = Customer.objects.filter(created_at__month=timezone.now().month).count()
+        
+        # Top tenants by customers
+        top_tenants = Tenant.objects.annotate(cust_count=Count('customer')).order_by('-cust_count')[:5]
+        
+        extra_context = extra_context or {}
+        extra_context['stats'] = {
+            'total_customers': total_customers,
+            'active_customers': active_customers,
+            'new_this_month': new_this_month,
+        }
+        extra_context['top_tenants'] = top_tenants
+        extra_context['title'] = 'Customers Dashboard'
+        
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def has_add_permission(self, request):
+        return False
+
+@admin.register(RewardsDashboard)
+class RewardsDashboardAdmin(admin.ModelAdmin):
+    change_list_template = 'admin/rewards_dashboard_change_list.html'
+    
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['stats'] = {
+            'total_rewards': Reward.objects.count(),
+            'active_rewards': Reward.objects.filter(status='active').count(),
+            'total_claimed': CustomerReward.objects.count(),
+            'pending_redemptions': CustomerReward.objects.filter(status='pending').count(),
+        }
+        extra_context['title'] = 'Rewards Dashboard'
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def has_add_permission(self, request):
+        return False
+
+@admin.register(Reports)
+class ReportsAdmin(admin.ModelAdmin):
+    change_list_template = 'admin/reports_change_list.html'
+    
+    def changelist_view(self, request, extra_context=None):
+        from django.db.models import Sum
+        from django.db.models.functions import TruncMonth
+        
+        # Get analytics
+        total_revenue = Visit.objects.aggregate(total=Sum('total_amount'))['total'] or 0
+        total_visits = Visit.objects.count()
+        
+        monthly_revenue = Visit.objects.annotate(month=TruncMonth('visit_date')) \
+            .values('month') \
+            .annotate(revenue=Sum('total_amount')) \
+            .order_by('-month')[:6]
+            
+        extra_context = extra_context or {}
+        extra_context['analytics'] = {
+            'total_revenue': total_revenue,
+            'total_visits': total_visits,
+            'monthly_revenue': monthly_revenue,
+        }
+        extra_context['title'] = 'Business Reports'
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def has_add_permission(self, request):
+        return False
+
+@admin.register(Settings)
+class SettingsAdmin(admin.ModelAdmin):
+    list_display = ['name', 'business_type', 'city', 'phone_number', 'is_active']
+    
+    def get_queryset(self, request):
+        qs = super().get_queryset(request)
+        if request.user.is_superuser:
+            return qs
+        if hasattr(request.user, 'profile') and request.user.profile.tenant:
+            return qs.filter(id=request.user.profile.tenant.id)
+        return qs.none()
+
+    def has_add_permission(self, request):
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
         return False
 
 

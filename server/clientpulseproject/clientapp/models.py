@@ -9,7 +9,7 @@ from django.contrib.auth.models import User
 
 class Tenant(models.Model):
     name = models.CharField(max_length=200)
-    business_type = models.CharField(max_length=50) # Kinyozi, Salon, Spa
+    business_type = models.CharField(max_length=50) # Kinyozi, Salon, Spa, Multi-service
     city = models.CharField(max_length=100)
     phone_number = models.CharField(max_length=20)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -103,6 +103,10 @@ class Service(models.Model):
         ('spa', 'Spa & Massage'),
         ('nails', 'Nail Services'),
         ('facial', 'Facial & Beauty'),
+        ('massage', 'Massage Services'),
+        ('makeup', 'Makeup Services'),
+        ('body', 'Body Treatments'),
+        ('packages', 'Packages'),
         ('other', 'Other Services'),
     ]
     
@@ -575,6 +579,12 @@ class MyNotification(Notification):
         proxy = True
         verbose_name = 'My Notification'
         verbose_name_plural = 'My Notifications'
+
+class CustomersDashboard(Customer):
+    class Meta:
+        proxy = True
+        verbose_name = 'Customers Dashboard'
+        verbose_name_plural = 'Customers Dashboard'
 
 
 
