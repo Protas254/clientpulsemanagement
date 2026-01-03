@@ -7,7 +7,7 @@ from .models import (
     Tenant, UserProfile, Service, StaffMember, Customer, Visit, Sale, Reward, 
     Booking, CustomerReward, ContactMessage, Notification, SubscriptionPlan,
     TenantSubscription, PaymentTransaction, create_notification,
-    RewardsDashboard, Reports, Settings, MyNotification, CustomersDashboard
+    RewardsDashboard, Reports, Settings, MyNotification, CustomersDashboard, Review
 )
 
 class ServiceInline(admin.TabularInline):
@@ -247,8 +247,8 @@ class ServiceAdmin(TenantAdminMixin, admin.ModelAdmin):
 
 @admin.register(StaffMember)
 class StaffMemberAdmin(TenantAdminMixin, admin.ModelAdmin):
-    list_display = ['name', 'tenant', 'phone', 'is_active', 'joined_date']
-    search_fields = ['name', 'phone', 'tenant__name']
+    list_display = ['name', 'tenant', 'specialty', 'phone', 'is_active', 'joined_date']
+    search_fields = ['name', 'phone', 'tenant__name', 'specialty']
     list_filter = ['tenant', 'is_active', 'joined_date']
 
 
@@ -534,6 +534,14 @@ class ReportsAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+@admin.register(Review)
+class ReviewAdmin(TenantAdminMixin, admin.ModelAdmin):
+    list_display = ['customer', 'tenant', 'rating', 'is_public', 'created_at']
+    list_filter = ['tenant', 'rating', 'is_public', 'created_at']
+    search_fields = ['customer__name', 'comment', 'tenant__name']
+    readonly_fields = ['created_at']
+    list_editable = ['is_public']
 
 @admin.register(Settings)
 class SettingsAdmin(admin.ModelAdmin):

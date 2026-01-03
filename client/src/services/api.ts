@@ -13,8 +13,23 @@ export interface StaffMember {
     id: number;
     name: string;
     phone: string;
+    email?: string;
+    specialty?: string;
     is_active: boolean;
     joined_date: string;
+    created_at: string;
+}
+
+export interface Review {
+    id: number;
+    tenant: number;
+    customer: number;
+    customer_name: string;
+    visit: number;
+    visit_date: string;
+    rating: number;
+    comment: string;
+    is_public: boolean;
     created_at: string;
 }
 
@@ -306,6 +321,18 @@ export const fetchVisits = async (params?: { customer?: number }): Promise<Visit
     });
     if (!response.ok) {
         throw new Error('Failed to fetch visits');
+    }
+    return response.json();
+};
+
+export const fetchVisit = async (id: number): Promise<Visit> => {
+    const response = await fetch(`${API_URL}visits/${id}/`, {
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch visit');
     }
     return response.json();
 };
@@ -796,6 +823,35 @@ export const updateAdminProfile = async (data: FormData) => {
     });
     if (!response.ok) {
         throw new Error('Failed to update admin profile');
+    }
+    return response.json();
+};
+
+// Reviews API
+export const fetchReviews = async (params?: { tenant?: number }): Promise<Review[]> => {
+    let url = `${API_URL}reviews/`;
+    if (params?.tenant) {
+        url += `?tenant=${params.tenant}`;
+    }
+    const response = await fetch(url, {
+        headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch reviews');
+    }
+    return response.json();
+};
+
+export const createReview = async (review: Partial<Review>): Promise<Review> => {
+    const response = await fetch(`${API_URL}reviews/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(review),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to submit review');
     }
     return response.json();
 };

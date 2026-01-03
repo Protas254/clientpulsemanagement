@@ -16,8 +16,27 @@ import {
     Mail
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { fetchReviews, Review } from '@/services/api';
+import { useState, useEffect } from 'react';
 
 const LandingPage = () => {
+    const [reviews, setReviews] = useState<Review[]>([]);
+    const [loadingReviews, setLoadingReviews] = useState(true);
+
+    useEffect(() => {
+        loadPublicReviews();
+    }, []);
+
+    const loadPublicReviews = async () => {
+        try {
+            const data = await fetchReviews();
+            setReviews(data.slice(0, 6)); // Show top 6
+        } catch (error) {
+            console.error('Failed to load reviews', error);
+        } finally {
+            setLoadingReviews(false);
+        }
+    };
     return (
         <div className="min-h-screen bg-background text-foreground font-sans">
             {/* Navigation */}
@@ -309,24 +328,93 @@ const LandingPage = () => {
                 </div>
             </section>
 
-            {/* Testimonials */}
+            {/* Testimonials & Reviews */}
             <section className="py-24 bg-chocolate-dark text-white">
-                <div className="container mx-auto px-4 text-center">
-                    <div className="inline-flex items-center gap-1 mb-6">
-                        {[1, 2, 3, 4, 5].map((i) => (
-                            <Star key={i} className="w-5 h-5 fill-accent text-accent" />
-                        ))}
+                <div className="container mx-auto px-4">
+                    <div className="text-center max-w-3xl mx-auto mb-16">
+                        <h2 className="text-3xl md:text-5xl font-display font-bold mb-6">
+                            What <span className="text-accent">Customers</span> Are Saying
+                        </h2>
+                        <p className="text-lg text-accent/80">
+                            Real feedback from clients who have experienced the ClientPulse difference.
+                        </p>
                     </div>
-                    <h2 className="text-3xl md:text-5xl font-display font-bold mb-12">
-                        "ClientPulse has doubled my repeat <br className="hidden md:block" /> customers in just 3 months."
-                    </h2>
-                    <div className="flex flex-col items-center">
-                        <div className="w-20 h-20 rounded-full border-4 border-accent overflow-hidden mb-4">
-                            <img src="https://i.pravatar.cc/150?img=32" alt="Testimonial" />
+
+                    {reviews.length > 0 ? (
+                        <div className="space-y-16">
+                            {/* Featured Review */}
+                            <div className="text-center animate-fade-in">
+                                <div className="inline-flex items-center gap-1 mb-6">
+                                    {[1, 2, 3, 4, 5].map((i) => (
+                                        <Star
+                                            key={i}
+                                            className={`w-6 h-6 ${i <= reviews[0].rating ? 'fill-accent text-accent' : 'text-gray-600'}`}
+                                        />
+                                    ))}
+                                </div>
+                                <h2 className="text-2xl md:text-4xl font-display font-bold mb-12 max-w-4xl mx-auto leading-tight italic">
+                                    "{reviews[0].comment || 'The service was absolutely incredible. Highly recommended!'}"
+                                </h2>
+                                <div className="flex flex-col items-center">
+                                    <div className="w-20 h-20 rounded-full border-4 border-accent bg-accent/10 flex items-center justify-center text-accent text-3xl font-bold mb-4">
+                                        {reviews[0].customer_name.charAt(0)}
+                                    </div>
+                                    <p className="text-xl font-bold">{reviews[0].customer_name}</p>
+                                    <p className="text-accent font-medium">Verified Customer</p>
+                                </div>
+                            </div>
+
+                            {/* Other Reviews Grid (if more than 1) */}
+                            {reviews.length > 1 && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pt-16 border-t border-white/10">
+                                    {reviews.slice(1).map((review) => (
+                                        <div key={review.id} className="bg-white/5 p-8 rounded-3xl border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-all">
+                                            <div className="flex items-center gap-1 mb-4">
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <Star
+                                                        key={star}
+                                                        className={`w-4 h-4 ${star <= review.rating ? 'fill-accent text-accent' : 'text-gray-600'}`}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <p className="text-white font-medium mb-6 italic">
+                                                "{review.comment || 'Excellent service!'}"
+                                            </p>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold">
+                                                    {review.customer_name.charAt(0)}
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-white">{review.customer_name}</p>
+                                                    <p className="text-xs text-accent/70">
+                                                        {new Date(review.created_at).toLocaleDateString()}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                        <p className="text-xl font-bold">Sarah Johnson</p>
-                        <p className="text-accent">Owner, Glow Beauty Spa</p>
-                    </div>
+                    ) : (
+                        <div className="text-center animate-fade-in">
+                            <div className="inline-flex items-center gap-1 mb-6">
+                                {[1, 2, 3, 4, 5].map((i) => (
+                                    <Star key={i} className="w-6 h-6 fill-accent text-accent" />
+                                ))}
+                            </div>
+                            <h2 className="text-3xl md:text-5xl font-display font-bold mb-12 max-w-4xl mx-auto leading-tight">
+                                "ClientPulse has doubled my repeat <br className="hidden md:block" /> customers in just 3 months."
+                            </h2>
+                            <div className="flex flex-col items-center">
+                                <div className="w-20 h-20 rounded-full border-4 border-accent overflow-hidden mb-4 shadow-xl">
+                                    <img src="https://i.pravatar.cc/150?img=32" alt="Testimonial" className="w-full h-full object-cover" />
+                                </div>
+                                <p className="text-xl font-bold">Sarah Johnson</p>
+                                <p className="text-accent font-medium">Owner, Glow Beauty Spa</p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </section>
             {/* Contact Section */}

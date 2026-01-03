@@ -53,6 +53,7 @@ interface PortalData {
     customer: CustomerData;
     statistics: Statistics;
     purchases: Purchase[];
+    visits: any[];
     eligible_rewards: Reward[];
     redemptions: CustomerReward[];
 }
@@ -96,6 +97,7 @@ export default function CustomerPortal() {
     const [customerData, setCustomerData] = useState<CustomerData | null>(null);
     const [statistics, setStatistics] = useState<Statistics | null>(null);
     const [purchases, setPurchases] = useState<Purchase[]>([]);
+    const [visits, setVisits] = useState<any[]>([]);
     const [rewards, setRewards] = useState<Reward[]>([]);
     const [redemptions, setRedemptions] = useState<CustomerReward[]>([]);
     const [services, setServices] = useState<Service[]>([]);
@@ -185,6 +187,7 @@ export default function CustomerPortal() {
             setCustomerData(parsedData.customer);
             setStatistics(parsedData.statistics);
             setPurchases(parsedData.purchases || []);
+            setVisits(parsedData.visits || []);
             setRewards(parsedData.eligible_rewards);
             setRedemptions(parsedData.redemptions || []);
             loadServices();
@@ -204,6 +207,7 @@ export default function CustomerPortal() {
             setCustomerData(data.customer);
             setStatistics(data.statistics);
             setPurchases(data.purchases || []);
+            setVisits(data.visits || []);
             setRewards(data.eligible_rewards);
             setRedemptions(data.redemptions || []);
             // Update local storage too
@@ -567,15 +571,51 @@ export default function CustomerPortal() {
                                         </CardContent>
                                     </Card>
 
-                                    {/* Purchase History */}
+                                    {/* Service History */}
                                     <Card className="animate-fade-in">
                                         <CardHeader>
                                             <CardTitle className="font-display text-lg">Service History</CardTitle>
                                         </CardHeader>
                                         <CardContent>
-                                            {(purchases.length > 0 || redemptions.length > 0) ? (
+                                            {(visits.length > 0 || redemptions.length > 0) ? (
                                                 <div className="space-y-3">
-                                                    {/* Combine and sort history if needed, for now just stacking them */}
+                                                    {/* Visits History with Rating Button */}
+                                                    {visits.map((visit) => (
+                                                        <div
+                                                            key={`v-${visit.id}`}
+                                                            className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-amber-100/50"
+                                                        >
+                                                            <div>
+                                                                <p className="font-medium text-foreground">
+                                                                    {visit.services_detail?.map((s: any) => s.name).join(', ') || 'Service'}
+                                                                </p>
+                                                                <p className="text-sm text-muted-foreground">
+                                                                    {format(new Date(visit.visit_date), 'MMM d, yyyy')} • {visit.staff_member_name || 'Staff'}
+                                                                </p>
+                                                            </div>
+                                                            <div className="flex flex-col items-end gap-2">
+                                                                <p className="font-semibold text-foreground">
+                                                                    KES {parseFloat(visit.total_amount).toLocaleString()}
+                                                                </p>
+                                                                {visit.has_review ? (
+                                                                    <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+                                                                        Reviewed
+                                                                    </Badge>
+                                                                ) : (
+                                                                    <Button
+                                                                        size="sm"
+                                                                        variant="outline"
+                                                                        className="h-7 text-xs border-amber-200 text-amber-700 hover:bg-amber-50"
+                                                                        onClick={() => navigate(`/review/${visit.id}`)}
+                                                                    >
+                                                                        Rate Service
+                                                                    </Button>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+
+                                                    {/* Redemption History */}
                                                     {redemptions.map((redemption) => (
                                                         <div
                                                             key={`r-${redemption.id}`}
@@ -593,22 +633,6 @@ export default function CustomerPortal() {
                                                             <Badge variant="outline" className="text-green-600 border-green-200">
                                                                 {redemption.status}
                                                             </Badge>
-                                                        </div>
-                                                    ))}
-                                                    {purchases.map((purchase) => (
-                                                        <div
-                                                            key={`p-${purchase.id}`}
-                                                            className="flex items-center justify-between p-3 rounded-lg bg-secondary/50"
-                                                        >
-                                                            <div>
-                                                                <p className="font-medium text-foreground">{purchase.description}</p>
-                                                                <p className="text-sm text-muted-foreground">
-                                                                    {format(new Date(purchase.date), 'MMM d, yyyy')}
-                                                                </p>
-                                                            </div>
-                                                            <p className="font-semibold text-foreground">
-                                                                KES {parseFloat(purchase.amount).toLocaleString()}
-                                                            </p>
                                                         </div>
                                                     ))}
                                                 </div>

@@ -2,7 +2,19 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import Customer, Sale, Reward, Service, Visit, StaffMember, Booking, CustomerReward, ContactMessage, Notification, UserProfile, Tenant, SubscriptionPlan, TenantSubscription
+from .models import Customer, Sale, Reward, Service, Visit, StaffMember, Booking, CustomerReward, ContactMessage, Notification, UserProfile, Tenant, SubscriptionPlan, TenantSubscription, Review
+
+class ReviewSerializer(serializers.ModelSerializer):
+    customer_name = serializers.ReadOnlyField(source='customer.name')
+    visit_date = serializers.ReadOnlyField(source='visit.visit_date')
+    
+    class Meta:
+        model = Review
+        fields = '__all__'
+        extra_kwargs = {
+            'customer': {'required': False},
+            'tenant': {'required': False}
+        }
 
 class TenantSerializer(serializers.ModelSerializer):
     owner_name = serializers.SerializerMethodField()
@@ -74,12 +86,18 @@ class VisitSerializer(serializers.ModelSerializer):
         source='services'
     )
     
+    has_review = serializers.SerializerMethodField()
+    
     class Meta:
         model = Visit
         fields = '__all__'
         extra_kwargs = {
-            'services': {'read_only': True}
+            'services': {'read_only': True},
+            'review_request_sent': {'read_only': True}
         }
+
+    def get_has_review(self, obj):
+        return hasattr(obj, 'review')
 
 
 class SaleSerializer(serializers.ModelSerializer):

@@ -94,12 +94,13 @@ class StaffMember(models.Model):
     name = models.CharField(max_length=200)
     phone = models.CharField(max_length=20)
     email = models.EmailField(blank=True, null=True)
+    specialty = models.CharField(max_length=200, blank=True, help_text="e.g. Senior Barber, Hair Colorist")
     is_active = models.BooleanField(default=True)
     joined_date = models.DateField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.specialty})" if self.specialty else self.name
 
 
 class Service(models.Model):
@@ -174,6 +175,7 @@ class Visit(models.Model):
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='paid')
     notes = models.TextField(blank=True)
+    review_request_sent = models.BooleanField(default=False)
     
     def __str__(self):
         return f"{self.customer.name} - {self.visit_date.strftime('%Y-%m-%d')}"
@@ -329,6 +331,7 @@ class Booking(models.Model):
         # For now, we'll just create it.
         
         visit = Visit.objects.create(
+            tenant=self.tenant,
             customer=self.customer,
             staff_member=self.staff_member,
             visit_date=timezone.now(), # Use current time for the actual visit record
@@ -400,6 +403,19 @@ class ContactMessage(models.Model):
 
     def __str__(self):
         return f"{self.full_name} - {self.subject}"
+
+
+class Review(models.Model):
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='reviews')
+    visit = models.OneToOneField(Visit, on_delete=models.CASCADE, related_name='review', null=True, blank=True)
+    rating = models.IntegerField(default=5) # 1-5 stars
+    comment = models.TextField(blank=True)
+    is_public = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.customer.name} - {self.rating} Stars"
 
 
 class Notification(models.Model):

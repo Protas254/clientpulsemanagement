@@ -9,14 +9,14 @@ from django.contrib.auth.models import User
 from .models import (
     Customer, Sale, Reward, Service, Visit, StaffMember, Booking, 
     CustomerReward, ContactMessage, Notification, Tenant, UserProfile,
-    SubscriptionPlan, TenantSubscription, create_notification
+    SubscriptionPlan, TenantSubscription, create_notification, Review
 )
 from .serializers import (
     UserSerializer, CustomerSerializer, 
     SaleSerializer, RewardSerializer, ServiceSerializer, VisitSerializer, StaffMemberSerializer,
     BookingSerializer, CustomerRewardSerializer, ContactMessageSerializer,
     NotificationSerializer, BusinessRegistrationSerializer, CustomerSignupSerializer, TenantSerializer,
-    SubscriptionPlanSerializer, TenantSubscriptionSerializer
+    SubscriptionPlanSerializer, TenantSubscriptionSerializer, ReviewSerializer
 )
 from django.db.models import Sum, Count, Avg, Q, F
 from django.db.models.functions import TruncMonth
@@ -242,12 +242,54 @@ class StaffMemberViewSet(viewsets.ModelViewSet):
             serializer.save()
 
 
+# Review ViewSet
+class ReviewViewSet(viewsets.ModelViewSet):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+
+    def get_permissions(self):
+        if self.action in ['create', 'list', 'retrieve']:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
+
+    def get_queryset(self):
+        queryset = Review.objects.all()
+        tenant_id = self.request.query_params.get('tenant', None)
+        if tenant_id:
+            queryset = queryset.filter(tenant_id=tenant_id, is_public=True)
+        
+        # If authenticated and not superuser, show all for their tenant
+        if self.request.user.is_authenticated and not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                queryset = Review.objects.filter(tenant=self.request.user.profile.tenant)
+        
+        return queryset.order_by('-created_at')
+
+    def perform_create(self, serializer):
+        visit_id = self.request.data.get('visit')
+        if visit_id:
+            try:
+                visit = Visit.objects.get(id=visit_id)
+                serializer.save(
+                    tenant=visit.tenant,
+                    customer=visit.customer,
+                    visit=visit
+                )
+            except Visit.DoesNotExist:
+                serializer.save()
+        else:
+            serializer.save()
+
+
 # Visit ViewSet
 class VisitViewSet(viewsets.ModelViewSet):
     """API endpoint for customer visits"""
     queryset = Visit.objects.all()
     serializer_class = VisitSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    def get_permissions(self):
+        if self.action == 'retrieve':
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
     
     def get_queryset(self):
         queryset = Visit.objects.all().select_related('customer', 'staff_member').prefetch_related('services')

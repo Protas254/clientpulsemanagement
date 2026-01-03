@@ -29,6 +29,7 @@ import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import TenantManagement from "./pages/TenantManagement";
 import SubscriptionPlans from "./pages/SubscriptionPlans";
 import ContactMessages from "./pages/ContactMessages";
+import ReviewPage from "./pages/ReviewPage";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -45,6 +46,7 @@ const App = () => (
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
+          <Route path="/review/:visitId" element={<ReviewPage />} />
 
           {/* Customer Portal - Protected */}
           <Route element={<ProtectedRoute allowedRoles={['customer']} />}>

@@ -12,7 +12,7 @@ from .views import (
     initiate_stk_push, ContactMessageViewSet, NotificationViewSet,
     CustomerProfileUpdateView, AdminProfileUpdateView, BusinessRegistrationView,
     TenantSearchView, TenantViewSet, SubscriptionPlanViewSet, TenantSubscriptionViewSet,
-    TenantSettingsView
+    TenantSettingsView, ReviewViewSet
 )
 
 # Router for ViewSets
@@ -27,6 +27,7 @@ router.register(r'notifications', NotificationViewSet, basename='notification')
 router.register(r'tenants', TenantViewSet, basename='tenant')
 router.register(r'subscription-plans', SubscriptionPlanViewSet, basename='subscription-plan')
 router.register(r'tenant-subscriptions', TenantSubscriptionViewSet, basename='tenant-subscription')
+router.register(r'reviews', ReviewViewSet, basename='review')
 
 urlpatterns = [
     # Authentication

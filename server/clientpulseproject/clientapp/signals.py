@@ -2,9 +2,10 @@ from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.core.mail import send_mail
 from django.contrib.auth.models import User
+from django.utils import timezone
 from .models import (
     Tenant, Booking, Customer, StaffMember, PaymentTransaction, 
-    Notification, create_notification, UserProfile, ContactMessage, Service
+    Notification, create_notification, UserProfile, ContactMessage, Service, Visit
 )
 
 # --- TENANT SIGNALS ---
@@ -214,9 +215,18 @@ def booking_notifications(sender, instance, created, **kwargs):
             )
             
         elif new_status == 'completed':
+            # Try to find the visit created from this booking to get its ID
+            from .models import Visit
+            visit = Visit.objects.filter(customer=customer, visit_date__date=timezone.now().date()).order_by('-id').first()
+            review_link = f"http://localhost:5173/review/{visit.id}" if visit else ""
+            
+            message = f"Thank you for visiting us! We hope you enjoyed your {instance.service.name} service."
+            if review_link:
+                message += f" We'd love to hear your feedback: {review_link}"
+                
             create_notification(
                 title="Booking Completed - Thank You!",
-                message=f"Thank you for visiting us! We hope you enjoyed your {instance.service.name} service.",
+                message=message,
                 recipient_type='customer',
                 customer=customer,
                 send_email=True
@@ -313,6 +323,34 @@ def staff_notifications(sender, instance, created, **kwargs):
                 user=admin_profile.user,
                 send_email=False
             )
+
+# --- VISIT SIGNALS ---
+
+@receiver(post_save, sender=Visit)
+def visit_review_request(sender, instance, created, **kwargs):
+    """Send a review request when a visit is marked as paid"""
+    if instance.payment_status == 'paid' and not instance.review_request_sent:
+        customer = instance.customer
+        tenant = instance.tenant
+        
+        if customer and tenant:
+            # In a real app, we'd delay this by 2 hours using Celery.
+            # For now, we'll send it immediately.
+            
+            # The review link points to the customer portal or a dedicated review page
+            # We'll use a dedicated review page route: /review/:visitId
+            review_link = f"http://localhost:5173/review/{instance.id}"
+            
+            create_notification(
+                title="How was your visit?",
+                message=f"Hi {customer.name}, thank you for visiting {tenant.name} today! We'd love to hear your feedback. Please rate your experience here: {review_link}",
+                recipient_type='customer',
+                customer=customer,
+                send_email=True
+            )
+            
+            # Mark as sent using update to avoid recursion
+            Visit.objects.filter(pk=instance.pk).update(review_request_sent=True)
 
 # --- PAYMENT SIGNALS ---
 

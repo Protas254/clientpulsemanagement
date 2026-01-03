@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { fetchStaff, createStaff, updateStaff, StaffMember } from '@/services/api';
 import { toast } from '@/hooks/use-toast';
-import { Users, Plus, Phone, Calendar } from 'lucide-react';
+import { Users, Plus, Phone, Calendar, Mail } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -29,6 +29,8 @@ export default function Staff() {
     const [formData, setFormData] = useState({
         name: '',
         phone: '',
+        email: '',
+        specialty: '',
         is_active: true,
     });
 
@@ -68,7 +70,7 @@ export default function Staff() {
                 description: 'Staff member added successfully!',
             });
             setShowForm(false);
-            setFormData({ name: '', phone: '', is_active: true });
+            setFormData({ name: '', phone: '', email: '', specialty: '', is_active: true });
             loadStaff();
         } catch (error) {
             toast({
@@ -149,6 +151,19 @@ export default function Staff() {
                                         <Phone className="w-4 h-4" />
                                         {staffMember.phone}
                                     </div>
+                                    {staffMember.email && (
+                                        <div className="flex items-center gap-2">
+                                            <Mail className="w-4 h-4" />
+                                            {staffMember.email}
+                                        </div>
+                                    )}
+                                    {staffMember.specialty && (
+                                        <div className="flex items-center gap-2 font-medium text-amber-700">
+                                            <Badge variant="outline" className="border-amber-200 text-amber-700">
+                                                {staffMember.specialty}
+                                            </Badge>
+                                        </div>
+                                    )}
                                     <div className="flex items-center gap-2">
                                         <Calendar className="w-4 h-4" />
                                         Joined {new Date(staffMember.joined_date).toLocaleDateString()}
@@ -169,46 +184,48 @@ export default function Staff() {
             </div>
 
             {/* Inactive Staff */}
-            {inactiveStaff.length > 0 && (
-                <div>
-                    <h2 className="text-2xl font-display font-semibold mb-4 text-gray-700">
-                        Inactive Staff
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {inactiveStaff.map((staffMember) => (
-                            <Card key={staffMember.id} className="border-gray-200 opacity-60">
-                                <CardContent className="p-6">
-                                    <div className="flex justify-between items-start mb-4">
-                                        <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                                            {staffMember.name.charAt(0)}
+            {
+                inactiveStaff.length > 0 && (
+                    <div>
+                        <h2 className="text-2xl font-display font-semibold mb-4 text-gray-700">
+                            Inactive Staff
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {inactiveStaff.map((staffMember) => (
+                                <Card key={staffMember.id} className="border-gray-200 opacity-60">
+                                    <CardContent className="p-6">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                                                {staffMember.name.charAt(0)}
+                                            </div>
+                                            <Badge variant="outline" className="text-gray-600">Inactive</Badge>
                                         </div>
-                                        <Badge variant="outline" className="text-gray-600">Inactive</Badge>
-                                    </div>
 
-                                    <h3 className="text-lg font-semibold text-gray-700 mb-3">
-                                        {staffMember.name}
-                                    </h3>
+                                        <h3 className="text-lg font-semibold text-gray-700 mb-3">
+                                            {staffMember.name}
+                                        </h3>
 
-                                    <div className="space-y-2 text-sm text-gray-500 mb-4">
-                                        <div className="flex items-center gap-2">
-                                            <Phone className="w-4 h-4" />
-                                            {staffMember.phone}
+                                        <div className="space-y-2 text-sm text-gray-500 mb-4">
+                                            <div className="flex items-center gap-2">
+                                                <Phone className="w-4 h-4" />
+                                                {staffMember.phone}
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <Button
-                                        onClick={() => toggleActive(staffMember)}
-                                        variant="outline"
-                                        className="w-full"
-                                    >
-                                        Activate
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        ))}
+                                        <Button
+                                            onClick={() => toggleActive(staffMember)}
+                                            variant="outline"
+                                            className="w-full"
+                                        >
+                                            Activate
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Add Staff Dialog */}
             <Dialog open={showForm} onOpenChange={setShowForm}>
@@ -236,6 +253,25 @@ export default function Staff() {
                             />
                         </div>
 
+                        <div>
+                            <Label>Email</Label>
+                            <Input
+                                type="email"
+                                value={formData.email}
+                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                placeholder="email@example.com"
+                            />
+                        </div>
+
+                        <div>
+                            <Label>Specialty / Specification</Label>
+                            <Input
+                                value={formData.specialty}
+                                onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
+                                placeholder="e.g. Senior Barber, Hair Colorist"
+                            />
+                        </div>
+
                         <div className="flex gap-3">
                             <Button
                                 onClick={handleSubmit}
@@ -254,6 +290,6 @@ export default function Staff() {
                     </div>
                 </DialogContent>
             </Dialog>
-        </AppLayout>
+        </AppLayout >
     );
 }
