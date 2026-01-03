@@ -796,3 +796,15 @@ export const updateAdminProfile = async (data: FormData) => {
     }
     return response.json();
 };
+
+export const updateTenantSettings = async (data: any) => {
+    const response = await fetch(`${API_URL}tenant/settings/`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to update settings');
+    }
+    return response.json();
+};

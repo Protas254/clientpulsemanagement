@@ -32,6 +32,7 @@ class RegisterView(generics.CreateAPIView):
 
 class BusinessRegistrationView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_scope = 'signup'
     
     def post(self, request):
         serializer = BusinessRegistrationSerializer(data=request.data)
@@ -81,6 +82,7 @@ from rest_framework.authtoken.models import Token
 
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_scope = 'login'
 
     def post(self, request):
         username = request.data.get('username')
@@ -775,6 +777,7 @@ class CustomerPortalDetailsView(APIView):
 
 class CustomerSignupView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_scope = 'signup'
     
     def post(self, request):
         serializer = CustomerSignupSerializer(data=request.data)
@@ -1123,6 +1126,7 @@ class AdminProfileUpdateView(APIView):
         # Add tenant info if available
         if hasattr(user, 'profile') and user.profile.tenant:
              data['company_name'] = user.profile.tenant.name
+             data['tenant'] = TenantSerializer(user.profile.tenant).data
              
         return Response(data)
 
@@ -1153,6 +1157,20 @@ class AdminProfileUpdateView(APIView):
         
         return Response(data)
 
+
+class TenantSettingsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def patch(self, request):
+        if not hasattr(request.user, 'profile') or not request.user.profile.tenant:
+            return Response({'error': 'No tenant associated with user'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        tenant = request.user.profile.tenant
+        serializer = TenantSerializer(tenant, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # Super Admin - Tenant Management
 class TenantViewSet(viewsets.ModelViewSet):

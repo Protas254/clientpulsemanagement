@@ -2,12 +2,14 @@ from django.db import models
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.contrib.auth.models import User
+import uuid
 
 # Create your models here.
 
 # Create your models here.
 
 class Tenant(models.Model):
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     name = models.CharField(max_length=200)
     business_type = models.CharField(max_length=50) # Kinyozi, Salon, Spa, Multi-service
     city = models.CharField(max_length=100)
@@ -46,6 +48,10 @@ class Tenant(models.Model):
     email_tenant_booking_cancelled = models.BooleanField(default=True, help_text="Booking cancellation")
     email_tenant_reschedule_request = models.BooleanField(default=True, help_text="Reschedule request")
     
+    # Onboarding & Settings
+    business_hours = models.JSONField(default=dict, blank=True, help_text="e.g. {'monday': {'open': '09:00', 'close': '18:00'}, ...}")
+    onboarding_completed = models.BooleanField(default=False)
+    
     def __str__(self):
         return self.name
 
@@ -83,6 +89,7 @@ def save_user_profile(sender, instance, **kwargs):
 class StaffMember(models.Model):
     """Staff members (barbers, stylists, therapists) who provide services"""
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='staff_profile')
     name = models.CharField(max_length=200)
     phone = models.CharField(max_length=20)
@@ -98,6 +105,7 @@ class StaffMember(models.Model):
 class Service(models.Model):
     """Services offered (haircut, shave, braiding, massage, facial, etc.)"""
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     CATEGORY_CHOICES = [
         ('hair', 'Hair Services'),
         ('spa', 'Spa & Massage'),
@@ -124,6 +132,7 @@ class Service(models.Model):
 
 class Customer(models.Model):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, related_name='customer_profile')
     name = models.CharField(max_length=200)
     email = models.EmailField()
@@ -225,6 +234,7 @@ class Reward(models.Model):
 class Booking(models.Model):
     """Customer appointment booking"""
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
+    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('confirmed', 'Confirmed'),

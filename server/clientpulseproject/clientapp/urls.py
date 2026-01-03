@@ -11,7 +11,8 @@ from .views import (
     AnalyticsView, BookingViewSet, CustomerRewardViewSet, RewardsStatsView,
     initiate_stk_push, ContactMessageViewSet, NotificationViewSet,
     CustomerProfileUpdateView, AdminProfileUpdateView, BusinessRegistrationView,
-    TenantSearchView, TenantViewSet, SubscriptionPlanViewSet, TenantSubscriptionViewSet
+    TenantSearchView, TenantViewSet, SubscriptionPlanViewSet, TenantSubscriptionViewSet,
+    TenantSettingsView
 )
 
 # Router for ViewSets
@@ -36,6 +37,7 @@ urlpatterns = [
     path('tenants/search/', TenantSearchView.as_view(), name='tenant-search'),
     path('users/', UserListView.as_view(), name='user-list'),
     path('admin/update-profile/', AdminProfileUpdateView.as_view(), name='admin-profile-update'),
+    path('tenant/settings/', TenantSettingsView.as_view(), name='tenant-settings'),
     
     # Customers
     path('customers/', CustomerListCreate.as_view(), name='customer-list-create'),

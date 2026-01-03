@@ -6,11 +6,14 @@ import { fetchDailyStats, fetchDashboardStats, DailyStats, DashboardStats } from
 import { Button } from '@/components/ui/button';
 import { Users, TrendingUp, Scissors, Sparkles, Calendar } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { OnboardingWizard } from '@/components/dashboard/OnboardingWizard';
+import { fetchUserProfile } from '@/services/api';
 
 export default function Dashboard() {
   const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
     loadStats();
@@ -18,12 +21,27 @@ export default function Dashboard() {
 
   const loadStats = async () => {
     try {
-      const [daily, dashboard] = await Promise.all([
+      const [daily, dashboard, userProfileData] = await Promise.allSettled([
         fetchDailyStats(),
         fetchDashboardStats(),
+        fetchUserProfile(),
       ]);
-      setDailyStats(daily);
-      setDashboardStats(dashboard);
+
+      if (daily.status === 'fulfilled') setDailyStats(daily.value);
+      if (dashboard.status === 'fulfilled') setDashboardStats(dashboard.value);
+
+      // Check onboarding status from user profile
+      if (userProfileData.status === 'fulfilled') {
+        const profile = userProfileData.value;
+        console.log("User Profile Data:", profile);
+        if (profile.tenant) {
+          console.log("Tenant Onboarding Status:", profile.tenant.onboarding_completed);
+          if (!profile.tenant.onboarding_completed) {
+            console.log("Showing Onboarding Wizard");
+            setShowOnboarding(true);
+          }
+        }
+      }
     } catch (error) {
       toast({
         title: 'Error',
@@ -53,6 +71,13 @@ export default function Dashboard() {
       title="📊 Client Dashboard"
       subtitle={`Welcome back ${adminName}! Here's your business overview.`}
     >
+      {showOnboarding && (
+        <OnboardingWizard onComplete={() => {
+          setShowOnboarding(false);
+          loadStats(); // Reload stats to refresh view
+        }} />
+      )}
+
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Button
