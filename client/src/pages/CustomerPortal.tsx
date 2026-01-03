@@ -33,6 +33,7 @@ interface CustomerData {
     created_at: string;
     photo?: string;
     visit_count: number;
+    tenant_id?: number;
 }
 
 interface Purchase {
@@ -340,6 +341,7 @@ export default function CustomerPortal() {
         setContactLoading(true);
         try {
             await sendContactMessage({
+                tenant: customerData.tenant_id,
                 full_name: customerData.name,
                 email: customerData.email,
                 phone: customerData.phone,

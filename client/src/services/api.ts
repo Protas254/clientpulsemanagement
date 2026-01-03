@@ -689,6 +689,7 @@ export const initiateStkPush = async (data: { phone_number: string; amount: stri
 
 export interface ContactMessage {
     id?: number;
+    tenant?: number;
     full_name: string;
     phone: string;
     email: string;

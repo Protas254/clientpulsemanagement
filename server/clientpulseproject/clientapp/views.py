@@ -697,6 +697,7 @@ class CustomerRewardCheckView(APIView):
                 'visit_count': customer.visit_count,
                 'last_purchase': customer.last_purchase,
                 'created_at': customer.created_at,
+                'tenant_id': customer.tenant.id if customer.tenant else None,
             },
             'statistics': {
                 'total_spent': float(total_spent),
@@ -755,6 +756,7 @@ class CustomerPortalDetailsView(APIView):
                 'visit_count': customer.visit_count,
                 'last_purchase': customer.last_purchase,
                 'created_at': customer.created_at,
+                'tenant_id': customer.tenant.id if customer.tenant else None,
             },
             'statistics': {
                 'total_spent': float(total_spent),
@@ -1254,8 +1256,18 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         # Automatically assign tenant if user has one
+        tenant = None
         if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
-            serializer.save(tenant=self.request.user.profile.tenant)
-        else:
-            serializer.save()
+            tenant = self.request.user.profile.tenant
+        
+        # If no tenant from user profile, check if provided in request data
+        if not tenant:
+            tenant_id = self.request.data.get('tenant')
+            if tenant_id:
+                try:
+                    tenant = Tenant.objects.get(id=tenant_id)
+                except Tenant.DoesNotExist:
+                    pass
+        
+        serializer.save(tenant=tenant)
 

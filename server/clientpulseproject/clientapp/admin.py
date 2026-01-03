@@ -67,7 +67,7 @@ class ContactMessageInline(admin.TabularInline):
     model = ContactMessage
     extra = 0
     show_change_link = True
-    fields = ('full_name', 'subject', 'created_at')
+    fields = ('full_name', 'subject', 'message', 'created_at')
     readonly_fields = ('created_at',)
 
 @admin.register(Tenant)
