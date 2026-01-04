@@ -1,5 +1,5 @@
 export interface Service {
-    id: number;
+    id: string;
     name: string;
     category: 'hair' | 'spa' | 'nails' | 'facial' | 'salon' | 'barber' | 'other';
     price: string;
@@ -10,7 +10,7 @@ export interface Service {
 }
 
 export interface StaffMember {
-    id: number;
+    id: string;
     name: string;
     phone: string;
     email?: string;
@@ -21,13 +21,13 @@ export interface StaffMember {
 }
 
 export interface Review {
-    id: number;
-    tenant: number;
-    customer: number;
+    id: string;
+    tenant: string;
+    customer: string;
     customer_name: string;
     reviewer_name: string;
     reviewer_type: 'customer' | 'business_owner';
-    visit: number;
+    visit: string;
     visit_date: string;
     rating: number;
     comment: string;
@@ -36,12 +36,12 @@ export interface Review {
 }
 
 export interface Visit {
-    id: number;
-    customer: number;
+    id: string;
+    customer: string;
     customer_name?: string;
-    services: number[];
+    services: string[];
     services_detail?: Service[];
-    staff_member: number | null;
+    staff_member: string | null;
     staff_member_name?: string;
     visit_date: string;
     total_amount: string;
@@ -50,7 +50,7 @@ export interface Visit {
 }
 
 export interface Customer {
-    id: number;
+    id: string;
     name: string;
     email: string;
     phone: string;
@@ -68,8 +68,8 @@ export interface Customer {
 }
 
 export interface Sale {
-    id: number;
-    customer: number;
+    id: string;
+    customer: string;
     customer_name: string;
     amount: string;
     description: string;
@@ -92,13 +92,13 @@ export interface DailyStats {
     customers_served: number;
     revenue: number;
     popular_services: Array<{
-        id: number;
+        id: string;
         name: string;
         times_booked: number;
         price: number;
     }>;
     staff_performance: Array<{
-        id: number;
+        id: string;
         name: string;
         customers_served: number;
         revenue_generated: number;
@@ -106,7 +106,7 @@ export interface DailyStats {
 }
 
 export interface Reward {
-    id: number;
+    id: string;
     name: string;
     description: string;
     points_required: number;
@@ -193,7 +193,7 @@ export const login = async (credentials: any) => {
 };
 
 export interface Tenant {
-    id: number;
+    id: string;
     name: string;
     business_type: string;
     city: string;
@@ -245,7 +245,7 @@ export const createService = async (service: Omit<Service, 'id' | 'created_at'>)
     return response.json();
 };
 
-export const updateService = async (id: number, service: Partial<Service>): Promise<Service> => {
+export const updateService = async (id: string, service: Partial<Service>): Promise<Service> => {
     const response = await fetch(`${API_URL}services/${id}/`, {
         method: 'PATCH',
         headers: getAuthHeaders(),
@@ -257,7 +257,7 @@ export const updateService = async (id: number, service: Partial<Service>): Prom
     return response.json();
 };
 
-export const deleteService = async (id: number) => {
+export const deleteService = async (id: string) => {
     const response = await fetch(`${API_URL}services/${id}/`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
@@ -290,7 +290,7 @@ export const createStaff = async (staff: Omit<StaffMember, 'id' | 'created_at' |
     return response.json();
 };
 
-export const updateStaff = async (id: number, staff: Partial<StaffMember>): Promise<StaffMember> => {
+export const updateStaff = async (id: string, staff: Partial<StaffMember>): Promise<StaffMember> => {
     const response = await fetch(`${API_URL}staff/${id}/`, {
         method: 'PATCH',
         headers: getAuthHeaders(),
@@ -302,7 +302,7 @@ export const updateStaff = async (id: number, staff: Partial<StaffMember>): Prom
     return response.json();
 };
 
-export const deleteStaff = async (id: number) => {
+export const deleteStaff = async (id: string) => {
     const response = await fetch(`${API_URL}staff/${id}/`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
@@ -313,7 +313,7 @@ export const deleteStaff = async (id: number) => {
 };
 
 // Visits API
-export const fetchVisits = async (params?: { customer?: number }): Promise<Visit[]> => {
+export const fetchVisits = async (params?: { customer?: string }): Promise<Visit[]> => {
     let url = `${API_URL}visits/`;
     if (params?.customer) {
         url += `?customer=${params.customer}`;
@@ -327,7 +327,7 @@ export const fetchVisits = async (params?: { customer?: number }): Promise<Visit
     return response.json();
 };
 
-export const fetchVisit = async (id: number): Promise<Visit> => {
+export const fetchVisit = async (id: string): Promise<Visit> => {
     const response = await fetch(`${API_URL}visits/${id}/`, {
         headers: {
             'Content-Type': 'application/json',
@@ -339,7 +339,7 @@ export const fetchVisit = async (id: number): Promise<Visit> => {
     return response.json();
 };
 
-export const createVisit = async (visit: { customer: number; service_ids: number[]; staff_member?: number; total_amount: string; payment_status: string; notes?: string }): Promise<Visit> => {
+export const createVisit = async (visit: { customer: string; service_ids: string[]; staff_member?: string; total_amount: string; payment_status: string; notes?: string }): Promise<Visit> => {
     const response = await fetch(`${API_URL}visits/`, {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -363,7 +363,7 @@ export const fetchCustomers = async () => {
     return response.json();
 };
 
-export const fetchCustomerPortalDetails = async (id: number) => {
+export const fetchCustomerPortalDetails = async (id: string) => {
     const response = await fetch(`${API_URL}customers/${id}/portal-details/`, {
         headers: getAuthHeaders(),
     });
@@ -387,7 +387,7 @@ export const createCustomer = async (customer: Omit<Customer, 'id' | 'created_at
     return response.json();
 };
 
-export const updateCustomer = async (id: number, customer: Partial<Customer>) => {
+export const updateCustomer = async (id: string, customer: Partial<Customer>) => {
     const response = await fetch(`${API_URL}customers/${id}/`, {
         method: 'PATCH',
         headers: getAuthHeaders(),
@@ -399,7 +399,7 @@ export const updateCustomer = async (id: number, customer: Partial<Customer>) =>
     return response.json();
 };
 
-export const updateCustomerProfile = async (id: number, data: FormData) => {
+export const updateCustomerProfile = async (id: string, data: FormData) => {
     const response = await fetch(`${API_URL}customers/${id}/update-profile/`, {
         method: 'PATCH',
         body: data,
@@ -410,7 +410,7 @@ export const updateCustomerProfile = async (id: number, data: FormData) => {
     return response.json();
 };
 
-export const deleteCustomer = async (id: number) => {
+export const deleteCustomer = async (id: string) => {
     const response = await fetch(`${API_URL}customers/${id}/`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
@@ -420,7 +420,7 @@ export const deleteCustomer = async (id: number) => {
     }
 };
 
-export const fetchCustomerServiceHistory = async (customerId: number) => {
+export const fetchCustomerServiceHistory = async (customerId: string) => {
     const response = await fetch(`${API_URL}customers/${customerId}/service-history/`, {
         headers: getAuthHeaders(),
     });
@@ -542,7 +542,7 @@ export const createReward = async (reward: Omit<Reward, 'id' | 'created_at' | 't
     return response.json();
 };
 
-export const updateReward = async (id: number, reward: Partial<Reward>) => {
+export const updateReward = async (id: string, reward: Partial<Reward>) => {
     const response = await fetch(`${API_URL}rewards/${id}/`, {
         method: 'PATCH',
         headers: getAuthHeaders(),
@@ -554,7 +554,7 @@ export const updateReward = async (id: number, reward: Partial<Reward>) => {
     return response.json();
 };
 
-export const deleteReward = async (id: number) => {
+export const deleteReward = async (id: string) => {
     const response = await fetch(`${API_URL}rewards/${id}/`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
@@ -585,12 +585,12 @@ export const checkRewards = async (identifier: string) => {
 
 // Bookings API
 export interface Booking {
-    id: number;
-    customer: number;
+    id: string;
+    customer: string;
     customer_name?: string;
-    service: number;
+    service: string;
     service_name?: string;
-    staff_member: number | null;
+    staff_member: string | null;
     staff_member_name?: string;
     booking_date: string;
     status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
@@ -598,10 +598,10 @@ export interface Booking {
     created_at: string;
 }
 
-export const fetchBookings = async (params?: { customer?: number; status?: string; search?: string; start_date?: string; end_date?: string }): Promise<Booking[]> => {
+export const fetchBookings = async (params?: { customer?: string; status?: string; search?: string; start_date?: string; end_date?: string }): Promise<Booking[]> => {
     let url = `${API_URL}bookings/`;
     const queryParams = new URLSearchParams();
-    if (params?.customer) queryParams.append('customer', params.customer.toString());
+    if (params?.customer) queryParams.append('customer', params.customer);
     if (params?.status) queryParams.append('status', params.status);
     if (params?.search) queryParams.append('search', params.search);
     if (params?.start_date) queryParams.append('start_date', params.start_date);
@@ -634,7 +634,7 @@ export const createBooking = async (booking: Omit<Booking, 'id' | 'created_at' |
     return response.json();
 };
 
-export const updateBooking = async (id: number, booking: Partial<Booking>): Promise<Booking> => {
+export const updateBooking = async (id: string, booking: Partial<Booking>): Promise<Booking> => {
     const response = await fetch(`${API_URL}bookings/${id}/`, {
         method: 'PATCH',
         headers: getAuthHeaders(),
@@ -669,10 +669,10 @@ export const fetchRewardsStats = async (): Promise<RewardsStats> => {
 };
 
 export interface CustomerReward {
-    id: number;
-    customer: number;
+    id: string;
+    customer: string;
     customer_name?: string;
-    reward: number;
+    reward: string;
     reward_name?: string;
     reward_description?: string;
     reward_value?: string;
@@ -692,7 +692,7 @@ export const fetchCustomerRewards = async (): Promise<CustomerReward[]> => {
     return response.json();
 };
 
-export const redeemReward = async (data: { customer: number; reward: number; date_claimed: string }) => {
+export const redeemReward = async (data: { customer: string; reward: string; date_claimed: string }) => {
     const response = await fetch(`${API_URL}customer-rewards/`, {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -720,8 +720,8 @@ export const initiateStkPush = async (data: { phone_number: string; amount: stri
 };
 
 export interface ContactMessage {
-    id?: number;
-    tenant?: number;
+    id?: string;
+    tenant?: string;
     full_name: string;
     phone: string;
     email: string;
@@ -756,18 +756,18 @@ export const fetchContactMessages = async (): Promise<ContactMessage[]> => {
 };
 
 export interface Notification {
-    id: number;
+    id: string;
     recipient_type: 'customer' | 'admin' | 'staff';
-    customer?: number;
+    customer?: string;
     user?: number;
-    staff?: number;
+    staff?: string;
     title: string;
     message: string;
     is_read: boolean;
     created_at: string;
 }
 
-export const fetchNotifications = async (customerId?: number): Promise<Notification[]> => {
+export const fetchNotifications = async (customerId?: string): Promise<Notification[]> => {
     const url = customerId
         ? `${API_URL}notifications/?customer_id=${customerId}`
         : `${API_URL}notifications/`;
@@ -781,7 +781,39 @@ export const fetchNotifications = async (customerId?: number): Promise<Notificat
     return response.json();
 };
 
-export const markNotificationAsRead = async (id: number): Promise<void> => {
+export const fetchTenantSettings = async () => {
+    const response = await fetch(`${API_URL}tenant/settings/`, {
+        headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch tenant settings');
+    }
+    return response.json();
+};
+
+export const updateTenantSettings = async (data: any) => {
+    const isFormData = data instanceof FormData;
+    const headers: Record<string, string> = {};
+    const token = localStorage.getItem('token');
+    if (token) {
+        headers['Authorization'] = `Token ${token}`;
+    }
+    if (!isFormData) {
+        headers['Content-Type'] = 'application/json';
+    }
+
+    const response = await fetch(`${API_URL}tenant/settings/`, {
+        method: 'PATCH',
+        headers: headers,
+        body: isFormData ? data : JSON.stringify(data),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to update tenant settings');
+    }
+    return response.json();
+};
+
+export const markNotificationAsRead = async (id: string): Promise<void> => {
     const response = await fetch(`${API_URL}notifications/${id}/mark_as_read/`, {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -858,14 +890,4 @@ export const createReview = async (review: Partial<Review>): Promise<Review> => 
     return response.json();
 };
 
-export const updateTenantSettings = async (data: any) => {
-    const response = await fetch(`${API_URL}tenant/settings/`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(data),
-    });
-    if (!response.ok) {
-        throw new Error('Failed to update settings');
-    }
-    return response.json();
-};
+

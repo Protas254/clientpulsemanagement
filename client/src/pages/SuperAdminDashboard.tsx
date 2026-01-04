@@ -8,7 +8,7 @@ import { Building2, Search, Users, Calendar, MessageSquare, Settings, BarChart3 
 import { toast } from 'sonner';
 
 interface Tenant {
-  id: number;
+  id: string;
   name: string;
   business_type: string;
   city: string;
@@ -30,7 +30,7 @@ const SuperAdminDashboard = () => {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<Record<number, TenantStats>>({});
+  const [stats, setStats] = useState<Record<string, TenantStats>>({});
 
   useEffect(() => {
     fetchTenants();
@@ -63,7 +63,7 @@ const SuperAdminDashboard = () => {
     }
   };
 
-  const fetchTenantStats = async (tenantId: number) => {
+  const fetchTenantStats = async (tenantId: string) => {
     try {
       const response = await fetch(`http://localhost:8000/api/tenants/${tenantId}/stats/`, {
         headers: {
@@ -80,7 +80,7 @@ const SuperAdminDashboard = () => {
     }
   };
 
-  const handleTenantClick = (tenantId: number) => {
+  const handleTenantClick = (tenantId: string) => {
     navigate(`/super-admin/tenant/${tenantId}`);
   };
 

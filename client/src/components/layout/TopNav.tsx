@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useSearchParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { fetchNotifications, markNotificationAsRead, markAllNotificationsAsRead, Notification } from '@/services/api';
+import { useAuthStore } from '@/store/useAuthStore';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,9 +30,10 @@ interface TopNavProps {
   title: string;
   subtitle?: string;
   action?: ReactNode;
+  logo?: string;
 }
 
-export function TopNav({ title, subtitle, action }: TopNavProps) {
+export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchValue, setSearchValue] = useState(searchParams.get('search') || '');
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -39,7 +41,7 @@ export function TopNav({ title, subtitle, action }: TopNavProps) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const { user, customerData, logout } = useAuthStore();
   const [editFirstName, setEditFirstName] = useState(user.first_name || '');
   const [editLastName, setEditLastName] = useState(user.last_name || '');
   const [editEmail, setEditEmail] = useState(user.email || '');
@@ -60,8 +62,7 @@ export function TopNav({ title, subtitle, action }: TopNavProps) {
   const loadNotifications = async () => {
     try {
       // Check if we are in customer portal or admin dashboard
-      const customerData = localStorage.getItem('customer_data');
-      const customerId = customerData ? JSON.parse(customerData).customer.id : undefined;
+      const customerId = customerData ? customerData.customer.id : undefined;
 
       const data = await fetchNotifications(customerId);
       setNotifications(data);
@@ -71,7 +72,7 @@ export function TopNav({ title, subtitle, action }: TopNavProps) {
     }
   };
 
-  const handleMarkAsRead = async (id: number) => {
+  const handleMarkAsRead = async (id: string) => {
     try {
       await markNotificationAsRead(id);
       loadNotifications();
@@ -82,8 +83,7 @@ export function TopNav({ title, subtitle, action }: TopNavProps) {
 
   const handleMarkAllAsRead = async () => {
     try {
-      const customerData = localStorage.getItem('customer_data');
-      const customerId = customerData ? JSON.parse(customerData).customer.id : undefined;
+      const customerId = customerData ? customerData.customer.id : undefined;
       await markAllNotificationsAsRead(customerId);
       loadNotifications();
     } catch (error) {
@@ -117,10 +117,8 @@ export function TopNav({ title, subtitle, action }: TopNavProps) {
 
       const updatedUser = await updateAdminProfile(formData);
 
-      // Update local storage
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const newUser = { ...currentUser, ...updatedUser };
-      localStorage.setItem('user', JSON.stringify(newUser));
+      // Update store
+      useAuthStore.getState().setAuth(useAuthStore.getState().token!, { ...user!, ...updatedUser });
 
       toast({
         title: "Profile Updated",
@@ -145,6 +143,15 @@ export function TopNav({ title, subtitle, action }: TopNavProps) {
   return (
     <header className="h-16 bg-card border-b border-border px-6 flex items-center justify-between">
       <div className="flex items-center gap-4">
+        {logo && (
+          <div className="w-10 h-10 flex items-center justify-center overflow-hidden rounded bg-white p-1 border">
+            <img
+              src={logo.startsWith('http') ? logo : `http://localhost:8000${logo}`}
+              alt="Logo"
+              className="w-full h-full object-contain"
+            />
+          </div>
+        )}
         <div>
           <h1 className="font-display text-xl font-semibold text-foreground">{title}</h1>
           {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
@@ -254,9 +261,7 @@ export function TopNav({ title, subtitle, action }: TopNavProps) {
               Edit Profile
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => {
-              localStorage.removeItem('token');
-              localStorage.removeItem('user');
-              localStorage.removeItem('customer_data');
+              logout();
               window.location.href = '/login';
             }} className="text-destructive focus:text-destructive">
               <LogOut className="w-4 h-4 mr-2" />

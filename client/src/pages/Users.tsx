@@ -5,7 +5,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { AppLayout } from "@/components/layout/AppLayout";
 
 interface User {
-    id: number;
+    id: string;
     username: string;
     email: string;
 }

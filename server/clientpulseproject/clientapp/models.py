@@ -1,21 +1,34 @@
 from django.db import models
 from django.utils import timezone
 from django.core.mail import send_mail
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
 import uuid
 
 # Create your models here.
 
-# Create your models here.
+class User(AbstractUser):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+
+    class Meta:
+        db_table = 'auth_user' # Keep the same table name if possible, or let Django handle it
 
 class Tenant(models.Model):
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=200)
     business_type = models.CharField(max_length=50) # Kinyozi, Salon, Spa, Multi-service
     city = models.CharField(max_length=100)
     phone_number = models.CharField(max_length=20)
     created_at = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=False) # Approved or not
+    
+    # Branding
+    logo = models.ImageField(upload_to='tenant_logos/', null=True, blank=True)
+    primary_color = models.CharField(max_length=7, default='#D97706') # Default amber-600
+    
+    # Automated Campaigns
+    auto_campaign_we_miss_you = models.BooleanField(default=False)
+    we_miss_you_discount_pct = models.IntegerField(default=10)
+    we_miss_you_days = models.IntegerField(default=30)
     
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -57,6 +70,7 @@ class Tenant(models.Model):
 
 class UserProfile(models.Model):
     """Extra profile information for system users (admins, staff)"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     photo = models.ImageField(upload_to='admin_photos/', null=True, blank=True)
     
@@ -88,8 +102,8 @@ def save_user_profile(sender, instance, **kwargs):
 
 class StaffMember(models.Model):
     """Staff members (barbers, stylists, therapists) who provide services"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     user = models.OneToOneField(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='staff_profile')
     name = models.CharField(max_length=200)
     phone = models.CharField(max_length=20)
@@ -105,8 +119,8 @@ class StaffMember(models.Model):
 
 class Service(models.Model):
     """Services offered (haircut, shave, braiding, massage, facial, etc.)"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     CATEGORY_CHOICES = [
         ('hair', 'Hair Services'),
         ('spa', 'Spa & Massage'),
@@ -132,8 +146,8 @@ class Service(models.Model):
 
 
 class Customer(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, related_name='customer_profile')
     name = models.CharField(max_length=200)
     email = models.EmailField()
@@ -149,6 +163,7 @@ class Customer(models.Model):
     visit_count = models.IntegerField(default=0, help_text="Total number of visits")
     favorite_services = models.ManyToManyField(Service, blank=True, related_name='favorited_by')
     preferred_staff = models.ForeignKey(StaffMember, on_delete=models.SET_NULL, null=True, blank=True, related_name='preferred_customers')
+    last_we_miss_you_sent = models.DateField(null=True, blank=True)
     service_notes = models.TextField(blank=True, help_text="Style preferences, allergies, special notes")
     photo = models.ImageField(upload_to='customer_photos/', null=True, blank=True)
 
@@ -161,6 +176,7 @@ class Customer(models.Model):
 
 class Visit(models.Model):
     """Customer visit/appointment with services rendered"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
     PAYMENT_STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -203,6 +219,7 @@ class Visit(models.Model):
 
 # Keep Sale model for backward compatibility
 class Sale(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
     customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='sales')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -214,6 +231,7 @@ class Sale(models.Model):
 
 
 class Reward(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=200)
     description = models.TextField()
@@ -235,8 +253,8 @@ class Reward(models.Model):
 
 class Booking(models.Model):
     """Customer appointment booking"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     STATUS_CHOICES = [
         ('pending', 'Pending'),
         ('confirmed', 'Confirmed'),
@@ -346,6 +364,7 @@ class Booking(models.Model):
 
 class CustomerReward(models.Model):
     """Track rewards claimed by customers"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
     STATUS_CHOICES = [
         ('pending', 'Pending Redemption'),
@@ -391,6 +410,7 @@ class CustomerReward(models.Model):
 
 
 class ContactMessage(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
     full_name = models.CharField(max_length=200)
     phone = models.CharField(max_length=20)
@@ -406,6 +426,7 @@ class ContactMessage(models.Model):
 
 
 class Review(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     REVIEWER_TYPES = [
         ('customer', 'Customer'),
         ('business_owner', 'Business Owner'),
@@ -427,6 +448,7 @@ class Review(models.Model):
 
 
 class Notification(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
     NOTIFICATION_TYPES = [
         ('customer', 'Customer'),
@@ -547,6 +569,7 @@ def create_notification(title, message, recipient_type, customer=None, user=None
 
 
 class SubscriptionPlan(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100) # Starter, Professional, Enterprise
     price = models.DecimalField(max_digits=10, decimal_places=2)
     interval = models.CharField(max_length=20, default='month') # month, year
@@ -564,6 +587,7 @@ class SubscriptionPlan(models.Model):
 
 
 class TenantSubscription(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.OneToOneField(Tenant, on_delete=models.CASCADE, related_name='subscription')
     plan = models.ForeignKey(SubscriptionPlan, on_delete=models.PROTECT)
     status = models.CharField(max_length=20, default='active') # active, past_due, canceled
@@ -576,6 +600,7 @@ class TenantSubscription(models.Model):
 
 
 class PaymentTransaction(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE)
     plan = models.ForeignKey(SubscriptionPlan, on_delete=models.SET_NULL, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)

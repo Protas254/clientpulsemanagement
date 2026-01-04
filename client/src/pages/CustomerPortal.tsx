@@ -1,15 +1,9 @@
 import { useState, useEffect } from 'react';
-import { TopNav } from '@/components/layout/TopNav';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Scissors, Gift, ArrowRight, Mail, Phone, MapPin, Calendar, DollarSign, ShoppingBag, Plus, Check, Clock, Waves, Hand, Smile, MoreVertical, Edit, Camera } from 'lucide-react';
-import { Reward, Service, fetchServices, createBooking, fetchBookings, Booking, redeemReward, checkRewards, updateCustomerProfile, CustomerReward, sendContactMessage } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { useCustomerPortal } from '@/hooks/useCustomerPortal';
+import { useAuthStore } from '@/store/useAuthStore';
 import {
     Dialog,
     DialogContent,
@@ -19,9 +13,36 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { TopNav } from '@/components/layout/TopNav';
+import {
+    Scissors,
+    Waves,
+    Hand,
+    Smile,
+    Plus,
+    MoreVertical,
+    Edit,
+    Mail,
+    Phone,
+    MapPin,
+    Calendar,
+    DollarSign,
+    ShoppingBag,
+    Gift,
+    ArrowRight,
+    Clock,
+    Check,
+    Camera
+} from 'lucide-react';
+import { Service, Reward, CustomerReward } from '@/services/api';
 
 interface CustomerData {
-    id: number;
+    id: string;
     name: string;
     email: string;
     phone: string;
@@ -33,11 +54,11 @@ interface CustomerData {
     created_at: string;
     photo?: string;
     visit_count: number;
-    tenant_id?: number;
+    tenant_id?: string;
 }
 
 interface Purchase {
-    id: number;
+    id: string;
     amount: string;
     description: string;
     date: string;
@@ -51,6 +72,7 @@ interface Statistics {
 
 interface PortalData {
     customer: CustomerData;
+    tenant: any;
     statistics: Statistics;
     purchases: Purchase[];
     visits: any[];
@@ -94,15 +116,27 @@ const categoryColors = {
 };
 
 export default function CustomerPortal() {
-    const [customerData, setCustomerData] = useState<CustomerData | null>(null);
-    const [statistics, setStatistics] = useState<Statistics | null>(null);
-    const [purchases, setPurchases] = useState<Purchase[]>([]);
-    const [visits, setVisits] = useState<any[]>([]);
-    const [rewards, setRewards] = useState<Reward[]>([]);
-    const [redemptions, setRedemptions] = useState<CustomerReward[]>([]);
-    const [services, setServices] = useState<Service[]>([]);
-    const [bookings, setBookings] = useState<Booking[]>([]);
-    const [bookingLoading, setBookingLoading] = useState(false);
+    const {
+        portalData,
+        isLoading,
+        services,
+        bookings,
+        updateProfile,
+        isUpdating,
+        confirmBooking,
+        isBookingLoading,
+        redeemReward,
+        sendContact,
+        isContactLoading,
+    } = useCustomerPortal();
+
+    const customerData = portalData?.customer;
+    const tenant = portalData?.tenant;
+    const statistics = portalData?.statistics;
+    const visits = portalData?.visits || [];
+    const rewards = portalData?.eligible_rewards || [];
+    const redemptions = portalData?.redemptions || [];
+
     const [selectedService, setSelectedService] = useState<Service | null>(null);
     const [bookingDate, setBookingDate] = useState('');
     const [bookingTime, setBookingTime] = useState('');
@@ -114,12 +148,10 @@ export default function CustomerPortal() {
     const [editEmail, setEditEmail] = useState('');
     const [editPhone, setEditPhone] = useState('');
     const [editPhoto, setEditPhoto] = useState<File | null>(null);
-    const [isUpdating, setIsUpdating] = useState(false);
 
     // Contact form state
     const [contactSubject, setContactSubject] = useState('');
     const [contactMessage, setContactMessage] = useState('');
-    const [contactLoading, setContactLoading] = useState(false);
 
     const navigate = useNavigate();
     const { toast } = useToast();
@@ -137,103 +169,24 @@ export default function CustomerPortal() {
         e.preventDefault();
         if (!customerData) return;
 
-        setIsUpdating(true);
-        try {
-            const formData = new FormData();
-            formData.append('name', editName);
-            formData.append('email', editEmail);
-            formData.append('phone', editPhone);
-            if (editPhoto) {
-                formData.append('photo', editPhoto);
+        const formData = new FormData();
+        formData.append('name', editName);
+        formData.append('email', editEmail);
+        formData.append('phone', editPhone);
+        if (editPhoto) {
+            formData.append('photo', editPhoto);
+        }
+
+        updateProfile({ id: customerData.id, data: formData }, {
+            onSuccess: () => {
+                setIsEditModalOpen(false);
+                setEditPhoto(null);
             }
-
-            const updatedCustomer = await updateCustomerProfile(customerData.id, formData);
-            setCustomerData(updatedCustomer);
-
-            // Update local storage
-            const storedData = localStorage.getItem('customer_data');
-            if (storedData) {
-                const parsed = JSON.parse(storedData);
-                parsed.customer = updatedCustomer;
-                localStorage.setItem('customer_data', JSON.stringify(parsed));
-            }
-
-            toast({
-                title: "Profile Updated",
-                description: "Your profile has been successfully updated.",
-            });
-            setIsEditModalOpen(false);
-            setEditPhoto(null);
-        } catch (error) {
-            toast({
-                title: "Update Failed",
-                description: "Could not update profile. Please try again.",
-                variant: "destructive"
-            });
-        } finally {
-            setIsUpdating(false);
-        }
+        });
     };
 
-    useEffect(() => {
-        const storedData = localStorage.getItem('customer_data');
-        if (!storedData) {
-            navigate('/login');
-            return;
-        }
-
-        try {
-            const parsedData: PortalData = JSON.parse(storedData);
-            setCustomerData(parsedData.customer);
-            setStatistics(parsedData.statistics);
-            setPurchases(parsedData.purchases || []);
-            setVisits(parsedData.visits || []);
-            setRewards(parsedData.eligible_rewards);
-            setRedemptions(parsedData.redemptions || []);
-            loadServices();
-            loadBookings(parsedData.customer.id);
-
-            // Fetch fresh data to ensure rewards are up to date
-            refreshCustomerData(parsedData.customer.email || parsedData.customer.phone);
-        } catch (error) {
-            console.error('Failed to parse customer data', error);
-            navigate('/login');
-        }
-    }, [navigate]);
-
-    const refreshCustomerData = async (identifier: string) => {
-        try {
-            const data = await checkRewards(identifier);
-            setCustomerData(data.customer);
-            setStatistics(data.statistics);
-            setPurchases(data.purchases || []);
-            setVisits(data.visits || []);
-            setRewards(data.eligible_rewards);
-            setRedemptions(data.redemptions || []);
-            // Update local storage too
-            localStorage.setItem('customer_data', JSON.stringify(data));
-        } catch (error) {
-            console.error('Failed to refresh customer data', error);
-        }
-    };
-
-    const loadServices = async () => {
-        try {
-            const data = await fetchServices();
-            setServices(data);
-        } catch (error) {
-            console.error('Failed to load services', error);
-        }
-    };
-
-    const loadBookings = async (customerId: number) => {
-        try {
-            const data = await fetchBookings({ customer: customerId });
-            setBookings(data);
-        } catch (error) {
-            console.error('Failed to load bookings', error);
-        }
-    };
+    // Remove useEffect for initial load as React Query handles it
+    // Remove refreshCustomerData, loadServices, loadBookings as React Query handles them
 
     const initiateBooking = (service: Service) => {
         setSelectedService(service);
@@ -242,8 +195,6 @@ export default function CustomerPortal() {
     };
 
     const handleConfirmBooking = async () => {
-        console.log('Confirming booking...', { customerData, selectedService, bookingDate, bookingTime });
-
         if (!customerData || !selectedService || !bookingDate || !bookingTime) {
             toast({
                 title: "Error",
@@ -253,80 +204,35 @@ export default function CustomerPortal() {
             return;
         }
 
-        setBookingLoading(true);
+        const dateTimeStr = `${bookingDate}T${bookingTime}`;
+        const dateTime = new Date(dateTimeStr);
 
-        try {
-            // Ensure date and time are combined correctly
-            const dateTimeStr = `${bookingDate}T${bookingTime}`;
-            const dateTime = new Date(dateTimeStr);
-
-            if (isNaN(dateTime.getTime())) {
-                throw new Error("Invalid date or time selected.");
-            }
-
-            console.log('Sending booking request...', {
-                customer: customerData.id,
-                service: selectedService.id,
-                booking_date: dateTime.toISOString(),
-            });
-
-            await createBooking({
-                customer: customerData.id,
-                service: selectedService.id,
-                staff_member: null,
-                booking_date: dateTime.toISOString(),
-                status: 'pending',
-                notes: 'Booking request from Customer Portal'
-            });
-
-            toast({
-                title: "Booking Request Sent!",
-                description: `We've received your request for ${selectedService.name} on ${format(dateTime, 'MMM d, h:mm a')}. We'll confirm shortly.`,
-            });
-            setSelectedService(null);
-            loadBookings(customerData.id); // Refresh bookings to update UI
-        } catch (error: any) {
-            console.error('Booking failed:', error);
-            toast({
-                title: "Booking Failed",
-                description: error.message || "Could not process your booking request. Please try again.",
-                variant: "destructive"
-            });
-        } finally {
-            setBookingLoading(false);
+        if (isNaN(dateTime.getTime())) {
+            toast({ title: "Error", description: "Invalid date or time selected.", variant: "destructive" });
+            return;
         }
+
+        confirmBooking({
+            customer: customerData.id,
+            service: selectedService.id,
+            staff_member: null,
+            booking_date: dateTime.toISOString(),
+            status: 'pending',
+            notes: 'Booking request from Customer Portal'
+        }, {
+            onSuccess: () => {
+                setSelectedService(null);
+            }
+        });
     };
 
     const handleRedeemReward = async (reward: Reward) => {
         if (!customerData) return;
-
-        try {
-            await redeemReward({
-                customer: customerData.id,
-                reward: reward.id,
-                date_claimed: new Date().toISOString()
-            });
-
-            toast({
-                title: "Reward Redeemed!",
-                description: `You have successfully redeemed: ${reward.name}`,
-            });
-
-            // Refresh data to show updated points and rewards
-            // In a real app we'd refetch from backend, here we'll just reload the page for simplicity
-            // or better, trigger a re-fetch of the check-rewards endpoint
-            const response = await checkRewards(customerData.email || customerData.phone);
-            setCustomerData(response.customer);
-            setRewards(response.eligible_rewards);
-            localStorage.setItem('customer_data', JSON.stringify(response));
-
-        } catch (error) {
-            toast({
-                title: "Redemption Failed",
-                description: "Could not redeem reward. Please try again.",
-                variant: "destructive"
-            });
-        }
+        redeemReward({
+            customer: customerData.id,
+            reward: reward.id,
+            date_claimed: new Date().toISOString()
+        });
     };
 
     const handleSendContactMessage = async (e: React.FormEvent) => {
@@ -334,41 +240,23 @@ export default function CustomerPortal() {
         if (!customerData) return;
 
         if (!contactSubject || !contactMessage) {
-            toast({
-                title: "Error",
-                description: "Please fill in all fields.",
-                variant: "destructive"
-            });
+            toast({ title: "Error", description: "Please fill in all fields.", variant: "destructive" });
             return;
         }
 
-        setContactLoading(true);
-        try {
-            await sendContactMessage({
-                tenant: customerData.tenant_id,
-                full_name: customerData.name,
-                email: customerData.email,
-                phone: customerData.phone,
-                subject: contactSubject,
-                message: contactMessage
-            });
-
-            toast({
-                title: "Message Sent",
-                description: "Your message has been sent to the business owner.",
-            });
-            setContactSubject('');
-            setContactMessage('');
-        } catch (error) {
-            console.error('Failed to send message', error);
-            toast({
-                title: "Error",
-                description: "Failed to send message. Please try again.",
-                variant: "destructive"
-            });
-        } finally {
-            setContactLoading(false);
-        }
+        sendContact({
+            tenant: customerData.tenant_id,
+            full_name: customerData.name,
+            email: customerData.email,
+            phone: customerData.phone,
+            subject: contactSubject,
+            message: contactMessage
+        }, {
+            onSuccess: () => {
+                setContactSubject('');
+                setContactMessage('');
+            }
+        });
     };
 
     const getBookingStatus = (serviceId: number) => {
@@ -380,13 +268,36 @@ export default function CustomerPortal() {
         return booking ? booking.status : null;
     };
 
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="w-12 h-12 border-4 border-amber-600 border-t-transparent rounded-full animate-spin" />
+            </div>
+        );
+    }
+
     if (!customerData || !statistics) {
-        return null;
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+                <p className="text-muted-foreground">No customer data found.</p>
+                <Button onClick={() => navigate('/login')}>Return to Login</Button>
+            </div>
+        );
     }
 
     return (
-        <div className="min-h-screen bg-background flex flex-col">
-            <TopNav title={`Hello, ${customerData.name}`} subtitle="Customer Portal" />
+        <div
+            className="min-h-screen bg-background flex flex-col"
+            style={{
+                '--tenant-primary': tenant?.primary_color || '#D97706',
+                '--tenant-primary-foreground': '#ffffff'
+            } as React.CSSProperties}
+        >
+            <TopNav
+                title={`Hello, ${customerData.name}`}
+                subtitle={tenant?.name || "Customer Portal"}
+                logo={tenant?.logo}
+            />
 
             <main className="flex-1 container mx-auto px-4 py-8">
                 <div className="max-w-6xl mx-auto space-y-8">
@@ -416,12 +327,12 @@ export default function CustomerPortal() {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="absolute -right-2 -top-2 text-muted-foreground hover:text-amber-600"
+                                                className="absolute -right-2 -top-2 text-muted-foreground hover:tenant-brand-text"
                                                 onClick={openEditModal}
                                             >
                                                 <Edit className="w-4 h-4" />
                                             </Button>
-                                            <Avatar className="h-24 w-24 border-4 border-amber-100 mb-4">
+                                            <Avatar className="h-24 w-24 border-4 tenant-brand-border mb-4">
                                                 {customerData.photo ? (
                                                     <img
                                                         src={customerData.photo.startsWith('http') ? customerData.photo : `http://localhost:8000${customerData.photo}`}
@@ -429,7 +340,7 @@ export default function CustomerPortal() {
                                                         className="h-full w-full object-cover"
                                                     />
                                                 ) : (
-                                                    <AvatarFallback className="bg-amber-600 text-white text-2xl">
+                                                    <AvatarFallback className="tenant-brand-bg text-white text-2xl">
                                                         {customerData.name.split(' ').map(n => n[0]).join('')}
                                                     </AvatarFallback>
                                                 )}
@@ -474,15 +385,15 @@ export default function CustomerPortal() {
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                                         <Card className="animate-fade-in">
                                             <CardContent className="pt-6">
-                                                <div className="text-center p-4 rounded-xl bg-gradient-to-br from-amber-700 to-amber-500 text-white">
-                                                    <p className="text-amber-100 mb-1 text-sm">Loyalty Points</p>
+                                                <div className="text-center p-4 rounded-xl tenant-brand-bg shadow-lg">
+                                                    <p className="opacity-80 mb-1 text-sm">Loyalty Points</p>
                                                     <div className="text-5xl font-bold">{customerData.points}</div>
                                                 </div>
                                             </CardContent>
                                         </Card>
                                         <Card className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
                                             <CardContent className="pt-6 text-center">
-                                                <DollarSign className="w-8 h-8 mx-auto text-amber-600 mb-2" />
+                                                <DollarSign className="w-8 h-8 mx-auto tenant-brand-text mb-2" />
                                                 <p className="text-2xl font-display font-semibold text-foreground">
                                                     KES {statistics.total_spent.toLocaleString()}
                                                 </p>
@@ -504,7 +415,7 @@ export default function CustomerPortal() {
                                     <Card className="animate-fade-in">
                                         <CardHeader>
                                             <CardTitle className="font-display text-lg flex items-center gap-2">
-                                                <Gift className="w-5 h-5 text-amber-600" />
+                                                <Gift className="w-5 h-5 tenant-brand-text" />
                                                 Available Rewards
                                             </CardTitle>
                                         </CardHeader>
@@ -526,7 +437,7 @@ export default function CustomerPortal() {
                                                                 <div>
                                                                     <div className="flex items-center gap-2 mb-1">
                                                                         <h3 className="font-semibold text-lg">{reward.name}</h3>
-                                                                        <Badge variant="secondary" className="bg-amber-100 text-amber-700">
+                                                                        <Badge variant="secondary" className="tenant-brand-bg-soft">
                                                                             {reward.type}
                                                                         </Badge>
                                                                         {!isEligible && (
@@ -546,12 +457,12 @@ export default function CustomerPortal() {
                                                                     )}
                                                                 </div>
                                                                 <div className="text-right">
-                                                                    <div className="font-bold text-amber-700 text-lg">
+                                                                    <div className="font-bold tenant-brand-text text-lg">
                                                                         {reward.points_required > 0 ? `${reward.points_required} pts` : `${reward.visits_required} visits`}
                                                                     </div>
                                                                     <Button
                                                                         variant={isEligible ? "link" : "ghost"}
-                                                                        className={isEligible ? "text-amber-600 p-0 h-auto font-medium" : "text-muted-foreground p-0 h-auto font-medium cursor-not-allowed"}
+                                                                        className={isEligible ? "tenant-brand-text p-0 h-auto font-medium" : "text-muted-foreground p-0 h-auto font-medium cursor-not-allowed"}
                                                                         onClick={() => isEligible && handleRedeemReward(reward)}
                                                                         disabled={!isEligible}
                                                                     >
@@ -583,7 +494,7 @@ export default function CustomerPortal() {
                                                     {visits.map((visit) => (
                                                         <div
                                                             key={`v-${visit.id}`}
-                                                            className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-amber-100/50"
+                                                            className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border tenant-brand-border/50"
                                                         >
                                                             <div>
                                                                 <p className="font-medium text-foreground">
@@ -605,7 +516,7 @@ export default function CustomerPortal() {
                                                                     <Button
                                                                         size="sm"
                                                                         variant="outline"
-                                                                        className="h-7 text-xs border-amber-200 text-amber-700 hover:bg-amber-50"
+                                                                        className="h-7 text-xs tenant-brand-border tenant-brand-text hover:tenant-brand-bg-soft"
                                                                         onClick={() => navigate(`/review/${visit.id}`)}
                                                                     >
                                                                         Rate Service
@@ -651,14 +562,14 @@ export default function CustomerPortal() {
                                 <Button
                                     onClick={() => setSelectedCategory('all')}
                                     variant={selectedCategory === 'all' ? 'default' : 'outline'}
-                                    className={selectedCategory === 'all' ? 'bg-amber-600 hover:bg-amber-700' : ''}
+                                    className={selectedCategory === 'all' ? 'tenant-brand-bg hover:opacity-90' : ''}
                                 >
                                     All Services
                                 </Button>
                                 <Button
                                     onClick={() => setSelectedCategory('hair')}
                                     variant={selectedCategory === 'hair' ? 'default' : 'outline'}
-                                    className={selectedCategory === 'hair' ? 'bg-amber-600 hover:bg-amber-700' : ''}
+                                    className={selectedCategory === 'hair' ? 'tenant-brand-bg hover:opacity-90' : ''}
                                 >
                                     <Scissors className="w-4 h-4 mr-2" />
                                     Hair
@@ -776,7 +687,7 @@ export default function CustomerPortal() {
                                                                 </p>
                                                                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
                                                                     <span className="text-sm text-muted-foreground flex items-center gap-1">
-                                                                        <ClockIcon className="w-4 h-4" />
+                                                                        <Clock className="w-4 h-4" />
                                                                         {service.duration} mins
                                                                     </span>
                                                                     {status === 'pending' ? (
@@ -792,7 +703,8 @@ export default function CustomerPortal() {
                                                                     ) : (
                                                                         <Button
                                                                             onClick={() => initiateBooking(service)}
-                                                                            className="bg-amber-600 hover:bg-amber-700 text-white"
+                                                                            className="tenant-brand-bg hover:opacity-90 text-white"
+                                                                            disabled={isBookingLoading}
                                                                         >
                                                                             <Plus className="w-4 h-4 mr-2" />
                                                                             Book Now
@@ -814,7 +726,7 @@ export default function CustomerPortal() {
                             <Card className="max-w-2xl mx-auto">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
-                                        <Mail className="w-5 h-5 text-amber-600" />
+                                        <Mail className="w-5 h-5 tenant-brand-text" />
                                         Contact Business Owner
                                     </CardTitle>
                                 </CardHeader>
@@ -851,13 +763,15 @@ export default function CustomerPortal() {
                                                 required
                                             />
                                         </div>
-                                        <Button type="submit" className="w-full bg-amber-600 hover:bg-amber-700" disabled={contactLoading}>
-                                            {contactLoading ? 'Sending...' : 'Send Message'}
+                                        <Button type="submit" className="w-full tenant-brand-bg hover:opacity-90" disabled={isContactLoading}>
+                                            {isContactLoading ? 'Sending...' : 'Send Message'}
                                         </Button>
                                     </form>
                                 </CardContent>
                             </Card>
                         </TabsContent>
+
+
                     </Tabs>
                 </div>
 
@@ -896,8 +810,8 @@ export default function CustomerPortal() {
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={() => setSelectedService(null)}>Cancel</Button>
-                            <Button onClick={handleConfirmBooking} disabled={bookingLoading}>
-                                {bookingLoading ? 'Booking...' : 'Confirm Booking'}
+                            <Button onClick={handleConfirmBooking} disabled={isBookingLoading}>
+                                {isBookingLoading ? 'Booking...' : 'Confirm Booking'}
                             </Button>
                         </DialogFooter>
                     </DialogContent>
@@ -913,13 +827,13 @@ export default function CustomerPortal() {
                             <div className="grid gap-4 py-4">
                                 <div className="flex flex-col items-center gap-4 mb-4">
                                     <div className="relative group">
-                                        <Avatar className="h-24 w-24 border-2 border-amber-100">
+                                        <Avatar className="h-24 w-24 border-2 tenant-brand-border-soft">
                                             {editPhoto ? (
                                                 <img src={URL.createObjectURL(editPhoto)} alt="Preview" className="h-full w-full object-cover" />
                                             ) : customerData.photo ? (
                                                 <img src={customerData.photo.startsWith('http') ? customerData.photo : `http://localhost:8000${customerData.photo}`} alt="Profile" className="h-full w-full object-cover" />
                                             ) : (
-                                                <AvatarFallback className="bg-amber-600 text-white text-2xl">
+                                                <AvatarFallback className="tenant-brand-bg text-white text-2xl">
                                                     {customerData.name.split(' ').map(n => n[0]).join('')}
                                                 </AvatarFallback>
                                             )}
@@ -983,22 +897,4 @@ export default function CustomerPortal() {
     );
 }
 
-function ClockIcon(props: any) {
-    return (
-        <svg
-            {...props}
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-        </svg>
-    )
-}
+

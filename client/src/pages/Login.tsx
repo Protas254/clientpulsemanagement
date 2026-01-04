@@ -8,6 +8,7 @@ import { Scissors, Eye, EyeOff, User, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { login, checkRewards } from "../services/api";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuthStore } from "@/store/useAuthStore";
 
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -18,6 +19,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { setAuth, setCustomerData } = useAuthStore();
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,8 +49,7 @@ const Login = () => {
         return;
       }
 
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data));
+      setAuth(data.token, data);
 
       toast({
         title: "Welcome back!",
@@ -101,15 +102,14 @@ const Login = () => {
         return;
       }
 
-      localStorage.setItem('token', loginData.token);
-      localStorage.setItem('user', JSON.stringify(loginData));
+      setAuth(loginData.token, loginData);
 
       // 2. Fetch customer data for portal
       // We use the identifier provided, or the email from login response if available
       const identifierToUse = loginData.email || customerIdentifier;
       const customerData = await checkRewards(identifierToUse);
 
-      localStorage.setItem('customer_data', JSON.stringify(customerData));
+      setCustomerData(customerData);
 
       toast({
         title: "Welcome!",

@@ -5,7 +5,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.decorators import action, api_view, permission_classes
 from django.contrib.auth import authenticate
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+User = get_user_model()
 from .models import (
     Customer, Sale, Reward, Service, Visit, StaffMember, Booking, 
     CustomerReward, ContactMessage, Notification, Tenant, UserProfile,
@@ -118,6 +119,8 @@ class LoginView(APIView):
             
             if hasattr(user, 'profile'):
                 role = user.profile.role
+                if user.is_superuser:
+                    role = 'admin'
                 if user.profile.tenant:
                     # Check if tenant is active (approved)
                     if role == 'tenant_admin' and not user.profile.tenant.is_active:
@@ -852,6 +855,7 @@ class CustomerRewardCheckView(APIView):
         redemptions_data = CustomerRewardSerializer(redemptions, many=True).data
 
         return Response({
+            'tenant': TenantSerializer(customer.tenant).data if customer.tenant else None,
             'customer': {
                 'id': customer.id,
                 'name': customer.name,

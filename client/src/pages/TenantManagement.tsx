@@ -19,7 +19,7 @@ import {
 import { toast } from 'sonner';
 
 interface Tenant {
-    id: number;
+    id: string;
     name: string;
     business_type: string;
     city: string;
@@ -29,7 +29,7 @@ interface Tenant {
 }
 
 interface ContactMessage {
-    id: number;
+    id: string;
     full_name: string;
     phone: string;
     email: string;
@@ -39,7 +39,7 @@ interface ContactMessage {
 }
 
 interface Customer {
-    id: number;
+    id: string;
     name: string;
     email: string;
     phone: string;
@@ -49,7 +49,7 @@ interface Customer {
 }
 
 interface Booking {
-    id: number;
+    id: string;
     customer: { name: string };
     service: { name: string };
     booking_date: string;
@@ -57,7 +57,7 @@ interface Booking {
 }
 
 interface Service {
-    id: number;
+    id: string;
     name: string;
     category: string;
     price: string;

@@ -11,16 +11,22 @@ import { fetchUserProfile } from '@/services/api';
 
 export default function Settings() {
   const [user, setUser] = useState<any>(null);
+  const [tenant, setTenant] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    loadUser();
+    loadData();
   }, []);
 
-  const loadUser = async () => {
+  const loadData = async () => {
     try {
-      const data = await fetchUserProfile();
-      setUser(data);
+      const [userData, tenantData] = await Promise.all([
+        fetchUserProfile(),
+        import('@/services/api').then(m => m.fetchTenantSettings())
+      ]);
+      setUser(userData);
+      setTenant(tenantData);
     } catch (error) {
       toast({
         title: "Error",
@@ -32,11 +38,33 @@ export default function Settings() {
     }
   };
 
-  const handleSave = () => {
-    toast({
-      title: "Settings saved",
-      description: "Your preferences have been updated successfully.",
-    });
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { updateTenantSettings } = await import('@/services/api');
+
+      // We only save the tenant settings here as profile info is usually separate
+      // but we can extend this if needed.
+      await updateTenantSettings({
+        primary_color: tenant.primary_color,
+        auto_campaign_we_miss_you: tenant.auto_campaign_we_miss_you,
+        we_miss_you_discount_pct: tenant.we_miss_you_discount_pct,
+        we_miss_you_days: tenant.we_miss_you_days,
+      });
+
+      toast({
+        title: "Settings saved",
+        description: "Your preferences have been updated successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save settings",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (loading) {
@@ -51,7 +79,7 @@ export default function Settings() {
 
   return (
     <AppLayout title="Settings" subtitle="Manage your account and preferences">
-      <div className="max-w-3xl space-y-6">
+      <div className="max-w-3xl space-y-6 pb-12">
         {/* Profile Settings */}
         <Card className="animate-fade-in">
           <CardHeader>
@@ -80,8 +108,120 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        {/* Notification Settings */}
+        {/* Branding Settings */}
         <Card className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
+          <CardHeader>
+            <CardTitle className="font-display">Custom Branding</CardTitle>
+            <CardDescription>Customize how your business appears to customers</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Label>Business Logo</Label>
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-muted rounded flex items-center justify-center overflow-hidden border">
+                  {tenant?.logo ? (
+                    <img
+                      src={tenant.logo.startsWith('http') ? tenant.logo : `http://localhost:8000${tenant.logo}`}
+                      alt="Logo"
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">No Logo</span>
+                  )}
+                </div>
+                <div className="flex-1">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    className="cursor-pointer"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const formData = new FormData();
+                        formData.append('logo', file);
+                        try {
+                          const { updateTenantSettings } = await import('@/services/api');
+                          const updated = await updateTenantSettings(formData);
+                          setTenant(updated);
+                          toast({ title: "Logo updated" });
+                        } catch (e) {
+                          toast({ title: "Failed to upload logo", variant: "destructive" });
+                        }
+                      }
+                    }}
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Recommended: Square PNG or SVG with transparent background</p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="primaryColor">Primary Brand Color</Label>
+              <div className="flex gap-4 items-center">
+                <Input
+                  id="primaryColor"
+                  type="color"
+                  className="w-20 h-10 p-1 cursor-pointer"
+                  value={tenant?.primary_color || '#D97706'}
+                  onChange={(e) => setTenant({ ...tenant, primary_color: e.target.value })}
+                />
+                <Input
+                  type="text"
+                  value={tenant?.primary_color || '#D97706'}
+                  onChange={(e) => setTenant({ ...tenant, primary_color: e.target.value })}
+                  className="w-32 font-mono"
+                />
+                <div
+                  className="w-10 h-10 rounded-lg shadow-inner border"
+                  style={{ backgroundColor: tenant?.primary_color || '#D97706' }}
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">This color will be used for buttons and accents in your Customer Portal</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Automated Campaigns */}
+        <Card className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <CardHeader>
+            <CardTitle className="font-display">Automated Campaigns</CardTitle>
+            <CardDescription>Set up automated marketing to retain customers</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-foreground">"We Miss You" Campaign</p>
+                <p className="text-sm text-muted-foreground">Automatically send a discount to customers who haven't visited in a while</p>
+              </div>
+              <Switch
+                checked={tenant?.auto_campaign_we_miss_you}
+                onCheckedChange={(checked) => setTenant({ ...tenant, auto_campaign_we_miss_you: checked })}
+              />
+            </div>
+            {tenant?.auto_campaign_we_miss_you && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pl-6 border-l-2 border-amber-100 animate-in slide-in-from-left-2">
+                <div className="space-y-2">
+                  <Label>Send after (days of inactivity)</Label>
+                  <Input
+                    type="number"
+                    value={tenant?.we_miss_you_days}
+                    onChange={(e) => setTenant({ ...tenant, we_miss_you_days: parseInt(e.target.value) })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Discount Percentage (%)</Label>
+                  <Input
+                    type="number"
+                    value={tenant?.we_miss_you_discount_pct}
+                    onChange={(e) => setTenant({ ...tenant, we_miss_you_discount_pct: parseInt(e.target.value) })}
+                  />
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Notification Settings */}
+        <Card className="animate-fade-in" style={{ animationDelay: '0.3s' }}>
           <CardHeader>
             <CardTitle className="font-display">Notifications</CardTitle>
             <CardDescription>Configure how you receive updates</CardDescription>
@@ -102,45 +242,13 @@ export default function Settings() {
               </div>
               <Switch defaultChecked />
             </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-foreground">New Customer Alerts</p>
-                <p className="text-sm text-muted-foreground">Be notified when new customers are added</p>
-              </div>
-              <Switch />
-            </div>
           </CardContent>
         </Card>
 
-        {/* Data & Privacy */}
-        <Card className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
-          <CardHeader>
-            <CardTitle className="font-display">Data & Privacy</CardTitle>
-            <CardDescription>Manage your data preferences</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-foreground">Data Export</p>
-                <p className="text-sm text-muted-foreground">Download all your customer data</p>
-              </div>
-              <Button variant="outline">Export Data</Button>
-            </div>
-            <Separator />
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-foreground text-destructive">Delete Account</p>
-                <p className="text-sm text-muted-foreground">Permanently delete your account and data</p>
-              </div>
-              <Button variant="destructive">Delete</Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="flex justify-end">
-          <Button variant="chocolate" onClick={handleSave}>
-            Save Changes
+        <div className="flex justify-end gap-4">
+          <Button variant="outline" onClick={loadData}>Reset</Button>
+          <Button variant="chocolate" onClick={handleSave} disabled={saving}>
+            {saving ? "Saving..." : "Save Changes"}
           </Button>
         </div>
       </div>

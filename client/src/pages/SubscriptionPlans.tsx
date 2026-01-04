@@ -7,7 +7,7 @@ import { Check, Building2, Settings, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SubscriptionPlan {
-    id: number;
+    id: string;
     name: string;
     price: string;
     interval: string;
@@ -137,8 +137,8 @@ const SubscriptionPlans = () => {
                             <CardFooter className="pt-6 pb-8">
                                 <Button
                                     className={`w-full ${plan.is_popular
-                                            ? 'bg-amber-600 hover:bg-amber-700 text-white'
-                                            : 'bg-white border-2 border-amber-600 text-amber-700 hover:bg-amber-50'
+                                        ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                                        : 'bg-white border-2 border-amber-600 text-amber-700 hover:bg-amber-50'
                                         }`}
                                 >
                                     Edit Plan

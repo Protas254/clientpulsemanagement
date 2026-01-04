@@ -3,7 +3,7 @@ export type RewardStatus = 'active' | 'disabled' | 'expired';
 export type RedemptionStatus = 'completed' | 'pending' | 'cancelled';
 
 export interface Reward {
-  id: number;
+  id: string;
   name: string;
   description: string;
   points_required: number;

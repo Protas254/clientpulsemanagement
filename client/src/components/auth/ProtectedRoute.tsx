@@ -1,13 +1,12 @@
 import { Navigate, Outlet } from 'react-router-dom';
+import { useAuthStore } from '@/store/useAuthStore';
 
 interface ProtectedRouteProps {
     allowedRoles?: string[];
 }
 
 export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
-    const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
-    const user = userStr ? JSON.parse(userStr) : null;
+    const { token, user } = useAuthStore();
 
     if (!token || !user) {
         return <Navigate to="/login" replace />;

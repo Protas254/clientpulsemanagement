@@ -1,0 +1,39 @@
+vite v5.4.19 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 69 modules transformed.
+x Build failed in 2.77s
+error during build:
+[vite:esbuild] Transform failed with 2 errors:
+/home/junior/Desktop/Dev Section/Clientpulse/ClientPulseProject1/client/src/services/api.ts:893:13: ERROR: Multiple exports with the same name "updateTenantSettings"
+/home/junior/Desktop/Dev Section/Clientpulse/ClientPulseProject1/client/src/services/api.ts:893:13: ERROR: The symbol "updateTenantSettings" has already been declared
+file: /home/junior/Desktop/Dev Section/Clientpulse/ClientPulseProject1/client/src/services/api.ts:893:13
+
+Multiple exports with the same name "updateTenantSettings"
+891|  };
+892|  
+893|  export const updateTenantSettings = async (data: any) => {
+   |               ^
+894|      const response = await fetch(`${API_URL}tenant/settings/`, {
+895|          method: 'PATCH',
+
+The symbol "updateTenantSettings" has already been declared
+891|  };
+892|  
+893|  export const updateTenantSettings = async (data: any) => {
+   |               ^
+894|      const response = await fetch(`${API_URL}tenant/settings/`, {
+895|          method: 'PATCH',
+
+    at failureErrorWithLog (/home/junior/Desktop/Dev Section/Clientpulse/ClientPulseProject1/client/node_modules/esbuild/lib/main.js:1472:15)
+    at /home/junior/Desktop/Dev Section/Clientpulse/ClientPulseProject1/client/node_modules/esbuild/lib/main.js:755:50
+    at responseCallbacks.<computed> (/home/junior/Desktop/Dev Section/Clientpulse/ClientPulseProject1/client/node_modules/esbuild/lib/main.js:622:9)
+    at handleIncomingPacket (/home/junior/Desktop/Dev Section/Clientpulse/ClientPulseProject1/client/node_modules/esbuild/lib/main.js:677:12)
+    at Socket.readFromStdout (/home/junior/Desktop/Dev Section/Clientpulse/ClientPulseProject1/client/node_modules/esbuild/lib/main.js:600:7)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)

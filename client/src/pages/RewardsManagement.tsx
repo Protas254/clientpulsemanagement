@@ -34,7 +34,7 @@ export default function RewardsManagement() {
     setIsFormOpen(true);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     try {
       await deleteReward(id);
       setRewards(rewards.filter(r => r.id !== id));
@@ -44,7 +44,7 @@ export default function RewardsManagement() {
     }
   };
 
-  const handleToggleStatus = async (id: number) => {
+  const handleToggleStatus = async (id: string) => {
     const reward = rewards.find(r => r.id === id);
     if (!reward) return;
 
@@ -92,8 +92,8 @@ export default function RewardsManagement() {
   };
 
   const [redeemDialogOpen, setRedeemDialogOpen] = useState(false);
-  const [selectedCustomerForRedemption, setSelectedCustomerForRedemption] = useState<number | null>(null);
-  const [selectedRewardForRedemption, setSelectedRewardForRedemption] = useState<number | null>(null);
+  const [selectedCustomerForRedemption, setSelectedCustomerForRedemption] = useState<string | null>(null);
+  const [selectedRewardForRedemption, setSelectedRewardForRedemption] = useState<string | null>(null);
   const [customers, setCustomers] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -202,13 +202,13 @@ export default function RewardsManagement() {
 
             <div className="space-y-2">
               <Label>Select Reward</Label>
-              <Select onValueChange={(val) => setSelectedRewardForRedemption(parseInt(val))}>
+              <Select onValueChange={(val) => setSelectedRewardForRedemption(val)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choose a reward..." />
                 </SelectTrigger>
                 <SelectContent>
                   {rewards.filter(r => r.status === 'active').map(reward => (
-                    <SelectItem key={reward.id} value={reward.id.toString()}>
+                    <SelectItem key={reward.id} value={reward.id}>
                       {reward.name} ({reward.points_required} pts)
                     </SelectItem>
                   ))}

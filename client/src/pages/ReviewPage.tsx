@@ -28,7 +28,7 @@ export default function ReviewPage() {
     const loadVisit = async () => {
         try {
             if (!visitId) return;
-            const foundVisit = await fetchVisit(parseInt(visitId));
+            const foundVisit = await fetchVisit(visitId);
             if (foundVisit) {
                 setVisit(foundVisit);
             } else {
@@ -57,7 +57,7 @@ export default function ReviewPage() {
         setSubmitting(true);
         try {
             await createReview({
-                visit: parseInt(visitId),
+                visit: visitId,
                 rating,
                 comment,
                 is_public: true

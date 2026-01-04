@@ -47,11 +47,11 @@ export default function CustomerProfile() {
 
   useEffect(() => {
     if (id) {
-      loadCustomerData(parseInt(id));
+      loadCustomerData(id);
     }
   }, [id]);
 
-  const loadCustomerData = async (customerId: number) => {
+  const loadCustomerData = async (customerId: string) => {
     try {
       const data = await fetchCustomerPortalDetails(customerId);
       setCustomer(data.customer);

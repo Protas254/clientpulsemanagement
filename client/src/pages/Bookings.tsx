@@ -113,9 +113,9 @@ export default function Bookings() {
 
         try {
             await createBooking({
-                customer: parseInt(selectedCustomer),
-                service: parseInt(selectedService),
-                staff_member: selectedStaff ? parseInt(selectedStaff) : null,
+                customer: selectedCustomer,
+                service: selectedService,
+                staff_member: selectedStaff || null,
                 booking_date: dateTime.toISOString(),
                 status: 'pending',
                 notes,
@@ -138,7 +138,7 @@ export default function Bookings() {
         }
     };
 
-    const handleStatusUpdate = async (id: number, status: 'confirmed' | 'cancelled' | 'completed') => {
+    const handleStatusUpdate = async (id: string, status: 'confirmed' | 'cancelled' | 'completed') => {
         try {
             await updateBooking(id, { status });
             toast({
@@ -337,7 +337,7 @@ export default function Bookings() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {customers.map((c) => (
-                                        <SelectItem key={c.id} value={c.id.toString()}>
+                                        <SelectItem key={c.id} value={c.id}>
                                             {c.name}
                                         </SelectItem>
                                     ))}
@@ -353,7 +353,7 @@ export default function Bookings() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {services.filter(s => s.is_active).map((s) => (
-                                        <SelectItem key={s.id} value={s.id.toString()}>
+                                        <SelectItem key={s.id} value={s.id}>
                                             {s.name} ({s.duration} min)
                                         </SelectItem>
                                     ))}
@@ -369,7 +369,7 @@ export default function Bookings() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     {staff.filter(s => s.is_active).map((s) => (
-                                        <SelectItem key={s.id} value={s.id.toString()}>
+                                        <SelectItem key={s.id} value={s.id}>
                                             {s.name}
                                         </SelectItem>
                                     ))}

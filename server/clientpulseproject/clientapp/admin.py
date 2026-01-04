@@ -537,11 +537,19 @@ class ReportsAdmin(admin.ModelAdmin):
 
 @admin.register(Review)
 class ReviewAdmin(TenantAdminMixin, admin.ModelAdmin):
-    list_display = ['customer', 'tenant', 'rating', 'is_public', 'created_at']
-    list_filter = ['tenant', 'rating', 'is_public', 'created_at']
-    search_fields = ['customer__name', 'comment', 'tenant__name']
+    list_display = ['get_reviewer_name', 'reviewer_type', 'tenant', 'rating', 'is_public', 'created_at']
+    list_filter = ['reviewer_type', 'tenant', 'rating', 'is_public', 'created_at']
+    search_fields = ['customer__name', 'comment', 'tenant__name', 'user__username', 'user__first_name', 'user__last_name']
     readonly_fields = ['created_at']
     list_editable = ['is_public']
+
+    def get_reviewer_name(self, obj):
+        if obj.customer:
+            return obj.customer.name
+        if obj.user:
+            return obj.user.get_full_name() or obj.user.username
+        return "Anonymous"
+    get_reviewer_name.short_description = 'Reviewer'
 
 @admin.register(Settings)
 class SettingsAdmin(admin.ModelAdmin):

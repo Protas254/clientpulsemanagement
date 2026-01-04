@@ -30,9 +30,9 @@ export default function Visits() {
     const [showNewVisit, setShowNewVisit] = useState(false);
 
     // Form state
-    const [selectedCustomer, setSelectedCustomer] = useState<number | null>(null);
-    const [selectedServices, setSelectedServices] = useState<number[]>([]);
-    const [selectedStaff, setSelectedStaff] = useState<number | null>(null);
+    const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
+    const [selectedServices, setSelectedServices] = useState<string[]>([]);
+    const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
     const [paymentStatus, setPaymentStatus] = useState<string>('paid');
     const [notes, setNotes] = useState('');
 
@@ -115,7 +115,7 @@ export default function Visits() {
         }
     };
 
-    const toggleService = (serviceId: number) => {
+    const toggleService = (serviceId: string) => {
         if (selectedServices.includes(serviceId)) {
             setSelectedServices(selectedServices.filter(id => id !== serviceId));
         } else {
@@ -211,13 +211,13 @@ export default function Visits() {
                         {/* Step 1: Select Customer */}
                         <div>
                             <Label className="text-lg font-semibold mb-2">1. Select Customer</Label>
-                            <Select value={selectedCustomer?.toString()} onValueChange={(val) => setSelectedCustomer(parseInt(val))}>
+                            <Select value={selectedCustomer || undefined} onValueChange={(val) => setSelectedCustomer(val)}>
                                 <SelectTrigger className="h-12">
                                     <SelectValue placeholder="Choose customer..." />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {customers.map((customer) => (
-                                        <SelectItem key={customer.id} value={customer.id.toString()}>
+                                        <SelectItem key={customer.id} value={customer.id}>
                                             {customer.name} - {customer.phone}
                                         </SelectItem>
                                     ))}
@@ -248,13 +248,13 @@ export default function Visits() {
                         {/* Step 3: Assign Staff */}
                         <div>
                             <Label className="text-lg font-semibold mb-2">3. AssignStaff (Optional)</Label>
-                            <Select value={selectedStaff?.toString()} onValueChange={(val) => setSelectedStaff(parseInt(val))}>
+                            <Select value={selectedStaff || undefined} onValueChange={(val) => setSelectedStaff(val)}>
                                 <SelectTrigger className="h-12">
                                     <SelectValue placeholder="Choose staff member..." />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {staff.filter(s => s.is_active).map((staffMember) => (
-                                        <SelectItem key={staffMember.id} value={staffMember.id.toString()}>
+                                        <SelectItem key={staffMember.id} value={staffMember.id}>
                                             {staffMember.name}
                                         </SelectItem>
                                     ))}

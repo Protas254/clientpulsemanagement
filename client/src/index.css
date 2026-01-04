@@ -189,6 +189,28 @@
   .pause-marquee:hover .animate-marquee {
     animation-play-state: paused;
   }
+
+  .tenant-brand-bg {
+    background-color: var(--tenant-primary, #D97706);
+    color: var(--tenant-primary-foreground, #ffffff);
+  }
+
+  .tenant-brand-text {
+    color: var(--tenant-primary, #D97706);
+  }
+
+  .tenant-brand-border {
+    border-color: var(--tenant-primary, #D97706);
+  }
+
+  .tenant-brand-border-soft {
+    border-color: color-mix(in srgb, var(--tenant-primary, #D97706) 30%, transparent);
+  }
+
+  .tenant-brand-bg-soft {
+    background-color: color-mix(in srgb, var(--tenant-primary, #D97706) 15%, transparent);
+    color: var(--tenant-primary, #D97706);
+  }
 }
 
 /* Custom scrollbar */

@@ -9,8 +9,8 @@ import { cn } from '@/lib/utils';
 interface RewardCardProps {
   reward: Reward;
   onEdit: (reward: Reward) => void;
-  onDelete: (id: number) => void;
-  onToggleStatus: (id: number) => void;
+  onDelete: (id: string) => void;
+  onToggleStatus: (id: string) => void;
 }
 
 export function RewardCard({ reward, onEdit, onDelete, onToggleStatus }: RewardCardProps) {

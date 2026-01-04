@@ -1,8 +1,8 @@
 from rest_framework import serializers
-from django.contrib.auth.models import User
-from rest_framework import serializers
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from .models import Customer, Sale, Reward, Service, Visit, StaffMember, Booking, CustomerReward, ContactMessage, Notification, UserProfile, Tenant, SubscriptionPlan, TenantSubscription, Review
+
+User = get_user_model()
 
 class ReviewSerializer(serializers.ModelSerializer):
     customer_name = serializers.ReadOnlyField(source='customer.name')
@@ -181,7 +181,7 @@ class CustomerSignupSerializer(serializers.Serializer):
     email = serializers.EmailField(required=False, allow_blank=True)
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
-    tenant_id = serializers.IntegerField()
+    tenant_id = serializers.UUIDField()
     
     def validate(self, data):
         if data['password'] != data['confirm_password']:
