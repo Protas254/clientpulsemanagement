@@ -38,7 +38,7 @@ const ReviewMarquee = ({ reviews }: { reviews: Review[] }) => {
                                 {[1, 2, 3, 4, 5].map((star) => (
                                     <Star
                                         key={star}
-                                        className={`w-4 h-4 ${star <= review.rating ? 'fill-accent text-accent' : 'text-gray-400'}`}
+                                        className={`w-20 h-4 ${star <= review.rating ? 'fill-accent text-accent' : 'text-gray-400'}`}
                                     />
                                 ))}
                             </div>
