@@ -30,6 +30,8 @@ import TenantManagement from "./pages/TenantManagement";
 import SubscriptionPlans from "./pages/SubscriptionPlans";
 import ContactMessages from "./pages/ContactMessages";
 import ReviewPage from "./pages/ReviewPage";
+import Reviews from "./pages/Reviews";
+import PlatformReview from "./pages/PlatformReview";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -74,6 +76,8 @@ const App = () => (
             <Route path="/rewards/manage" element={<RewardsManagement />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/contact-messages" element={<ContactMessages />} />
+            <Route path="/reviews" element={<Reviews />} />
+            <Route path="/platform-review" element={<PlatformReview />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/users" element={<Users />} />
           </Route>

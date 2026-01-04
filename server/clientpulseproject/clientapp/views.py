@@ -267,18 +267,37 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         visit_id = self.request.data.get('visit')
+        reviewer_type = self.request.data.get('reviewer_type', 'customer')
+        
+        # If authenticated and not a customer profile, it's likely a business owner
+        if self.request.user.is_authenticated and not hasattr(self.request.user, 'customer_profile'):
+            reviewer_type = 'business_owner'
+
         if visit_id:
             try:
                 visit = Visit.objects.get(id=visit_id)
                 serializer.save(
                     tenant=visit.tenant,
                     customer=visit.customer,
-                    visit=visit
+                    visit=visit,
+                    reviewer_type=reviewer_type,
+                    user=self.request.user if reviewer_type == 'business_owner' else None
                 )
             except Visit.DoesNotExist:
-                serializer.save()
+                serializer.save(
+                    reviewer_type=reviewer_type,
+                    user=self.request.user if reviewer_type == 'business_owner' else None
+                )
         else:
-            serializer.save()
+            tenant = None
+            if self.request.user.is_authenticated and hasattr(self.request.user, 'profile'):
+                tenant = self.request.user.profile.tenant
+            
+            serializer.save(
+                tenant=tenant,
+                reviewer_type=reviewer_type,
+                user=self.request.user if reviewer_type == 'business_owner' else None
+            )
 
 
 # Visit ViewSet

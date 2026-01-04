@@ -7,6 +7,7 @@ from .models import Customer, Sale, Reward, Service, Visit, StaffMember, Booking
 class ReviewSerializer(serializers.ModelSerializer):
     customer_name = serializers.ReadOnlyField(source='customer.name')
     visit_date = serializers.ReadOnlyField(source='visit.visit_date')
+    reviewer_name = serializers.SerializerMethodField()
     
     class Meta:
         model = Review
@@ -15,6 +16,13 @@ class ReviewSerializer(serializers.ModelSerializer):
             'customer': {'required': False},
             'tenant': {'required': False}
         }
+
+    def get_reviewer_name(self, obj):
+        if obj.customer:
+            return obj.customer.name
+        if obj.user:
+            return obj.user.get_full_name() or obj.user.username
+        return "Anonymous"
 
 class TenantSerializer(serializers.ModelSerializer):
     owner_name = serializers.SerializerMethodField()

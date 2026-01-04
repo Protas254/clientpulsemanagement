@@ -406,16 +406,24 @@ class ContactMessage(models.Model):
 
 
 class Review(models.Model):
+    REVIEWER_TYPES = [
+        ('customer', 'Customer'),
+        ('business_owner', 'Business Owner'),
+    ]
+    
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='reviews')
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='reviews', null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='business_reviews')
     visit = models.OneToOneField(Visit, on_delete=models.CASCADE, related_name='review', null=True, blank=True)
     rating = models.IntegerField(default=5) # 1-5 stars
     comment = models.TextField(blank=True)
+    reviewer_type = models.CharField(max_length=20, choices=REVIEWER_TYPES, default='customer')
     is_public = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.customer.name} - {self.rating} Stars"
+        name = self.customer.name if self.customer else (self.user.get_full_name() or self.user.username if self.user else "Anonymous")
+        return f"{name} ({self.reviewer_type}) - {self.rating} Stars"
 
 
 class Notification(models.Model):

@@ -25,6 +25,8 @@ export interface Review {
     tenant: number;
     customer: number;
     customer_name: string;
+    reviewer_name: string;
+    reviewer_type: 'customer' | 'business_owner';
     visit: number;
     visit_date: string;
     rating: number;

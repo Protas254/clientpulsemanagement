@@ -4,7 +4,11 @@ import { StatCard } from '@/components/dashboard/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { fetchDailyStats, fetchDashboardStats, DailyStats, DashboardStats } from '@/services/api';
 import { Button } from '@/components/ui/button';
-import { Users, TrendingUp, Scissors, Sparkles, Calendar } from 'lucide-react';
+import { Users, TrendingUp, Scissors, Sparkles, Calendar, Star, X } from 'lucide-react';
+import { createReview } from '@/services/api';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
 import { OnboardingWizard } from '@/components/dashboard/OnboardingWizard';
 import { fetchUserProfile } from '@/services/api';
@@ -16,6 +20,10 @@ export default function Dashboard() {
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   useEffect(() => {
     loadStats();
@@ -52,6 +60,33 @@ export default function Dashboard() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    setSubmittingReview(true);
+    try {
+      await createReview({
+        rating: reviewRating,
+        comment: reviewComment,
+        reviewer_type: 'business_owner',
+        is_public: true
+      });
+      toast({
+        title: 'Thank you!',
+        description: 'Your feedback has been shared on the landing page.',
+      });
+      setShowReviewModal(false);
+      setReviewComment('');
+      setReviewRating(5);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to submit review',
+        variant: 'destructive',
+      });
+    } finally {
+      setSubmittingReview(false);
     }
   };
 
@@ -105,20 +140,63 @@ export default function Dashboard() {
           <span className="font-semibold">Manage Services</span>
         </Button>
         <Button
-          onClick={() => window.location.href = '/reports'}
+          onClick={() => setShowReviewModal(true)}
           variant="outline"
-          className="h-16 border-orange-200 text-orange-700 hover:bg-orange-50 flex items-center justify-center gap-3 rounded-xl shadow-sm transition-all"
+          className="h-16 border-accent text-accent-foreground hover:bg-accent/10 flex items-center justify-center gap-3 rounded-xl shadow-sm transition-all"
         >
-          <TrendingUp className="w-5 h-5" />
-          <span className="font-semibold">View Reports</span>
+          <Star className="w-5 h-5 text-accent" />
+          <span className="font-semibold">Share Experience</span>
         </Button>
       </div>
+
+      <Dialog open={showReviewModal} onOpenChange={setShowReviewModal}>
+        <DialogContent className="sm:max-w-[500px] rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-display font-bold text-amber-900">Share Your Experience</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="text-center">
+              <Label className="text-lg font-medium mb-4 block">How are you enjoying ClientPulse?</Label>
+              <div className="flex justify-center gap-2">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    onClick={() => setReviewRating(star)}
+                    className="transition-transform hover:scale-110 focus:outline-none"
+                  >
+                    <Star
+                      className={`w-10 h-10 ${star <= reviewRating ? 'fill-amber-500 text-amber-500' : 'text-amber-200'}`}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="review-comment">Your Feedback</Label>
+              <Textarea
+                id="review-comment"
+                placeholder="Tell us what you think about the system..."
+                className="min-h-[120px] rounded-xl border-amber-100 focus:ring-amber-500"
+                value={reviewComment}
+                onChange={(e) => setReviewComment(e.target.value)}
+              />
+            </div>
+            <Button
+              onClick={handleSubmitReview}
+              disabled={submittingReview || !reviewComment}
+              className="w-full h-12 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold shadow-lg transition-all"
+            >
+              {submittingReview ? 'Submitting...' : 'Post Review'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Retention & Churn Section */}
       <div className="mb-8">
         <Card className={`border-2 shadow-lg transition-all ${dashboardStats && dashboardStats.churned_customers > 0
-            ? "border-red-200 bg-gradient-to-r from-red-50 to-orange-50 animate-pulse-subtle"
-            : "border-green-100 bg-gradient-to-r from-green-50 to-emerald-50"
+          ? "border-red-200 bg-gradient-to-r from-red-50 to-orange-50 animate-pulse-subtle"
+          : "border-green-100 bg-gradient-to-r from-green-50 to-emerald-50"
           }`}>
           <CardContent className="p-6">
             <div className="flex items-center gap-4">

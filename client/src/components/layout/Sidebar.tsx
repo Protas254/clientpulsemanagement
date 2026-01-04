@@ -12,6 +12,7 @@ import {
   Calendar,
   UserCog,
   Mail,
+  Star,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +26,7 @@ const navItems = [
   { title: 'Manage Rewards', url: '/rewards/manage', icon: Award },
   { title: 'Reports', url: '/reports', icon: BarChart3 },
   { title: 'Contact Messages', url: '/contact-messages', icon: Mail },
+  { title: 'Review Platform', url: '/platform-review', icon: Star },
   { title: 'Settings', url: '/settings', icon: Settings },
 ];
 
