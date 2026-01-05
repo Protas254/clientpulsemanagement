@@ -12,6 +12,13 @@ class User(AbstractUser):
     class Meta:
         db_table = 'auth_user' # Keep the same table name if possible, or let Django handle it
 
+class AuthUser(User):
+    class Meta:
+        proxy = True
+        app_label = 'auth'
+        verbose_name = 'User'
+        verbose_name_plural = 'Users'
+
 class Tenant(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=200)

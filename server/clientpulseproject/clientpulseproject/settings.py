@@ -74,6 +74,7 @@ JAZZMIN_SETTINGS = {
     "icons": {
         "auth": "fas fa-users-cog",
         "auth.user": "fas fa-user",
+        "auth.AuthUser": "fas fa-user",
         "auth.Group": "fas fa-users",
         
         "clientapp.Tenant": "fas fa-building",

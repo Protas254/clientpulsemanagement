@@ -7,8 +7,10 @@ from .models import (
     Tenant, UserProfile, Service, StaffMember, Customer, Visit, Sale, Reward, 
     Booking, CustomerReward, ContactMessage, Notification, SubscriptionPlan,
     TenantSubscription, PaymentTransaction, create_notification,
-    RewardsDashboard, Reports, Settings, MyNotification, CustomersDashboard, Review
+    RewardsDashboard, Reports, Settings, MyNotification, CustomersDashboard, Review,
+    User, AuthUser
 )
+from django.contrib.auth.admin import UserAdmin
 
 class ServiceInline(admin.TabularInline):
     model = Service
@@ -206,6 +208,12 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_display = ['user', 'role', 'tenant']
     search_fields = ['user__username', 'user__email']
     list_filter = ['role', 'tenant']
+
+@admin.register(AuthUser)
+class CustomUserAdmin(UserAdmin):
+    list_display = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'is_superuser')
+    search_fields = ('username', 'email', 'first_name', 'last_name')
+    ordering = ('username',)
 
 
 
