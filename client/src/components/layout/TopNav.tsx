@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { fetchNotifications, markNotificationAsRead, markAllNotificationsAsRead, Notification } from '@/services/api';
+import { fetchNotifications, markNotificationAsRead, markAllNotificationsAsRead, Notification, updateCustomerProfile } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import {
   DropdownMenu,
@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   Dialog,
@@ -33,6 +34,7 @@ import { toast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { NavLink } from '@/components/NavLink';
+import { CustomerProfileCard } from '@/components/customers/CustomerProfileCard';
 
 const navItems = [
   { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
@@ -46,6 +48,7 @@ const navItems = [
   { title: 'Contact Messages', url: '/contact-messages', icon: Mail },
   { title: 'Review Platform', url: '/platform-review', icon: Star },
   { title: 'Settings', url: '/settings', icon: SettingsIcon },
+  { title: 'Customer Portal', url: '/customer-portal', icon: User },
 ];
 
 interface TopNavProps {
@@ -61,16 +64,36 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const { user, customerData, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
-  const [editFirstName, setEditFirstName] = useState(user?.first_name || '');
-  const [editLastName, setEditLastName] = useState(user?.last_name || '');
-  const [editEmail, setEditEmail] = useState(user?.email || '');
+
+  const [editFirstName, setEditFirstName] = useState('');
+  const [editLastName, setEditLastName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
   const [editPhoto, setEditPhoto] = useState<File | null>(null);
+
+  // Initialize edit form state
+  useEffect(() => {
+    if (isEditModalOpen) {
+      if (customerData?.customer) {
+        const names = customerData.customer.name.split(' ');
+        setEditFirstName(names[0] || '');
+        setEditLastName(names.slice(1).join(' ') || '');
+        setEditEmail(customerData.customer.email || '');
+        setEditPhone(customerData.customer.phone || '');
+      } else if (user) {
+        setEditFirstName(user.first_name || '');
+        setEditLastName(user.last_name || '');
+        setEditEmail(user.email || '');
+      }
+    }
+  }, [isEditModalOpen, user, customerData]);
 
   // Update local state when URL changes
   useEffect(() => {
@@ -133,17 +156,42 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
 
     try {
       const formData = new FormData();
-      formData.append('first_name', editFirstName);
-      formData.append('last_name', editLastName);
-      formData.append('email', editEmail);
-      if (editPhoto) {
-        formData.append('photo', editPhoto);
+
+      if (customerData?.customer) {
+        // Customer Update
+        formData.append('name', `${editFirstName} ${editLastName}`.trim());
+        formData.append('email', editEmail);
+        formData.append('phone', editPhone);
+        if (editPhoto) {
+          formData.append('photo', editPhoto);
+        }
+
+        const updatedCustomer = await updateCustomerProfile(customerData.customer.id, formData);
+
+        // Update store for customer
+        const updatedCustomerData = {
+          ...customerData,
+          customer: {
+            ...customerData.customer,
+            ...updatedCustomer
+          }
+        };
+        useAuthStore.getState().setCustomerData(updatedCustomerData);
+
+      } else {
+        // Admin Update
+        formData.append('first_name', editFirstName);
+        formData.append('last_name', editLastName);
+        formData.append('email', editEmail);
+        if (editPhoto) {
+          formData.append('photo', editPhoto);
+        }
+
+        const updatedUser = await updateAdminProfile(formData);
+
+        // Update store for admin
+        useAuthStore.getState().setAuth(useAuthStore.getState().token!, { ...user!, ...updatedUser });
       }
-
-      const updatedUser = await updateAdminProfile(formData);
-
-      // Update store
-      useAuthStore.getState().setAuth(useAuthStore.getState().token!, { ...user!, ...updatedUser });
 
       toast({
         title: "Profile Updated",
@@ -155,6 +203,7 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
       // Refresh page to show changes
       window.location.reload();
     } catch (error) {
+      console.error(error);
       toast({
         title: "Update Failed",
         description: "Could not update profile. Please try again.",
@@ -229,11 +278,11 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
         </Sheet>
 
         {logo && (
-          <div className="w-10 h-10 flex items-center justify-center overflow-hidden rounded bg-white p-1 border">
+          <div className="w-10 h-10 flex items-center justify-center overflow-hidden rounded-full bg-white p-1 border">
             <img
               src={logo.startsWith('http') ? logo : `http://localhost:8000${logo}`}
               alt="Logo"
-              className="w-full h-full object-contain"
+              className="w-full h-full object-contain rounded-full"
             />
           </div>
         )}
@@ -321,7 +370,13 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full overflow-hidden border border-border">
-              {user?.photo ? (
+              {customerData?.customer?.photo ? (
+                <img
+                  src={customerData.customer.photo.startsWith('http') ? customerData.customer.photo : `http://localhost:8000${customerData.customer.photo}`}
+                  alt={customerData.customer.name}
+                  className="h-full w-full object-cover"
+                />
+              ) : user?.photo ? (
                 <img
                   src={user.photo}
                   alt={user.full_name || 'User'}
@@ -337,14 +392,29 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>
               <div className="flex flex-col">
-                <span className="font-semibold">{user?.full_name || user?.username || 'My Account'}</span>
-                <span className="text-xs text-muted-foreground font-normal">Administrator</span>
+                <span className="font-semibold">
+                  {customerData?.customer?.name || user?.full_name || user?.username || 'My Account'}
+                </span>
+                <span className="text-xs text-muted-foreground font-normal">
+                  {customerData ? 'Customer' : 'Administrator'}
+                </span>
               </div>
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+
+            {customerData && (
+              <DropdownMenuItem onClick={() => setIsProfileModalOpen(true)}>
+                <User className="w-4 h-4 mr-2" />
+                My Profile
+              </DropdownMenuItem>
+            )}
+
             <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>
-              <User className="w-4 h-4 mr-2" />
+              <SettingsIcon className="w-4 h-4 mr-2" />
               Edit Profile
             </DropdownMenuItem>
+
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => {
               logout();
               window.location.href = '/login';
@@ -356,11 +426,27 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
         </DropdownMenu>
       </div>
 
+      {/* Profile View Dialog (Customer Only) */}
+      <Dialog open={isProfileModalOpen} onOpenChange={setIsProfileModalOpen}>
+        <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden bg-transparent border-none shadow-none">
+          {customerData?.customer && (
+            <CustomerProfileCard
+              customerData={customerData.customer}
+              onEdit={() => {
+                setIsProfileModalOpen(false);
+                setIsEditModalOpen(true);
+              }}
+              className="w-full"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Edit Profile Dialog */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Edit Admin Profile</DialogTitle>
+            <DialogTitle>Edit {customerData ? 'Customer' : 'Admin'} Profile</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleUpdateProfile} className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
@@ -393,6 +479,20 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
                 placeholder="Email Address"
               />
             </div>
+
+            {customerData && (
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  placeholder="Phone Number"
+                />
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="photo">Profile Photo</Label>
               <Input
