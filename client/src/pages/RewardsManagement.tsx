@@ -16,16 +16,21 @@ export default function RewardsManagement() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
 
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     loadRewards();
   }, []);
 
   const loadRewards = async () => {
     try {
+      setLoading(true);
       const data = await fetchRewards();
       setRewards(data);
     } catch (error) {
       toast.error('Failed to load rewards');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -139,6 +144,16 @@ export default function RewardsManagement() {
     c.phone.includes(searchTerm)
   );
 
+  if (loading) {
+    return (
+      <AppLayout title="Rewards Management" subtitle="Create and manage loyalty rewards">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout
       title="Rewards Management"
@@ -154,17 +169,32 @@ export default function RewardsManagement() {
         </div>
       }
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {rewards.map((reward) => (
-          <RewardCard
-            key={reward.id}
-            reward={reward}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onToggleStatus={handleToggleStatus}
-          />
-        ))}
-      </div>
+      {rewards.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-[60vh] text-center p-4 md:p-8 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50/50">
+          <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mb-4">
+            <Gift className="w-8 h-8 text-orange-600" />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">No Rewards Yet</h3>
+          <p className="text-gray-500 max-w-md mb-6">
+            Create your first loyalty reward to start engaging your customers. You can offer discounts, free services, or products.
+          </p>
+          <Button variant="chocolate" onClick={() => setIsFormOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" /> Create First Reward
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {rewards.map((reward) => (
+            <RewardCard
+              key={reward.id}
+              reward={reward}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onToggleStatus={handleToggleStatus}
+            />
+          ))}
+        </div>
+      )}
 
       <RewardForm
         isOpen={isFormOpen}

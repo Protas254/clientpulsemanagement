@@ -32,7 +32,7 @@ const navItems = [
 
 export function Sidebar() {
   return (
-    <aside className="w-64 min-h-screen bg-sidebar text-sidebar-foreground flex flex-col">
+    <aside className="hidden lg:flex w-64 min-h-screen bg-sidebar text-sidebar-foreground flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-sidebar-border">
         <NavLink to="/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">

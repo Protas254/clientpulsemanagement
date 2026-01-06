@@ -14,8 +14,15 @@ import {
     Scissors,
     UserCog,
     Bell,
-    TrendingUp
+    TrendingUp,
+    MoreVertical
 } from 'lucide-react';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from 'sonner';
 
 interface Tenant {
@@ -169,8 +176,8 @@ const TenantManagement = () => {
                                 <ArrowLeft className="h-5 w-5" />
                             </Button>
                             <div>
-                                <h1 className="text-3xl font-bold text-gray-800">{tenant.name}</h1>
-                                <div className="flex items-center space-x-3 mt-2">
+                                <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">{tenant.name}</h1>
+                                <div className="flex items-center space-x-2 sm:space-x-3 mt-2 flex-wrap">
                                     <Badge
                                         variant={tenant.is_active ? "default" : "secondary"}
                                         className={tenant.is_active ? "bg-green-500" : "bg-gray-400"}
@@ -184,6 +191,42 @@ const TenantManagement = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Mobile Kebab Menu */}
+                        <div className="lg:hidden">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="hover:bg-amber-50">
+                                        <MoreVertical className="h-5 w-5" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56">
+                                    <DropdownMenuItem onClick={() => setActiveTab('overview')}>
+                                        <TrendingUp className="h-4 w-4 mr-2" />
+                                        Overview
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setActiveTab('bookings')}>
+                                        <Calendar className="h-4 w-4 mr-2" />
+                                        Bookings
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setActiveTab('customers')}>
+                                        <Users className="h-4 w-4 mr-2" />
+                                        Customers
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setActiveTab('services')}>
+                                        <Scissors className="h-4 w-4 mr-2" />
+                                        Services
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => setActiveTab('messages')}>
+                                        <MessageSquare className="h-4 w-4 mr-2" />
+                                        Contact Messages
+                                        {contactMessages.length > 0 && (
+                                            <Badge className="ml-2 bg-red-500 text-xs">{contactMessages.length}</Badge>
+                                        )}
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -191,7 +234,8 @@ const TenantManagement = () => {
             {/* Main Content */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-                    <TabsList className="bg-white border border-amber-200 shadow-sm">
+                    {/* Desktop Tabs - Hidden on Mobile */}
+                    <TabsList className="hidden lg:flex bg-white border border-amber-200 shadow-sm">
                         <TabsTrigger value="overview" className="data-[state=active]:bg-amber-100">
                             <TrendingUp className="h-4 w-4 mr-2" />
                             Overview
@@ -216,6 +260,49 @@ const TenantManagement = () => {
                             )}
                         </TabsTrigger>
                     </TabsList>
+
+                    {/* Mobile Active Tab Indicator */}
+                    <div className="lg:hidden mb-4">
+                        <Card className="bg-white border-amber-200 shadow-sm">
+                            <CardContent className="py-3 px-4">
+                                <div className="flex items-center justify-center">
+                                    {activeTab === 'overview' && (
+                                        <>
+                                            <TrendingUp className="h-4 w-4 mr-2 text-amber-600" />
+                                            <span className="font-semibold text-gray-800">Overview</span>
+                                        </>
+                                    )}
+                                    {activeTab === 'bookings' && (
+                                        <>
+                                            <Calendar className="h-4 w-4 mr-2 text-blue-600" />
+                                            <span className="font-semibold text-gray-800">Bookings</span>
+                                        </>
+                                    )}
+                                    {activeTab === 'customers' && (
+                                        <>
+                                            <Users className="h-4 w-4 mr-2 text-amber-600" />
+                                            <span className="font-semibold text-gray-800">Customers</span>
+                                        </>
+                                    )}
+                                    {activeTab === 'services' && (
+                                        <>
+                                            <Scissors className="h-4 w-4 mr-2 text-green-600" />
+                                            <span className="font-semibold text-gray-800">Services</span>
+                                        </>
+                                    )}
+                                    {activeTab === 'messages' && (
+                                        <>
+                                            <MessageSquare className="h-4 w-4 mr-2 text-red-600" />
+                                            <span className="font-semibold text-gray-800">Contact Messages</span>
+                                            {contactMessages.length > 0 && (
+                                                <Badge className="ml-2 bg-red-500 text-xs">{contactMessages.length}</Badge>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
 
                     {/* Overview Tab */}
                     <TabsContent value="overview" className="space-y-6">

@@ -1,8 +1,8 @@
 import { ReactNode } from 'react';
-import { Bell, Search, User, Check, Clock, LogOut } from 'lucide-react';
+import { Bell, Search, User, Check, Clock, LogOut, MoreVertical, Menu, X, LayoutDashboard, Users as UsersIcon, TrendingUp, BarChart3, Settings as SettingsIcon, Scissors, Gift, Award, Calendar, UserCog, Mail, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { fetchNotifications, markNotificationAsRead, markAllNotificationsAsRead, Notification } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -20,11 +20,33 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { updateAdminProfile } from '@/services/api';
 import { toast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { NavLink } from '@/components/NavLink';
+
+const navItems = [
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Bookings', url: '/bookings', icon: Calendar },
+  { title: 'Staff', url: '/staff', icon: UserCog },
+  { title: 'Customers', url: '/customers', icon: UsersIcon },
+  { title: 'Services', url: '/services', icon: TrendingUp },
+  { title: 'Rewards', url: '/rewards', icon: Gift },
+  { title: 'Manage Rewards', url: '/rewards/manage', icon: Award },
+  { title: 'Reports', url: '/reports', icon: BarChart3 },
+  { title: 'Contact Messages', url: '/contact-messages', icon: Mail },
+  { title: 'Review Platform', url: '/platform-review', icon: Star },
+  { title: 'Settings', url: '/settings', icon: SettingsIcon },
+];
 
 interface TopNavProps {
   title: string;
@@ -40,8 +62,11 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const { user, customerData, logout } = useAuthStore();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [editFirstName, setEditFirstName] = useState(user?.first_name || '');
   const [editLastName, setEditLastName] = useState(user?.last_name || '');
   const [editEmail, setEditEmail] = useState(user?.email || '');
@@ -141,8 +166,68 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
   };
 
   return (
-    <header className="h-16 bg-card border-b border-border px-6 flex items-center justify-between">
-      <div className="flex items-center gap-4">
+    <header className="h-16 bg-card border-b border-border px-4 sm:px-6 flex items-center justify-between">
+      <div className="flex items-center gap-2 sm:gap-4">
+        {/* Mobile Menu Button */}
+        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <Button variant="ghost" size="icon" className="lg:hidden">
+              <MoreVertical className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-64 p-0">
+            <SheetHeader className="p-6 border-b border-sidebar-border bg-sidebar">
+              <SheetTitle className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-sidebar-primary flex items-center justify-center">
+                  <Scissors className="w-5 h-5 text-sidebar-primary-foreground" />
+                </div>
+                <div className="text-left">
+                  <h1 className="font-display text-xl font-semibold text-sidebar-foreground">ClientPulse</h1>
+                  <p className="text-xs text-sidebar-foreground/60">Salon & Spa Manager</p>
+                </div>
+              </SheetTitle>
+            </SheetHeader>
+            <nav className="flex-1 p-4 bg-sidebar">
+              <ul className="space-y-1">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.url;
+                  return (
+                    <li key={item.title}>
+                      <button
+                        onClick={() => {
+                          navigate(item.url);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className={cn(
+                          "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 w-full text-left",
+                          isActive
+                            ? "bg-sidebar-accent text-sidebar-primary"
+                            : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                        )}
+                      >
+                        <Icon className="w-5 h-5" />
+                        {item.title}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </nav>
+            <div className="p-4 border-t border-sidebar-border bg-sidebar">
+              <button
+                onClick={() => {
+                  logout();
+                  window.location.href = '/login';
+                }}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent w-full transition-all duration-200">
+                <LogOut className="w-5 h-5" />
+                Logout
+              </button>
+            </div>
+          </SheetContent>
+        </Sheet>
+
         {logo && (
           <div className="w-10 h-10 flex items-center justify-center overflow-hidden rounded bg-white p-1 border">
             <img
@@ -153,10 +238,10 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
           </div>
         )}
         <div>
-          <h1 className="font-display text-xl font-semibold text-foreground">{title}</h1>
-          {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
+          <h1 className="font-display text-base sm:text-xl font-semibold text-foreground">{title}</h1>
+          {subtitle && <p className="text-sm text-muted-foreground hidden sm:block">{subtitle}</p>}
         </div>
-        {action && <div className="ml-4">{action}</div>}
+        {action && <div className="ml-4 hidden sm:block">{action}</div>}
       </div>
 
       <div className="flex items-center gap-4">
