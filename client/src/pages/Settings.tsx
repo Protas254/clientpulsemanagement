@@ -11,7 +11,12 @@ import { fetchUserProfile } from '@/services/api';
 
 export default function Settings() {
   const [user, setUser] = useState<any>(null);
-  const [tenant, setTenant] = useState<any>(null);
+  const [tenant, setTenant] = useState<any>({
+    primary_color: '#D97706',
+    auto_campaign_we_miss_you: false,
+    we_miss_you_discount_pct: 10,
+    we_miss_you_days: 30
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -26,7 +31,12 @@ export default function Settings() {
         import('@/services/api').then(m => m.fetchTenantSettings())
       ]);
       setUser(userData);
-      setTenant(tenantData);
+      // Merge with existing state to ensure defaults
+      setTenant(prev => ({
+        ...prev,
+        ...tenantData,
+        primary_color: tenantData.primary_color || prev.primary_color
+      }));
     } catch (error) {
       toast({
         title: "Error",
@@ -161,18 +171,18 @@ export default function Settings() {
                   id="primaryColor"
                   type="color"
                   className="w-20 h-10 p-1 cursor-pointer"
-                  value={tenant?.primary_color || '#D97706'}
+                  value={tenant.primary_color ?? '#D97706'}
                   onChange={(e) => setTenant({ ...tenant, primary_color: e.target.value })}
                 />
                 <Input
                   type="text"
-                  value={tenant?.primary_color || '#D97706'}
+                  value={tenant.primary_color ?? '#D97706'}
                   onChange={(e) => setTenant({ ...tenant, primary_color: e.target.value })}
                   className="w-32 font-mono"
                 />
                 <div
                   className="w-10 h-10 rounded-lg shadow-inner border"
-                  style={{ backgroundColor: tenant?.primary_color || '#D97706' }}
+                  style={{ backgroundColor: tenant.primary_color ?? '#D97706' }}
                 />
               </div>
               <p className="text-[10px] text-muted-foreground">This color will be used for buttons and accents in your Customer Portal</p>
@@ -193,26 +203,26 @@ export default function Settings() {
                 <p className="text-sm text-muted-foreground">Automatically send a discount to customers who haven't visited in a while</p>
               </div>
               <Switch
-                checked={tenant?.auto_campaign_we_miss_you}
+                checked={tenant.auto_campaign_we_miss_you ?? false}
                 onCheckedChange={(checked) => setTenant({ ...tenant, auto_campaign_we_miss_you: checked })}
               />
             </div>
-            {tenant?.auto_campaign_we_miss_you && (
+            {tenant.auto_campaign_we_miss_you && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pl-6 border-l-2 border-amber-100 animate-in slide-in-from-left-2">
                 <div className="space-y-2">
                   <Label>Send after (days of inactivity)</Label>
                   <Input
                     type="number"
-                    value={tenant?.we_miss_you_days}
-                    onChange={(e) => setTenant({ ...tenant, we_miss_you_days: parseInt(e.target.value) })}
+                    value={tenant.we_miss_you_days ?? 30}
+                    onChange={(e) => setTenant({ ...tenant, we_miss_you_days: parseInt(e.target.value) || 30 })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Discount Percentage (%)</Label>
                   <Input
                     type="number"
-                    value={tenant?.we_miss_you_discount_pct}
-                    onChange={(e) => setTenant({ ...tenant, we_miss_you_discount_pct: parseInt(e.target.value) })}
+                    value={tenant.we_miss_you_discount_pct ?? 10}
+                    onChange={(e) => setTenant({ ...tenant, we_miss_you_discount_pct: parseInt(e.target.value) || 10 })}
                   />
                 </div>
               </div>

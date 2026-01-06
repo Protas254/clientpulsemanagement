@@ -9,6 +9,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
     DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
@@ -780,6 +781,9 @@ export default function CustomerPortal() {
                     <DialogContent className="sm:max-w-[425px]">
                         <DialogHeader>
                             <DialogTitle>Book Appointment</DialogTitle>
+                            <DialogDescription>
+                                Select a date and time for your appointment
+                            </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="space-y-2">
@@ -822,6 +826,9 @@ export default function CustomerPortal() {
                     <DialogContent className="sm:max-w-[425px]">
                         <DialogHeader>
                             <DialogTitle>Edit Profile</DialogTitle>
+                            <DialogDescription>
+                                Update your personal information and profile photo
+                            </DialogDescription>
                         </DialogHeader>
                         <form onSubmit={handleUpdateProfile}>
                             <div className="grid gap-4 py-4">

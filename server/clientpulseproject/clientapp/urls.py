@@ -42,14 +42,14 @@ urlpatterns = [
     
     # Customers
     path('customers/', CustomerListCreate.as_view(), name='customer-list-create'),
-    path('customers/<int:pk>/', CustomerDetail.as_view(), name='customer-detail'),
-    path('customers/<int:pk>/portal-details/', CustomerPortalDetailsView.as_view(), name='customer-portal-details'),
-    path('customers/<int:pk>/update-profile/', CustomerProfileUpdateView.as_view(), name='customer-profile-update'),
-    path('customers/<int:customer_id>/service-history/', CustomerServiceHistoryView.as_view(), name='customer-service-history'),
+    path('customers/<uuid:pk>/', CustomerDetail.as_view(), name='customer-detail'),
+    path('customers/<uuid:pk>/portal-details/', CustomerPortalDetailsView.as_view(), name='customer-portal-details'),
+    path('customers/<uuid:pk>/update-profile/', CustomerProfileUpdateView.as_view(), name='customer-profile-update'),
+    path('customers/<uuid:customer_id>/service-history/', CustomerServiceHistoryView.as_view(), name='customer-service-history'),
     
     # Sales (backward compatibility)
     path('sales/', SaleListCreate.as_view(), name='sale-list-create'),
-    path('sales/<int:pk>/', SaleDetail.as_view(), name='sale-detail'),
+    path('sales/<uuid:pk>/', SaleDetail.as_view(), name='sale-detail'),
     
     # Dashboard & Analytics
     path('dashboard-stats/', DashboardStatsView.as_view(), name='dashboard-stats'),
@@ -59,7 +59,7 @@ urlpatterns = [
     
     # Rewards
     path('rewards/', RewardListCreate.as_view(), name='reward-list-create'),
-    path('rewards/<int:pk>/', RewardDetail.as_view(), name='reward-detail'),
+    path('rewards/<uuid:pk>/', RewardDetail.as_view(), name='reward-detail'),
     path('rewards/stats/', RewardsStatsView.as_view(), name='rewards-stats'),
     path('check-rewards/', CustomerRewardCheckView.as_view(), name='check-rewards'),
     

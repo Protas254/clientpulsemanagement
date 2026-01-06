@@ -1344,7 +1344,17 @@ class AdminProfileUpdateView(APIView):
 class TenantSettingsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     
+    def get(self, request):
+        """Fetch tenant settings for the authenticated user's tenant"""
+        if not hasattr(request.user, 'profile') or not request.user.profile.tenant:
+            return Response({'error': 'No tenant associated with user'}, status=status.HTTP_400_BAD_REQUEST)
+            
+        tenant = request.user.profile.tenant
+        serializer = TenantSerializer(tenant)
+        return Response(serializer.data)
+    
     def patch(self, request):
+        """Update tenant settings for the authenticated user's tenant"""
         if not hasattr(request.user, 'profile') or not request.user.profile.tenant:
             return Response({'error': 'No tenant associated with user'}, status=status.HTTP_400_BAD_REQUEST)
             
