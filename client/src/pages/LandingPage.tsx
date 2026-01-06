@@ -13,11 +13,14 @@ import {
     ArrowRight,
     Zap,
     ShieldCheck,
-    Mail
+    Mail,
+    MessageCircle,
+    ArrowUp
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { fetchReviews, Review } from '@/services/api';
 import { useState, useEffect } from 'react';
+import { useToast } from "@/hooks/use-toast";
 
 const ReviewMarquee = ({ reviews }: { reviews: Review[] }) => {
     if (reviews.length === 0) return null;
@@ -71,9 +74,31 @@ const ReviewMarquee = ({ reviews }: { reviews: Review[] }) => {
 };
 
 const LandingPage = () => {
+    const { toast } = useToast();
     const [customerReviews, setCustomerReviews] = useState<Review[]>([]);
     const [businessOwnerReviews, setBusinessOwnerReviews] = useState<Review[]>([]);
     const [loadingReviews, setLoadingReviews] = useState(true);
+    const [showBackToTop, setShowBackToTop] = useState(false);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (window.scrollY > 300) {
+                setShowBackToTop(true);
+            } else {
+                setShowBackToTop(false);
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    const scrollToTop = () => {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    };
 
     useEffect(() => {
         loadPublicReviews();
@@ -96,7 +121,7 @@ const LandingPage = () => {
     return (
         <div className="min-h-screen bg-background text-foreground font-sans">
             {/* Navigation */}
-            <nav className="fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
+            <nav className="static md:fixed top-0 w-full z-50 bg-background/80 backdrop-blur-md border-b border-border">
                 <div className="container mx-auto px-4 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <Link to="/" className="flex items-center gap-2">
@@ -183,6 +208,24 @@ const LandingPage = () => {
                             <p className="text-xs text-cream/60 font-medium uppercase tracking-wider">Revenue Growth</p>
                             <p className="text-2xl font-bold text-white">+32%</p>
                         </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* Social Proof Section */}
+            <section className="py-10 bg-white border-b border-border">
+                <div className="container mx-auto px-4">
+                    <p className="text-center text-sm font-medium text-muted-foreground mb-8 uppercase tracking-widest">Trusted by 20+ Leading Salons & Spas</p>
+                    <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+                        {/* Placeholder Logos - In production these would be real client logos */}
+                        {['Luxe Spa', 'Urban Cuts', 'Beauty Haven', 'Style Studio', 'Glow Bar'].map((brand, i) => (
+                            <div key={i} className="flex items-center gap-2 text-xl font-display font-bold text-chocolate-dark">
+                                <div className="w-8 h-8 rounded-full bg-chocolate-light/20 flex items-center justify-center">
+                                    <span className="text-xs">{brand[0]}</span>
+                                </div>
+                                {brand}
+                            </div>
+                        ))}
                     </div>
                 </div>
             </section>
@@ -465,10 +508,17 @@ const LandingPage = () => {
                                         try {
                                             const { sendContactMessage } = await import('@/services/api');
                                             await sendContactMessage(data);
-                                            alert('Message sent successfully! We will get back to you soon.');
+                                            toast({
+                                                title: "Message Sent",
+                                                description: "We will get back to you soon.",
+                                            });
                                             (e.target as HTMLFormElement).reset();
                                         } catch (error) {
-                                            alert('Failed to send message. Please try again.');
+                                            toast({
+                                                title: "Error",
+                                                description: "Failed to send message. Please try again.",
+                                                variant: "destructive"
+                                            });
                                         }
                                     }}
                                 >
@@ -554,6 +604,30 @@ const LandingPage = () => {
                     </div>
                 </div>
             </footer >
+
+            {/* WhatsApp Widget */}
+            <a
+                href="https://wa.me/254743849304"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="fixed bottom-6 right-6 z-50 bg-[#25D366] hover:bg-[#128C7E] text-white p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 flex items-center gap-2 group"
+                aria-label="Chat on WhatsApp"
+            >
+                <MessageCircle className="w-6 h-6" />
+                <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 whitespace-nowrap font-medium">
+                    Chat with us
+                </span>
+            </a>
+
+
+            {/* Back to Top Button */}
+            <button
+                onClick={scrollToTop}
+                className={`fixed bottom-24 right-6 z-40 bg-chocolate-dark/80 hover:bg-chocolate-dark text-white p-3 rounded-full shadow-lg transition-all duration-300 backdrop-blur-sm ${showBackToTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}
+                aria-label="Back to top"
+            >
+                <ArrowUp className="w-5 h-5" />
+            </button>
         </div >
     );
 };
