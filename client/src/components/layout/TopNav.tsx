@@ -42,9 +42,9 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
   const [isUpdating, setIsUpdating] = useState(false);
 
   const { user, customerData, logout } = useAuthStore();
-  const [editFirstName, setEditFirstName] = useState(user.first_name || '');
-  const [editLastName, setEditLastName] = useState(user.last_name || '');
-  const [editEmail, setEditEmail] = useState(user.email || '');
+  const [editFirstName, setEditFirstName] = useState(user?.first_name || '');
+  const [editLastName, setEditLastName] = useState(user?.last_name || '');
+  const [editEmail, setEditEmail] = useState(user?.email || '');
   const [editPhoto, setEditPhoto] = useState<File | null>(null);
 
   // Update local state when URL changes
@@ -236,10 +236,10 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full overflow-hidden border border-border">
-              {user.photo ? (
+              {user?.photo ? (
                 <img
                   src={user.photo}
-                  alt={user.full_name}
+                  alt={user.full_name || 'User'}
                   className="h-full w-full object-cover"
                 />
               ) : (
@@ -252,7 +252,7 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>
               <div className="flex flex-col">
-                <span className="font-semibold">{user.full_name || user.username || 'My Account'}</span>
+                <span className="font-semibold">{user?.full_name || user?.username || 'My Account'}</span>
                 <span className="text-xs text-muted-foreground font-normal">Administrator</span>
               </div>
             </DropdownMenuLabel>

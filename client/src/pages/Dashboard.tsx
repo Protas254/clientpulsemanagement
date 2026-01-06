@@ -14,8 +14,10 @@ import { OnboardingWizard } from '@/components/dashboard/OnboardingWizard';
 import { fetchUserProfile } from '@/services/api';
 import { CalendarView } from '@/components/dashboard/CalendarView';
 import { AlertCircle } from 'lucide-react';
+import { useAuthStore } from '@/store/useAuthStore';
 
 export default function Dashboard() {
+  const { user } = useAuthStore();
   const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -100,8 +102,7 @@ export default function Dashboard() {
     );
   }
 
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const adminName = user.full_name || user.username || 'Admin';
+  const adminName = user?.full_name || user?.username || 'Admin';
 
   return (
     <AppLayout
