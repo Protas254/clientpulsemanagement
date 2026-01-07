@@ -29,10 +29,11 @@ export const useAuthStore = create<AuthState>()(
             customerData: null,
             setAuth: (token, user) => {
                 // Store in Zustand state
-                set({ token, user });
+                set({ token, user, customerData: null });
                 // Also store in localStorage for backward compatibility
                 localStorage.setItem('token', token);
                 localStorage.setItem('user', JSON.stringify(user));
+                localStorage.removeItem('customerData');
             },
             setCustomerData: (customerData) => set({ customerData }),
             logout: () => {

@@ -83,7 +83,7 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
   // Initialize edit form state
   useEffect(() => {
     if (isEditModalOpen) {
-      if (customerData?.customer) {
+      if (user?.role === 'customer' && customerData?.customer) {
         const names = customerData.customer.name.split(' ');
         setEditFirstName(names[0] || '');
         setEditLastName(names.slice(1).join(' ') || '');
@@ -93,6 +93,7 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
         setEditFirstName(user.first_name || '');
         setEditLastName(user.last_name || '');
         setEditEmail(user.email || '');
+        setEditPhone(''); // Admin/Staff phone might not be in user object
       }
     }
   }, [isEditModalOpen, user, customerData]);
@@ -159,7 +160,7 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
     try {
       const formData = new FormData();
 
-      if (customerData?.customer) {
+      if (user?.role === 'customer' && customerData?.customer) {
         // Customer Update
         formData.append('name', `${editFirstName} ${editLastName}`.trim());
         formData.append('email', editEmail);
@@ -372,7 +373,7 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full overflow-hidden border border-border">
-              {customerData?.customer?.photo ? (
+              {user?.role === 'customer' && customerData?.customer?.photo ? (
                 <img
                   src={customerData.customer.photo.startsWith('http') ? customerData.customer.photo : `http://localhost:8000${customerData.customer.photo}`}
                   alt={customerData.customer.name}
@@ -395,25 +396,29 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
             <DropdownMenuLabel>
               <div className="flex flex-col">
                 <span className="font-semibold">
-                  {customerData?.customer?.name || user?.full_name || user?.username || 'My Account'}
+                  {user?.role === 'customer'
+                    ? (customerData?.customer?.name || user?.full_name || 'Customer')
+                    : (user?.full_name || user?.username || 'My Account')}
                 </span>
                 <span className="text-xs text-muted-foreground font-normal">
-                  {customerData ? 'Customer' : 'Administrator'}
+                  {user?.role === 'customer' ? 'Customer' : (user?.role === 'admin' ? 'Super Admin' : 'Business Admin')}
                 </span>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
 
-            {customerData && (
+            {user?.role === 'customer' && customerData && (
               <DropdownMenuItem onClick={() => setIsProfileModalOpen(true)}>
                 <User className="w-4 h-4 mr-2" />
-                My Profile
+                {customerData.customer.name.split(' ')[0]}'s Profile
               </DropdownMenuItem>
             )}
 
             <DropdownMenuItem onClick={() => setIsEditModalOpen(true)}>
               <SettingsIcon className="w-4 h-4 mr-2" />
-              Edit Profile
+              Edit {user?.role === 'customer'
+                ? (customerData?.customer?.name?.split(' ')[0] || 'Customer')
+                : (user?.first_name || 'Owner')}'s Profile
             </DropdownMenuItem>
 
             <DropdownMenuSeparator />
@@ -448,7 +453,11 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Edit {customerData ? 'Customer' : 'Admin'} Profile</DialogTitle>
+            <DialogTitle>
+              Edit {user?.role === 'customer'
+                ? (customerData?.customer?.name?.split(' ')[0] || 'Customer')
+                : (user?.first_name || 'Owner')}'s Profile
+            </DialogTitle>
           </DialogHeader>
           <form onSubmit={handleUpdateProfile} className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
