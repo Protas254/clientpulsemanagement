@@ -72,17 +72,33 @@ export default function CustomerProfile() {
     }
   };
 
-  if (loading) {
-    return (
-      <AppLayout title="Loading...">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </AppLayout>
-    );
-  }
+  //   if (loading) {
+  //     return (
+  //       <AppLayout title="Loading...">
+  //         <div className="flex items-center justify-center h-64">
+  //           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  //         </div>
+  //       </AppLayout>
+  //     );
+  //   }
 
   if (!customer) {
+    if (loading) {
+      return (
+        <AppLayout title="Customer Profile">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-pulse">
+            <div className="lg:col-span-1 border rounded-xl h-96 bg-white/50" />
+            <div className="lg:col-span-2 space-y-6">
+              <div className="h-12 border-b bg-white/50" />
+              <div className="grid grid-cols-3 gap-4">
+                {[1, 2, 3].map(i => <div key={i} className="h-32 bg-white/50 rounded-xl" />)}
+              </div>
+              <div className="h-64 bg-white/50 rounded-xl" />
+            </div>
+          </div>
+        </AppLayout>
+      );
+    }
     return (
       <AppLayout title="Customer Not Found">
         <div className="flex flex-col items-center justify-center h-64">

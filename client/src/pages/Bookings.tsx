@@ -211,15 +211,16 @@ export default function Bookings() {
         console.log("Selected event:", event);
     };
 
-    if (loading) {
-        return (
-            <AppLayout title="Bookings" subtitle="Loading...">
-                <div className="flex items-center justify-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
-                </div>
-            </AppLayout>
-        );
-    }
+    // Loading functionality removed as per request to prevent blocking UI
+    // if (loading) {
+    //     return (
+    //         <AppLayout title="Bookings" subtitle="Loading...">
+    //             <div className="flex items-center justify-center h-64">
+    //                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
+    //             </div>
+    //         </AppLayout>
+    //     );
+    // }
 
     return (
         <AppLayout

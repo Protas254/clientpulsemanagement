@@ -269,15 +269,41 @@ export default function CustomerPortal() {
         return booking ? booking.status : null;
     };
 
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="w-12 h-12 border-4 border-amber-600 border-t-transparent rounded-full animate-spin" />
-            </div>
-        );
-    }
+    //     if (isLoading) {
+    //         return (
+    //             <div className="min-h-screen flex items-center justify-center">
+    //                 <div className="w-12 h-12 border-4 border-amber-600 border-t-transparent rounded-full animate-spin" />
+    //             </div>
+    //         );
+    //     }
 
     if (!customerData || !statistics) {
+        if (isLoading) {
+            return (
+                <div className="min-h-screen bg-background flex flex-col animate-pulse">
+                    <header className="border-b h-16 bg-muted/20" />
+                    <main className="flex-1 container mx-auto px-4 py-8 space-y-8">
+                        <div className="space-y-4 text-center">
+                            <div className="h-10 bg-muted rounded w-1/3 mx-auto" />
+                            <div className="h-6 bg-muted/50 rounded w-1/4 mx-auto" />
+                        </div>
+
+                        <div className="flex justify-center gap-4 mb-8">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="h-10 w-32 bg-muted rounded-md" />
+                            ))}
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="h-32 bg-muted rounded-xl" />
+                            ))}
+                        </div>
+                        <div className="h-96 bg-muted rounded-xl" />
+                    </main>
+                </div>
+            )
+        }
         return (
             <div className="min-h-screen flex flex-col items-center justify-center gap-4">
                 <p className="text-muted-foreground">No customer data found.</p>

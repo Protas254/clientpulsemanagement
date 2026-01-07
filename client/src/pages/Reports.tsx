@@ -20,22 +20,22 @@ export default function Reports() {
     queryFn: fetchAnalytics,
   });
 
-  if (isLoading) {
-    return (
-      <AppLayout title="Reports" subtitle="Analytics and business insights">
-        <div className="flex items-center justify-center h-96">
-          <div className="w-8 h-8 border-4 border-amber-600 border-t-transparent rounded-full animate-spin" />
-        </div>
-      </AppLayout>
-    );
-  }
+  //   if (isLoading) {
+  //     return (
+  //       <AppLayout title="Reports" subtitle="Analytics and business insights">
+  //         <div className="flex items-center justify-center h-96">
+  //           <div className="w-8 h-8 border-4 border-amber-600 border-t-transparent rounded-full animate-spin" />
+  //         </div>
+  //       </AppLayout>
+  //     );
+  //   }
 
-  const { monthly_sales, customer_growth, summary, retention_stats } = analyticsData || {
-    monthly_sales: [],
-    customer_growth: [],
-    summary: { total_annual_sales: 0, avg_monthly_sales: 0, total_customers_gained: 0 },
-    retention_stats: { retention_rate: 0, avg_visits_per_client: 0, avg_visit_value: 0, customer_rating: 0 }
-  };
+  const {
+    monthly_sales = [],
+    customer_growth = [],
+    summary = { total_annual_sales: 0, avg_monthly_sales: 0, total_customers_gained: 0 },
+    retention_stats = { retention_rate: 0, avg_visits_per_client: 0, avg_visit_value: 0, customer_rating: 0 }
+  } = analyticsData || {};
 
   const totalAnnualSales = summary.total_annual_sales;
   const avgMonthlySales = summary.avg_monthly_sales;

@@ -78,13 +78,13 @@ export default function ReviewPage() {
         }
     };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-background flex items-center justify-center p-4">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
-            </div>
-        );
-    }
+    //     if (loading) {
+    //         return (
+    //             <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    //                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
+    //             </div>
+    //         );
+    //     }
 
     if (submitted) {
         return (
@@ -107,6 +107,19 @@ export default function ReviewPage() {
     }
 
     if (!visit) {
+        if (loading) {
+            return (
+                <div className="min-h-screen bg-gradient-to-b from-amber-50 to-background py-12 px-4">
+                    <div className="max-w-2xl mx-auto space-y-8 animate-pulse">
+                        <div className="text-center space-y-4">
+                            <div className="h-10 bg-amber-100 rounded md:w-1/2 w-3/4 mx-auto" />
+                            <div className="h-6 bg-amber-50 rounded w-1/3 mx-auto" />
+                        </div>
+                        <div className="h-96 bg-white rounded-xl shadow-xl border border-amber-50" />
+                    </div>
+                </div>
+            )
+        }
         return (
             <div className="min-h-screen bg-background flex items-center justify-center p-4">
                 <Card className="max-w-md w-full text-center p-8 border-red-100 shadow-xl">

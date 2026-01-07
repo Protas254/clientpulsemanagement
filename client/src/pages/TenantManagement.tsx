@@ -138,15 +138,35 @@ const TenantManagement = () => {
         }
     };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
-            </div>
-        );
-    }
+    //    if (loading) {
+    //        return (
+    //            <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 flex items-center justify-center">
+    //                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
+    //            </div>
+    //        );
+    //    }
 
     if (!tenant) {
+        if (loading) {
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 p-8">
+                    <div className="max-w-7xl mx-auto space-y-8 animate-pulse">
+                        {/* Header Skeleton */}
+                        <div className="bg-white h-24 rounded-xl shadow-sm mb-8" />
+
+                        {/* Stats Grid Skeleton */}
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                            {[1, 2, 3, 4].map(i => (
+                                <div key={i} className="bg-white h-32 rounded-xl shadow-lg" />
+                            ))}
+                        </div>
+
+                        {/* Main Content Skeleton */}
+                        <div className="bg-white h-96 rounded-xl shadow-lg" />
+                    </div>
+                </div>
+            );
+        }
         return (
             <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 flex items-center justify-center">
                 <Card className="bg-white border-amber-200 shadow-lg">

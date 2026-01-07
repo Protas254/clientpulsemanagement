@@ -144,15 +144,15 @@ export default function RewardsManagement() {
     c.phone.includes(searchTerm)
   );
 
-  if (loading) {
-    return (
-      <AppLayout title="Rewards Management" subtitle="Create and manage loyalty rewards">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-        </div>
-      </AppLayout>
-    );
-  }
+  //   if (loading) {
+  //     return (
+  //       <AppLayout title="Rewards Management" subtitle="Create and manage loyalty rewards">
+  //         <div className="flex items-center justify-center h-64">
+  //           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  //         </div>
+  //       </AppLayout>
+  //     );
+  //   }
 
   return (
     <AppLayout

@@ -77,11 +77,13 @@ export default function Settings() {
     }
   };
 
-  if (loading) {
+  if (loading || !tenant) {
     return (
-      <AppLayout title="Settings" subtitle="Manage your account and preferences">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
+      <AppLayout title="Settings">
+        <div className="max-w-3xl space-y-6 animate-pulse">
+          <div className="h-64 bg-white/50 rounded-xl" />
+          <div className="h-48 bg-white/50 rounded-xl" />
+          <div className="h-48 bg-white/50 rounded-xl" />
         </div>
       </AppLayout>
     );
