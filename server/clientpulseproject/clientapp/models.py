@@ -286,16 +286,24 @@ class Booking(models.Model):
         return f"{self.customer.name} - {self.service.name} - {self.booking_date}"
 
     def save(self, *args, **kwargs):
-        is_new = self.pk is None
+        is_new = self.pk is None or not Booking.objects.filter(pk=self.pk).exists()
         send_approval = False
         create_visit = False
 
         if not is_new:
-            old_instance = Booking.objects.get(pk=self.pk)
-            if old_instance.status != 'confirmed' and self.status == 'confirmed':
-                send_approval = True
-            if old_instance.status != 'completed' and self.status == 'completed':
-                create_visit = True
+            try:
+                old_instance = Booking.objects.get(pk=self.pk)
+                if old_instance.status != 'confirmed' and self.status == 'confirmed':
+                    send_approval = True
+                if old_instance.status != 'completed' and self.status == 'completed':
+                    create_visit = True
+            except Booking.DoesNotExist:
+                # If the booking doesn't exist, treat it as new
+                is_new = True
+                if self.status == 'completed':
+                    create_visit = True
+                elif self.status == 'confirmed':
+                    send_approval = True
         else:
             if self.status == 'completed':
                 create_visit = True
@@ -530,6 +538,28 @@ def create_notification(title, message, recipient_type, customer=None, user=None
         user=user,
         staff=staff
     )
+
+    # Send WebSocket update
+    if tenant:
+        try:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+            
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                f'dashboard_{tenant.id}',
+                {
+                    'type': 'dashboard_update',
+                    'message': {
+                        'title': title,
+                        'message': message,
+                        'recipient_type': recipient_type,
+                        'created_at': notification.created_at.isoformat()
+                    }
+                }
+            )
+        except Exception as e:
+            print(f"Error sending WebSocket update: {e}")
     
     if send_email:
         recipient_email = None
@@ -615,8 +645,13 @@ class PaymentTransaction(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     transaction_date = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, default='pending') # paid, pending, failed
-    reference_number = models.CharField(max_length=100, unique=True)
+    reference_number = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    checkout_request_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
     payment_method = models.CharField(max_length=50, default='M-Pesa')
+    
+    # Link to Booking or Visit
+    booking = models.ForeignKey('Booking', on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
+    visit = models.ForeignKey('Visit', on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
 
     def __str__(self):
         return f"{self.tenant.name} - {self.amount} - {self.status}"

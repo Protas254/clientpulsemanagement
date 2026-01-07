@@ -28,8 +28,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { fetchBookings, updateBooking, createBooking, fetchCustomers, fetchServices, fetchStaff, Booking, Customer, Service, StaffMember } from '@/services/api';
 import { toast } from '@/hooks/use-toast';
-import { Calendar, Clock, User, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import { format } from 'date-fns';
+import { Calendar as CalendarIcon, Clock, User, CheckCircle, XCircle, AlertCircle, List, Grid } from 'lucide-react';
+import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
+import 'react-big-calendar/lib/css/react-big-calendar.css';
+import enUS from 'date-fns/locale/en-US';
+
+const locales = {
+    'en-US': enUS,
+};
+
+const localizer = dateFnsLocalizer({
+    format,
+    parse,
+    startOfWeek,
+    getDay,
+    locales,
+});
 
 export default function Bookings() {
     const [allBookings, setAllBookings] = useState<Booking[]>([]);
@@ -39,6 +54,7 @@ export default function Bookings() {
     const [staff, setStaff] = useState<StaffMember[]>([]);
     const [loading, setLoading] = useState(true);
     const [showNewBooking, setShowNewBooking] = useState(false);
+    const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
     // Form state
     const [selectedCustomer, setSelectedCustomer] = useState<string>('');
@@ -173,6 +189,28 @@ export default function Bookings() {
         }
     };
 
+    // Calendar Events Mapper
+    const calendarEvents = bookings.map(booking => {
+        const start = new Date(booking.booking_date);
+        // Assuming default duration of 60 mins if not available, or fetch from service
+        // Ideally backend should provide end_time or duration
+        const end = new Date(start.getTime() + 60 * 60 * 1000);
+
+        return {
+            id: booking.id,
+            title: `${booking.customer_name} - ${booking.service_name}`,
+            start,
+            end,
+            resource: booking,
+        };
+    });
+
+    const handleEventSelect = (event: any) => {
+        // Show details or edit dialog
+        // For now, let's just show a toast or log
+        console.log("Selected event:", event);
+    };
+
     if (loading) {
         return (
             <AppLayout title="Bookings" subtitle="Loading...">
@@ -188,7 +226,7 @@ export default function Bookings() {
             title="📅 Bookings"
             subtitle="Manage customer appointments"
         >
-            <div className="mb-6 flex justify-between items-center">
+            <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div className="flex gap-4">
                     <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 min-w-[120px]">
                         <p className="text-sm text-gray-500">Total Bookings</p>
@@ -210,13 +248,32 @@ export default function Bookings() {
                         </p>
                     </div>
                 </div>
-                <Button
-                    onClick={() => setShowNewBooking(true)}
-                    className="bg-amber-600 hover:bg-amber-700"
-                >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    New Booking
-                </Button>
+
+                <div className="flex gap-2">
+                    <div className="bg-muted p-1 rounded-lg flex">
+                        <button
+                            onClick={() => setViewMode('list')}
+                            className={`p-2 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                            title="List View"
+                        >
+                            <List className="w-4 h-4" />
+                        </button>
+                        <button
+                            onClick={() => setViewMode('calendar')}
+                            className={`p-2 rounded-md transition-colors ${viewMode === 'calendar' ? 'bg-white shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                            title="Calendar View"
+                        >
+                            <Grid className="w-4 h-4" />
+                        </button>
+                    </div>
+                    <Button
+                        onClick={() => setShowNewBooking(true)}
+                        className="bg-amber-600 hover:bg-amber-700"
+                    >
+                        <CalendarIcon className="w-4 h-4 mr-2" />
+                        New Booking
+                    </Button>
+                </div>
             </div>
 
             <div className="flex flex-col md:flex-row gap-4 mb-6 justify-between items-center">
@@ -236,92 +293,109 @@ export default function Bookings() {
                 </div>
             </div>
 
-            <Card>
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Customer</TableHead>
-                                <TableHead>Service</TableHead>
-                                <TableHead>Date & Time</TableHead>
-                                <TableHead>Staff</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {bookings.map((booking) => (
-                                <TableRow key={booking.id}>
-                                    <TableCell>
-                                        <div className="font-medium">{booking.customer_name}</div>
-                                    </TableCell>
-                                    <TableCell>{booking.service_name}</TableCell>
-                                    <TableCell>
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-medium">
-                                                {format(new Date(booking.booking_date), 'MMM d, yyyy')}
+            {viewMode === 'list' ? (
+                <Card>
+                    <CardContent className="p-0">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Customer</TableHead>
+                                    <TableHead>Service</TableHead>
+                                    <TableHead>Date & Time</TableHead>
+                                    <TableHead>Staff</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {bookings.map((booking) => (
+                                    <TableRow key={booking.id}>
+                                        <TableCell>
+                                            <div className="font-medium">{booking.customer_name}</div>
+                                        </TableCell>
+                                        <TableCell>{booking.service_name}</TableCell>
+                                        <TableCell>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-medium">
+                                                    {format(new Date(booking.booking_date), 'MMM d, yyyy')}
+                                                </span>
+                                                <span className="text-xs text-gray-500">
+                                                    {format(new Date(booking.booking_date), 'h:mm a')}
+                                                </span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{booking.staff_member_name || '-'}</TableCell>
+                                        <TableCell>
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
+                                                {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                                             </span>
-                                            <span className="text-xs text-gray-500">
-                                                {format(new Date(booking.booking_date), 'h:mm a')}
-                                            </span>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>{booking.staff_member_name || '-'}</TableCell>
-                                    <TableCell>
-                                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
-                                            {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                                        </span>
-                                    </TableCell>
-                                    <TableCell>
-                                        <div className="flex gap-2">
-                                            {booking.status === 'pending' && (
-                                                <>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex gap-2">
+                                                {booking.status === 'pending' && (
+                                                    <>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                            onClick={() => handleStatusUpdate(booking.id, 'confirmed')}
+                                                        >
+                                                            <CheckCircle className="w-4 h-4 mr-1" />
+                                                            Approve
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="ghost"
+                                                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                            onClick={() => handleStatusUpdate(booking.id, 'cancelled')}
+                                                        >
+                                                            <XCircle className="w-4 h-4 mr-1" />
+                                                            Cancel
+                                                        </Button>
+                                                    </>
+                                                )}
+                                                {booking.status === 'confirmed' && (
                                                     <Button
                                                         size="sm"
                                                         variant="ghost"
-                                                        className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                                                        onClick={() => handleStatusUpdate(booking.id, 'confirmed')}
+                                                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                                        onClick={() => handleStatusUpdate(booking.id, 'completed')}
                                                     >
                                                         <CheckCircle className="w-4 h-4 mr-1" />
-                                                        Approve
+                                                        Complete
                                                     </Button>
-                                                    <Button
-                                                        size="sm"
-                                                        variant="ghost"
-                                                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                                        onClick={() => handleStatusUpdate(booking.id, 'cancelled')}
-                                                    >
-                                                        <XCircle className="w-4 h-4 mr-1" />
-                                                        Cancel
-                                                    </Button>
-                                                </>
-                                            )}
-                                            {booking.status === 'confirmed' && (
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                                    onClick={() => handleStatusUpdate(booking.id, 'completed')}
-                                                >
-                                                    <CheckCircle className="w-4 h-4 mr-1" />
-                                                    Complete
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            {bookings.length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                                        No bookings found
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                                {bookings.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                                            No bookings found
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            ) : (
+                <Card className="h-[600px]">
+                    <CardContent className="p-4 h-full">
+                        <Calendar
+                            localizer={localizer}
+                            events={calendarEvents}
+                            startAccessor="start"
+                            endAccessor="end"
+                            style={{ height: '100%' }}
+                            onSelectEvent={handleEventSelect}
+                            views={['month', 'week', 'day', 'agenda']}
+                            defaultView={Views.WEEK}
+                        />
+                    </CardContent>
+                </Card>
+            )}
 
             <Dialog open={showNewBooking} onOpenChange={setShowNewBooking}>
                 <DialogContent className="max-w-md">

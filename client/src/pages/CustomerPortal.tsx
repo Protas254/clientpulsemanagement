@@ -645,7 +645,7 @@ export default function CustomerPortal() {
                                                                     ) : (
                                                                         <Button
                                                                             onClick={() => initiateBooking(service)}
-                                                                            className="tenant-brand-bg hover:opacity-90 text-white"
+                                                                            className="bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-md transition-all"
                                                                             disabled={isBookingLoading}
                                                                         >
                                                                             <Plus className="w-4 h-4 mr-2" />

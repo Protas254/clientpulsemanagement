@@ -9,7 +9,7 @@ from .views import (
     CustomerRewardCheckView, CustomerSignupView, CustomerPortalDetailsView,
     ServiceViewSet, VisitViewSet, StaffMemberViewSet,
     AnalyticsView, BookingViewSet, CustomerRewardViewSet, RewardsStatsView,
-    initiate_stk_push, ContactMessageViewSet, NotificationViewSet,
+    initiate_stk_push, mpesa_callback, ContactMessageViewSet, NotificationViewSet,
     CustomerProfileUpdateView, AdminProfileUpdateView, BusinessRegistrationView,
     TenantSearchView, TenantViewSet, SubscriptionPlanViewSet, TenantSubscriptionViewSet,
     TenantSettingsView, ReviewViewSet,
@@ -72,6 +72,7 @@ urlpatterns = [
     
     # M-Pesa
     path('mpesa/stk-push/', initiate_stk_push, name='initiate-stk-push'),
+    path('mpesa/callback/', mpesa_callback, name='mpesa-callback'),
 
     # Router URLs (services, visits, staff) - Must be last to avoid shadowing custom paths
     path('', include(router.urls)),
