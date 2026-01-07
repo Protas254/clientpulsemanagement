@@ -366,23 +366,12 @@ class CustomerReward(models.Model):
         super().save(*args, **kwargs)
         
         if is_new:
-            # Notification: Reward Unlocked
-            create_notification(
-                title="Reward Unlocked",
-                message=f"Congratulations! You've earned a {self.reward.name}. Show this message to redeem.",
-                recipient_type='customer',
-                customer=self.customer
-            )
+            # Notification logic moved to signals.py
+            pass
             
         if old_status != 'redeemed' and self.status == 'redeemed':
-            # Notification: Reward Redeemed (Admin)
-            for admin in User.objects.filter(is_superuser=True):
-                create_notification(
-                    title="Reward Redeemed",
-                    message=f"A reward has been redeemed by {self.customer.name} - {self.reward.name}.",
-                    recipient_type='admin',
-                    user=admin
-                )
+            # Notification logic moved to signals.py
+            pass
 
     def __str__(self):
         return f"{self.customer.name} - {self.reward.name}"

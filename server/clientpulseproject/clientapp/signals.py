@@ -6,7 +6,8 @@ User = get_user_model()
 from django.utils import timezone
 from .models import (
     Tenant, Booking, Customer, StaffMember, PaymentTransaction, 
-    Notification, create_notification, UserProfile, ContactMessage, Service, Visit
+    Notification, create_notification, UserProfile, ContactMessage, Service, Visit,
+    Review, TenantSubscription, CustomerReward
 )
 
 # --- TENANT SIGNALS ---
@@ -290,11 +291,23 @@ def booking_notifications(sender, instance, created, **kwargs):
 
 # --- CUSTOMER SIGNALS ---
 
+@receiver(pre_save, sender=Customer)
+def track_customer_changes(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            old_instance = Customer.objects.get(pk=instance.pk)
+            instance._old_status = old_instance.status
+            instance._old_name = old_instance.name
+            instance._old_email = old_instance.email
+            instance._old_phone = old_instance.phone
+        except Customer.DoesNotExist:
+            pass
+
 @receiver(post_save, sender=Customer)
 def customer_notifications(sender, instance, created, **kwargs):
+    tenant = instance.tenant
+    
     if created:
-        tenant = instance.tenant
-        
         # 1. Notify Tenant Admin(s)
         admin_profiles = UserProfile.objects.filter(tenant=tenant, role='tenant_admin')
         for admin_profile in admin_profiles:
@@ -316,6 +329,40 @@ def customer_notifications(sender, instance, created, **kwargs):
                 customer=instance,
                 send_email=True
             )
+            
+    # Updates
+    else:
+        # Profile Updated
+        if (hasattr(instance, '_old_name') and instance._old_name != instance.name) or \
+           (hasattr(instance, '_old_email') and instance._old_email != instance.email) or \
+           (hasattr(instance, '_old_phone') and instance._old_phone != instance.phone):
+            
+            create_notification(
+                title="Profile Updated",
+                message="Your profile information has been successfully updated.",
+                recipient_type='customer',
+                customer=instance,
+                send_email=True
+            )
+            
+        # Account Suspended/Reactivated
+        if hasattr(instance, '_old_status') and instance._old_status != instance.status:
+            if instance.status == 'inactive':
+                create_notification(
+                    title="Account Suspended",
+                    message="Your account has been suspended. Please contact the business for more information.",
+                    recipient_type='customer',
+                    customer=instance,
+                    send_email=True
+                )
+            elif instance.status == 'active' and instance._old_status == 'inactive':
+                 create_notification(
+                    title="Account Reactivated",
+                    message="Your account has been reactivated. Welcome back!",
+                    recipient_type='customer',
+                    customer=instance,
+                    send_email=True
+                )
 
 # --- STAFF SIGNALS ---
 
@@ -367,13 +414,14 @@ def visit_review_request(sender, instance, created, **kwargs):
 @receiver(post_save, sender=PaymentTransaction)
 def payment_notifications(sender, instance, created, **kwargs):
     if created:
-        # Notify Tenant Admin
         tenant = instance.tenant
+        
+        # 1. Tenant Admin Notifications
         admin_profile = tenant.userprofile_set.filter(role='tenant_admin').first()
         if admin_profile and admin_profile.user:
             if instance.status == 'completed':
                 create_notification(
-                    title="Payment Successful",
+                    title="Payment Received",
                     message=f"Payment of {instance.amount} received via {instance.payment_method}.",
                     recipient_type='admin',
                     user=admin_profile.user,
@@ -387,6 +435,48 @@ def payment_notifications(sender, instance, created, **kwargs):
                     user=admin_profile.user,
                     send_email=True
                 )
+
+        # 2. Customer Notifications (if linked to Booking or Visit)
+        if (instance.booking or instance.visit) and tenant.notify_on_payment:
+            customer = instance.booking.customer if instance.booking else instance.visit.customer
+            if customer:
+                if instance.status == 'completed':
+                    create_notification(
+                        title="Payment Successful",
+                        message=f"Your payment of KES {instance.amount} was successful. Thank you!",
+                        recipient_type='customer',
+                        customer=customer,
+                        send_email=True
+                    )
+                elif instance.status == 'failed':
+                    create_notification(
+                        title="Payment Failed",
+                        message=f"Your payment of KES {instance.amount} failed. Please try again or contact us.",
+                        recipient_type='customer',
+                        customer=customer,
+                        send_email=True
+                    )
+
+        # 3. Super Admin Notifications (if Subscription Payment)
+        if instance.plan:
+            superusers = User.objects.filter(is_superuser=True)
+            for su in superusers:
+                if instance.status == 'completed':
+                    create_notification(
+                        title="New Subscription Payment",
+                        message=f"Tenant '{tenant.name}' paid {instance.amount} for {instance.plan.name}.",
+                        recipient_type='admin',
+                        user=su,
+                        send_email=True
+                    )
+                elif instance.status == 'failed':
+                    create_notification(
+                        title="Subscription Payment Failed",
+                        message=f"Payment failed for Tenant '{tenant.name}' ({instance.amount}).",
+                        recipient_type='admin',
+                        user=su,
+                        send_email=True
+                    )
 # --- CONTACT MESSAGE SIGNALS ---
 
 @receiver(post_save, sender=ContactMessage)
@@ -493,4 +583,137 @@ def populate_tenant_services(sender, instance, created, **kwargs):
                 price=price,
                 duration=duration,
                 description=desc
+            )
+
+
+# --- REWARD SIGNALS ---
+
+@receiver(pre_save, sender=CustomerReward)
+def track_reward_changes(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            old_instance = CustomerReward.objects.get(pk=instance.pk)
+            instance._old_status = old_instance.status
+        except CustomerReward.DoesNotExist:
+            pass
+
+@receiver(post_save, sender=CustomerReward)
+def reward_notifications(sender, instance, created, **kwargs):
+    customer = instance.customer
+    tenant = instance.tenant
+    
+    # New Reward Unlocked
+    if created:
+        create_notification(
+            title="Reward Unlocked 🎉",
+            message=f"Congratulations! You've earned a {instance.reward.name}. Show this message to redeem.",
+            recipient_type='customer',
+            customer=customer,
+            send_email=True
+        )
+
+    # Reward Redeemed
+    if hasattr(instance, '_old_status') and instance._old_status != 'redeemed' and instance.status == 'redeemed':
+        # Notify Customer
+        create_notification(
+            title="Reward Redeemed",
+            message=f"You have successfully redeemed {instance.reward.name}.",
+            recipient_type='customer',
+            customer=customer,
+            send_email=True
+        )
+        
+        # Notify Tenant Admin
+        admin_profile = tenant.userprofile_set.filter(role='tenant_admin').first()
+        if admin_profile and admin_profile.user:
+             create_notification(
+                title="Reward Redeemed",
+                message=f"{customer.name} redeemed {instance.reward.name}.",
+                recipient_type='admin',
+                user=admin_profile.user,
+                send_email=True
+            )
+
+
+# --- REVIEW SIGNALS ---
+
+@receiver(post_save, sender=Review)
+def review_notifications(sender, instance, created, **kwargs):
+    if created and instance.reviewer_type == 'customer':
+        tenant = instance.tenant
+        customer_name = instance.customer.name if instance.customer else "A customer"
+        
+        # Notify Tenant Admin
+        admin_profile = tenant.userprofile_set.filter(role='tenant_admin').first()
+        if admin_profile and admin_profile.user:
+             create_notification(
+                title="New Review",
+                message=f"{customer_name} left a {instance.rating}-star review: \"{instance.comment[:50]}...\"",
+                recipient_type='admin',
+                user=admin_profile.user,
+                send_email=True
+            )
+
+
+# --- SUBSCRIPTION SIGNALS ---
+
+@receiver(pre_save, sender=TenantSubscription)
+def track_subscription_changes(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            old_instance = TenantSubscription.objects.get(pk=instance.pk)
+            instance._old_status = old_instance.status
+            instance._old_plan = old_instance.plan
+        except TenantSubscription.DoesNotExist:
+            pass
+
+@receiver(post_save, sender=TenantSubscription)
+def subscription_notifications(sender, instance, created, **kwargs):
+    tenant = instance.tenant
+    
+    # Notify Super Admin on New Subscription
+    if created:
+        superusers = User.objects.filter(is_superuser=True)
+        for su in superusers:
+             create_notification(
+                title="New Subscription",
+                message=f"Tenant '{tenant.name}' subscribed to {instance.plan.name}.",
+                recipient_type='admin',
+                user=su,
+                send_email=True
+            )
+            
+    # Status Changes
+    if hasattr(instance, '_old_status') and instance._old_status != instance.status:
+        admin_profile = tenant.userprofile_set.filter(role='tenant_admin').first()
+        
+        if instance.status == 'past_due':
+             if admin_profile and admin_profile.user:
+                create_notification(
+                    title="Subscription Past Due",
+                    message="Your subscription is past due. Please update your payment method to avoid suspension.",
+                    recipient_type='admin',
+                    user=admin_profile.user,
+                    send_email=True
+                )
+        elif instance.status == 'canceled':
+             if admin_profile and admin_profile.user:
+                create_notification(
+                    title="Subscription Canceled",
+                    message="Your subscription has been canceled.",
+                    recipient_type='admin',
+                    user=admin_profile.user,
+                    send_email=True
+                )
+
+    # Plan Changed (Upgrade/Downgrade)
+    if hasattr(instance, '_old_plan') and instance._old_plan != instance.plan:
+         admin_profile = tenant.userprofile_set.filter(role='tenant_admin').first()
+         if admin_profile and admin_profile.user:
+            create_notification(
+                title="Subscription Plan Updated",
+                message=f"Your subscription plan has been updated to {instance.plan.name}.",
+                recipient_type='admin',
+                user=admin_profile.user,
+                send_email=True
             )
