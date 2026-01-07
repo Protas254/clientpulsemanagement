@@ -891,3 +891,84 @@ export const createReview = async (review: Partial<Review>): Promise<Review> => 
 };
 
 
+export const requestPasswordReset = async (email: string) => {
+    const response = await fetch(`${API_URL}password-reset/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to send reset link');
+    }
+
+    return response.json();
+};
+
+export const resetPassword = async (token: string, uid: string, password: string) => {
+    const response = await fetch(`${API_URL}password-reset/confirm/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token, uidb64: uid, password, confirm_password: password }),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to reset password');
+    }
+
+    return response.json();
+};
+
+export const requestOTP = async (identifier: string) => {
+    const response = await fetch(`${API_URL}password-reset/request-otp/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ identifier }),
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to send OTP');
+    }
+
+    return response.json();
+};
+
+export const verifyOTP = async (identifier: string, otp: string) => {
+    const response = await fetch(`${API_URL}password-reset/verify-otp/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ identifier, otp }),
+    });
+
+    if (!response.ok) {
+        throw new Error('Invalid OTP');
+    }
+
+    return response.json();
+};
+
+export const resetPasswordWithOTP = async (identifier: string, otp: string, password: string) => {
+    const response = await fetch(`${API_URL}password-reset/reset-with-otp/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ identifier, otp, password, confirm_password: password }),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to reset password');
+    }
+
+    return response.json();
+};

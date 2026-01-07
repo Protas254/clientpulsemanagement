@@ -12,7 +12,9 @@ from .views import (
     initiate_stk_push, ContactMessageViewSet, NotificationViewSet,
     CustomerProfileUpdateView, AdminProfileUpdateView, BusinessRegistrationView,
     TenantSearchView, TenantViewSet, SubscriptionPlanViewSet, TenantSubscriptionViewSet,
-    TenantSettingsView, ReviewViewSet
+    TenantSettingsView, ReviewViewSet,
+    PasswordResetRequestView, PasswordResetConfirmView,
+    RequestOTPView, VerifyOTPView, ResetPasswordOTPView
 )
 
 # Router for ViewSets
@@ -34,6 +36,11 @@ urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
     path('business-register/', BusinessRegistrationView.as_view(), name='business-register'),
     path('login/', LoginView.as_view(), name='login'),
+    path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset-request'),
+    path('password-reset/confirm/', PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+    path('password-reset/request-otp/', RequestOTPView.as_view(), name='request-otp'),
+    path('password-reset/verify-otp/', VerifyOTPView.as_view(), name='verify-otp'),
+    path('password-reset/reset-with-otp/', ResetPasswordOTPView.as_view(), name='reset-with-otp'),
     path('customer-signup/', CustomerSignupView.as_view(), name='customer-signup'),
     path('tenants/search/', TenantSearchView.as_view(), name='tenant-search'),
     path('users/', UserListView.as_view(), name='user-list'),

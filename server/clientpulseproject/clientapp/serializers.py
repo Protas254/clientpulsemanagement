@@ -206,3 +206,34 @@ class TenantSubscriptionSerializer(serializers.ModelSerializer):
         model = TenantSubscription
         fields = '__all__'
 
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+    token = serializers.CharField()
+    uidb64 = serializers.CharField()
+
+    def validate(self, data):
+        if data['password'] != data['confirm_password']:
+            raise serializers.ValidationError("Passwords do not match")
+        return data
+
+class OTPRequestSerializer(serializers.Serializer):
+    identifier = serializers.CharField(required=True, help_text="Email or Phone Number")
+
+class OTPVerifySerializer(serializers.Serializer):
+    identifier = serializers.CharField(required=True)
+    otp = serializers.CharField(required=True, max_length=6)
+
+class OTPPasswordResetSerializer(serializers.Serializer):
+    identifier = serializers.CharField(required=True)
+    otp = serializers.CharField(required=True, max_length=6)
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        if data['password'] != data['confirm_password']:
+            raise serializers.ValidationError("Passwords do not match")
+        return data

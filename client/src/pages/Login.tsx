@@ -253,19 +253,12 @@ const Login = () => {
                     </Label>
                   </div>
 
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        className="text-sm text-accent hover:text-caramel transition-colors"
-                      >
-                        Forgot password?
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Coming Soon</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <Link
+                    to="/forgot-password"
+                    className="text-sm text-accent hover:text-caramel transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
                 </div>
 
                 <Button
@@ -325,6 +318,15 @@ const Login = () => {
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
                   </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Link
+                    to="/forgot-password"
+                    className="text-sm text-accent hover:text-caramel transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
                 </div>
 
                 <Button
