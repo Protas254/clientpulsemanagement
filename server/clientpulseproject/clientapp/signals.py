@@ -124,10 +124,10 @@ def booking_notifications(sender, instance, created, **kwargs):
     if created:
         # 1. New Booking Created
         
-        # Notify Customer
+        # Notify Customer - Booking Confirmation
         create_notification(
-            title="Booking Received",
-            message=f"Your booking for {instance.service.name} on {instance.booking_date.strftime('%Y-%m-%d %H:%M')} has been received.",
+            title="Booking Confirmed",
+            message=f"Your booking for {instance.service.name} on {instance.booking_date.strftime('%B %d, %Y at %I:%M %p')} has been confirmed. We look forward to seeing you!",
             recipient_type='customer',
             customer=customer,
             send_email=True
@@ -163,8 +163,8 @@ def booking_notifications(sender, instance, created, **kwargs):
         
         if new_status == 'confirmed':
             create_notification(
-                title="Booking Confirmed",
-                message=f"Your booking for {instance.service.name} has been confirmed.",
+                title="Booking Approved",
+                message=f"Great news! Your booking for {instance.service.name} on {instance.booking_date.strftime('%B %d, %Y at %I:%M %p')} has been approved by our team.",
                 recipient_type='customer',
                 customer=customer,
                 send_email=True
@@ -218,15 +218,24 @@ def booking_notifications(sender, instance, created, **kwargs):
         elif new_status == 'completed':
             # Try to find the visit created from this booking to get its ID
             from .models import Visit
-            visit = Visit.objects.filter(customer=customer, visit_date__date=timezone.now().date()).order_by('-id').first()
-            review_link = f"http://localhost:5173/review/{visit.id}" if visit else ""
+            visit = Visit.objects.filter(
+                customer=customer, 
+                tenant=tenant,
+                visit_date__date=timezone.now().date()
+            ).order_by('-visit_date').first()
             
-            message = f"Thank you for visiting us! We hope you enjoyed your {instance.service.name} service."
-            if review_link:
-                message += f" We'd love to hear your feedback: {review_link}"
+            # Build the thank you message
+            message = f"Thank you for choosing us, {customer.name}! We hope you enjoyed your {instance.service.name} service."
+            
+            if visit:
+                # Use the dedicated review page
+                review_link = f"http://localhost:5173/review/{visit.id}"
+                message += f"\n\nWe'd love to hear about your experience! Please take a moment to leave us a review: {review_link}"
+            else:
+                message += "\n\nWe'd love to hear about your experience! Please visit your customer portal to leave us a review."
                 
             create_notification(
-                title="Booking Completed - Thank You!",
+                title="Thank You for Your Visit!",
                 message=message,
                 recipient_type='customer',
                 customer=customer,

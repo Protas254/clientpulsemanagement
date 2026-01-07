@@ -63,7 +63,7 @@ class Tenant(models.Model):
     email_cust_booking_cancelled = models.BooleanField(default=True, help_text="Booking cancelled by business")
     email_cust_booking_reminder = models.BooleanField(default=True, help_text="Booking reminder (24h / 2h)")
     email_cust_booking_noshow = models.BooleanField(default=False, help_text="Booking no-show notice")
-    email_cust_booking_completed = models.BooleanField(default=False, help_text="Booking completed / thank you")
+    email_cust_booking_completed = models.BooleanField(default=True, help_text="Booking completed / thank you")
     
     # Emails to TENANT
     email_tenant_new_booking = models.BooleanField(default=True, help_text="New booking alert")
@@ -312,46 +312,8 @@ class Booking(models.Model):
             
         super().save(*args, **kwargs)
 
-        if is_new:
-            # Notification: New Booking (Admin & Staff)
-            # Notify Tenant Admin
-            tenant = self.customer.tenant
-            admin_profile = tenant.userprofile_set.filter(role='tenant_admin').first()
-            if admin_profile and admin_profile.user:
-                create_notification(
-                    title="New Booking",
-                    message=f"New booking from {self.customer.name} for {self.service.name}.",
-                    recipient_type='admin',
-                    user=admin_profile.user,
-                    send_email=True
-                )
-            
-            # Notify all superusers
-            for admin in User.objects.filter(is_superuser=True):
-                create_notification(
-                    title="New Booking",
-                    message=f"New booking from {self.customer.name} for {self.service.name}.",
-                    recipient_type='admin',
-                    user=admin
-                )
-            
-            if self.staff_member:
-                create_notification(
-                    title="New Appointment Assigned",
-                    message=f"Upcoming appointment: {self.customer.name} - {self.service.name} - {self.booking_date.strftime('%H:%M')}.",
-                    recipient_type='staff',
-                    staff=self.staff_member
-                )
-
-        if send_approval:
-            # Notification: Appointment Confirmation
-            create_notification(
-                title="Appointment Confirmation",
-                message=f"Hello {self.customer.name}, your {self.service.name} appointment is confirmed for {self.booking_date.strftime('%Y-%m-%d at %H:%M')}.",
-                recipient_type='customer',
-                customer=self.customer,
-                send_email=True
-            )
+        # All booking notifications are now handled by signals.py
+        # This prevents duplicate notifications
         
         if create_visit:
             self._create_visit_from_booking()
@@ -514,7 +476,7 @@ def create_notification(title, message, recipient_type, customer=None, user=None
             # Customer preferences
             if "Booking Received" in title and not tenant.email_cust_booking_received:
                 send_email = False
-            elif "Booking Confirmed" in title and not tenant.email_cust_booking_approved:
+            elif any(x in title for x in ["Booking Confirmed", "Booking Approved"]) and not tenant.email_cust_booking_approved:
                 send_email = False
             elif "Booking Rejected" in title and not tenant.email_cust_booking_rejected:
                 send_email = False
@@ -526,7 +488,7 @@ def create_notification(title, message, recipient_type, customer=None, user=None
                 send_email = False
             elif "No-Show" in title and not tenant.email_cust_booking_noshow:
                 send_email = False
-            elif any(x in title for x in ["Thank You", "Completed"]) and not tenant.email_cust_booking_completed:
+            elif any(x in title for x in ["Thank You", "Completed", "Thank You for Your Visit"]) and not tenant.email_cust_booking_completed:
                 send_email = False
 
     notification = Notification.objects.create(
