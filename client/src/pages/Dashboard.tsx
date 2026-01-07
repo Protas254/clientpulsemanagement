@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { fetchDailyStats, fetchDashboardStats, DailyStats, DashboardStats } from '@/services/api';
+import { fetchDailyStats, fetchDashboardStats, DailyStats, DashboardStats, fetchAnalytics, AnalyticsData } from '@/services/api';
 import { Button } from '@/components/ui/button';
 import { Users, TrendingUp, Scissors, Sparkles, Calendar, Star, X } from 'lucide-react';
 import { createReview } from '@/services/api';
@@ -20,6 +20,7 @@ export default function Dashboard() {
   const { user } = useAuthStore();
   const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -71,14 +72,16 @@ export default function Dashboard() {
 
   const loadStats = async () => {
     try {
-      const [daily, dashboard, userProfileData] = await Promise.allSettled([
+      const [daily, dashboard, userProfileData, analytics] = await Promise.allSettled([
         fetchDailyStats(),
         fetchDashboardStats(),
         fetchUserProfile(),
+        fetchAnalytics(),
       ]);
 
       if (daily.status === 'fulfilled') setDailyStats(daily.value);
       if (dashboard.status === 'fulfilled') setDashboardStats(dashboard.value);
+      if (analytics.status === 'fulfilled') setAnalyticsData(analytics.value);
 
       // Check onboarding status from user profile
       if (userProfileData.status === 'fulfilled') {
@@ -278,6 +281,44 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Monthly Financial Breakdown */}
+      <div className="mb-10">
+        <h2 className="text-2xl font-display font-semibold mb-4 text-amber-900 flex items-center gap-2">
+          <TrendingUp className="w-6 h-6" />
+          Monthly Financial Snapshot
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <Card className="bg-white/50 backdrop-blur-sm shadow-sm border-amber-100">
+            <CardContent className="pt-6">
+              <p className="text-sm font-medium text-amber-600">Monthly Revenue</p>
+              <h3 className="text-2xl font-bold text-amber-900 font-display">KES {analyticsData?.summary.total_revenue.toLocaleString() || '0'}</h3>
+              <p className="text-[10px] text-muted-foreground mt-1 underline cursor-pointer" onClick={() => window.location.href = '/reports'}>View Reports →</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/50 backdrop-blur-sm shadow-sm border-red-100">
+            <CardContent className="pt-6">
+              <p className="text-sm font-medium text-red-600">Operating Expenses</p>
+              <h3 className="text-2xl font-bold text-red-900 font-display">KES {analyticsData?.summary.expenses.toLocaleString() || '0'}</h3>
+              <p className="text-[10px] text-muted-foreground mt-1 underline cursor-pointer" onClick={() => window.location.href = '/expenses'}>Manage Expenses →</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-white/50 backdrop-blur-sm shadow-sm border-blue-100">
+            <CardContent className="pt-6">
+              <p className="text-sm font-medium text-blue-600">Inventory Costs</p>
+              <h3 className="text-2xl font-bold text-blue-900 font-display">KES {analyticsData?.summary.cogs.toLocaleString() || '0'}</h3>
+              <p className="text-[10px] text-muted-foreground mt-1 underline cursor-pointer" onClick={() => window.location.href = '/inventory'}>Check Stock →</p>
+            </CardContent>
+          </Card>
+          <Card className="bg-emerald-50 shadow-md border-emerald-200">
+            <CardContent className="pt-6">
+              <p className="text-sm font-medium text-emerald-600">Estimated Net Profit</p>
+              <h3 className="text-2xl font-bold text-emerald-900 font-display">KES {analyticsData?.summary.net_profit.toLocaleString() || '0'}</h3>
+              <p className="text-[10px] text-emerald-600 mt-1 font-medium italic">Profit after all costs</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Interactive Calendar */}

@@ -15,7 +15,8 @@ from .views import (
     TenantSettingsView, ReviewViewSet,
     PasswordResetRequestView, PasswordResetConfirmView,
     RequestOTPView, VerifyOTPView, ResetPasswordOTPView,
-    ProductViewSet, InventoryLogViewSet, PayrollView
+    ProductViewSet, InventoryLogViewSet, PayrollView,
+    ExpenseViewSet, GalleryImageViewSet
 )
 
 # Router for ViewSets
@@ -33,6 +34,8 @@ router.register(r'tenant-subscriptions', TenantSubscriptionViewSet, basename='te
 router.register(r'reviews', ReviewViewSet, basename='review')
 router.register(r'products', ProductViewSet, basename='product')
 router.register(r'inventory-logs', InventoryLogViewSet, basename='inventory-log')
+router.register(r'expenses', ExpenseViewSet, basename='expense')
+router.register(r'gallery', GalleryImageViewSet, basename='gallery')
 
 urlpatterns = [
     # Authentication

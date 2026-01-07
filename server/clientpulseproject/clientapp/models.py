@@ -687,6 +687,36 @@ class OTP(models.Model):
         return f"OTP for {self.user.username}: {self.code}"
 
 
+class Expense(models.Model):
+    """Operating Expenses (OPEX) like Rent, Electricity, etc."""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='expenses')
+    name = models.CharField(max_length=200)
+    category = models.CharField(max_length=100) # Rent, Electricity, Marketing, Salaries, etc.
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    description = models.TextField(blank=True)
+    expense_date = models.DateField(default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.category}: {self.amount} ({self.expense_date})"
+
+class GalleryImage(models.Model):
+    """Business/Staff Portfolio Gallery"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, related_name='gallery_images')
+    staff_member = models.ForeignKey(StaffMember, on_delete=models.SET_NULL, null=True, blank=True, related_name='portfolio_images')
+    service = models.ForeignKey(Service, on_delete=models.SET_NULL, null=True, blank=True, related_name='portfolio_images')
+    image = models.ImageField(upload_to='portfolio/')
+    title = models.CharField(max_length=200, blank=True)
+    description = models.TextField(blank=True)
+    is_public = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title or f"Gallery Image {self.id}"
+
+
 # --- Proxy Models for Admin Dashboard Sections ---
 
 class RewardsDashboard(Reward):

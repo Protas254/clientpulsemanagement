@@ -4,7 +4,7 @@ from .models import (
     Customer, Sale, Reward, Service, Visit, StaffMember, Booking, 
     CustomerReward, ContactMessage, Notification, UserProfile, Tenant, 
     SubscriptionPlan, TenantSubscription, Review, Product, InventoryLog,
-    ServiceProductConsumption
+    ServiceProductConsumption, Expense, GalleryImage
 )
 
 User = get_user_model()
@@ -293,3 +293,18 @@ class OTPPasswordResetSerializer(serializers.Serializer):
         if data['password'] != data['confirm_password']:
             raise serializers.ValidationError("Passwords do not match")
         return data
+
+class ExpenseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Expense
+        fields = '__all__'
+        read_only_fields = ['tenant']
+
+class GalleryImageSerializer(serializers.ModelSerializer):
+    staff_member_name = serializers.ReadOnlyField(source='staff_member.name')
+    service_name = serializers.ReadOnlyField(source='service.name')
+    
+    class Meta:
+        model = GalleryImage
+        fields = '__all__'
+        read_only_fields = ['tenant', 'staff_member_name', 'service_name']

@@ -492,23 +492,29 @@ export const fetchTopCustomers = async () => {
 };
 
 export interface AnalyticsData {
+    summary: {
+        total_revenue: number;
+        cogs: number;
+        expenses: number;
+        commissions: number;
+        net_profit: number;
+        // Old fields for backward compatibility if needed, or just update UI
+        total_annual_sales?: number;
+        avg_monthly_sales?: number;
+        total_customers_gained?: number;
+    };
     monthly_sales: {
         month: string;
         sales: number;
         customers: number;
     }[];
-    customer_growth: {
+    customer_growth?: {
         month: string;
         active: number;
         vip: number;
         inactive: number;
     }[];
-    summary: {
-        total_annual_sales: number;
-        avg_monthly_sales: number;
-        total_customers_gained: number;
-    };
-    retention_stats: {
+    retention_stats?: {
         retention_rate: number;
         avg_visits_per_client: number;
         avg_visit_value: number;
@@ -953,6 +959,30 @@ export interface PayrollReport {
     }[];
 }
 
+export interface Expense {
+    id: string;
+    name: string;
+    category: string;
+    amount: string;
+    description: string;
+    expense_date: string;
+    created_at: string;
+}
+
+export interface GalleryImage {
+    id: string;
+    tenant: string;
+    staff_member?: string;
+    staff_member_name?: string;
+    service?: string;
+    service_name?: string;
+    image: string;
+    title: string;
+    description: string;
+    is_public: boolean;
+    created_at: string;
+}
+
 export const fetchPayroll = async (startDate?: string, endDate?: string): Promise<PayrollReport> => {
     let url = `${API_URL}payroll/`;
     const params = new URLSearchParams();
@@ -1141,4 +1171,65 @@ export const resetPasswordWithOTP = async (identifier: string, otp: string, pass
     }
 
     return response.json();
+};
+
+// Expenses API
+export const fetchExpenses = async (category?: string): Promise<Expense[]> => {
+    let url = `${API_URL}expenses/`;
+    if (category) url += `?category=${category}`;
+    const response = await fetch(url, { headers: getAuthHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch expenses');
+    return response.json();
+};
+
+export const createExpense = async (expense: Omit<Expense, 'id' | 'created_at'>): Promise<Expense> => {
+    const response = await fetch(`${API_URL}expenses/`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(expense),
+    });
+    if (!response.ok) throw new Error('Failed to create expense');
+    return response.json();
+};
+
+export const deleteExpense = async (id: string) => {
+    const response = await fetch(`${API_URL}expenses/${id}/`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to delete expense');
+};
+
+// Gallery API
+export const fetchGallery = async (params?: { tenant?: string; staff?: string; service?: string }): Promise<GalleryImage[]> => {
+    let url = `${API_URL}gallery/`;
+    const searchParams = new URLSearchParams();
+    if (params?.tenant) searchParams.append('tenant', params.tenant);
+    if (params?.staff) searchParams.append('staff', params.staff);
+    if (params?.service) searchParams.append('service', params.service);
+    if (searchParams.toString()) url += `?${searchParams.toString()}`;
+
+    const response = await fetch(url, { headers: getAuthHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch gallery');
+    return response.json();
+};
+
+export const uploadGalleryImage = async (formData: FormData): Promise<GalleryImage> => {
+    const response = await fetch(`${API_URL}gallery/`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Token ${localStorage.getItem('token')}`,
+        },
+        body: formData,
+    });
+    if (!response.ok) throw new Error('Failed to upload image');
+    return response.json();
+};
+
+export const deleteGalleryImage = async (id: string) => {
+    const response = await fetch(`${API_URL}gallery/${id}/`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+    });
+    if (!response.ok) throw new Error('Failed to delete image');
 };

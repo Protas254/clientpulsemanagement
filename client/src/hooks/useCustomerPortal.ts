@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { checkRewards, fetchServices, fetchBookings, updateCustomerProfile, createBooking, redeemReward, sendContactMessage } from '@/services/api';
+import { checkRewards, fetchServices, fetchBookings, updateCustomerProfile, createBooking, redeemReward, sendContactMessage, fetchGallery } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToast } from '@/hooks/use-toast';
 
@@ -32,7 +32,14 @@ export const useCustomerPortal = () => {
         enabled: !!customerData?.customer?.id,
     });
 
-    // Mutations
+    // Fetch Gallery
+    const galleryQuery = useQuery({
+        queryKey: ['gallery', customerData?.customer?.tenant_id],
+        queryFn: () => fetchGallery({ tenant: customerData?.customer?.tenant_id }),
+        enabled: !!customerData?.customer?.tenant_id,
+        staleTime: 1000 * 60 * 10, // 10 minutes
+    });
+
     const updateProfileMutation = useMutation({
         mutationFn: ({ id, data }: { id: string; data: FormData }) => updateCustomerProfile(id, data),
         onSuccess: (updatedCustomer) => {
@@ -88,6 +95,7 @@ export const useCustomerPortal = () => {
         isError: portalQuery.isError,
         services: servicesQuery.data || [],
         bookings: bookingsQuery.data || [],
+        gallery: galleryQuery.data || [],
         updateProfile: updateProfileMutation.mutate,
         isUpdating: updateProfileMutation.isPending,
         confirmBooking: bookingMutation.mutate,

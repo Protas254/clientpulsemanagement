@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Bell, Search, User, Check, Clock, LogOut, MoreVertical, Menu, X, LayoutDashboard, Users as UsersIcon, TrendingUp, BarChart3, Settings as SettingsIcon, Scissors, Gift, Award, Calendar, UserCog, Mail, Star } from 'lucide-react';
+import { Bell, Search, User, Check, Clock, LogOut, MoreVertical, Menu, X, LayoutDashboard, Users as UsersIcon, TrendingUp, BarChart3, Settings as SettingsIcon, Scissors, Gift, Award, Calendar, UserCog, Mail, Star, Wallet, ImageIcon, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
@@ -42,8 +42,10 @@ const navItems = [
   { title: 'Staff', url: '/staff', icon: UserCog },
   { title: 'Customers', url: '/customers', icon: UsersIcon },
   { title: 'Services', url: '/services', icon: TrendingUp },
+  { title: 'Inventory', url: '/inventory', icon: Package },
+  { title: 'Expenses', url: '/expenses', icon: Wallet },
+  { title: 'Work Gallery', url: '/gallery', icon: ImageIcon },
   { title: 'Rewards', url: '/rewards', icon: Gift },
-  { title: 'Manage Rewards', url: '/rewards/manage', icon: Award },
   { title: 'Reports', url: '/reports', icon: BarChart3 },
   { title: 'Contact Messages', url: '/contact-messages', icon: Mail },
   { title: 'Review Platform', url: '/platform-review', icon: Star },

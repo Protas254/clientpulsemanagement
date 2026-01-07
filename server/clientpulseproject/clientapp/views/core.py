@@ -8,12 +8,14 @@ from django.utils import timezone
 from datetime import timedelta
 from ..models import (
     User, Visit, Customer, Booking, Service, StaffMember, ContactMessage, 
-    Tenant, SubscriptionPlan, TenantSubscription, Notification, Review, Product, InventoryLog
+    Tenant, SubscriptionPlan, TenantSubscription, Notification, Review, Product, InventoryLog,
+    Expense, GalleryImage
 )
 from ..serializers import (
     UserSerializer, VisitSerializer, TenantSerializer, SubscriptionPlanSerializer, 
     TenantSubscriptionSerializer, ContactMessageSerializer, NotificationSerializer,
-    ReviewSerializer, ProductSerializer, InventoryLogSerializer
+    ReviewSerializer, ProductSerializer, InventoryLogSerializer,
+    ExpenseSerializer, GalleryImageSerializer
 )
 
 class UserListView(generics.ListAPIView):
@@ -127,18 +129,44 @@ class AnalyticsView(APIView):
 
     def get(self, request):
         today = timezone.now().date()
+        last_30_days = today - timedelta(days=30)
         last_12_months = today - timedelta(days=365)
         
         tenant = None
         if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.tenant:
             tenant = request.user.profile.tenant
 
-        visits_qs = Visit.objects.all()
-        if tenant:
-            visits_qs = visits_qs.filter(tenant=tenant)
+        if not tenant:
+            return Response({'error': 'No tenant associated'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 1. Monthly Sales & Customer Acquisition (Last 12 Months)
-        # We'll aggregate visits by month
+        visits_qs = Visit.objects.filter(tenant=tenant)
+        expenses_qs = Expense.objects.filter(tenant=tenant)
+        inventory_logs_qs = InventoryLog.objects.filter(tenant=tenant, reason='service_use')
+        staff_qs = StaffMember.objects.filter(tenant=tenant)
+
+        # 1. Financial Breakdown (Last 30 Days)
+        period_visits = visits_qs.filter(visit_date__date__gt=last_30_days, payment_status='paid')
+        total_revenue = period_visits.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        
+        # Calculate COGS (Cost of product consumption)
+        cogs = 0
+        service_logs = inventory_logs_qs.filter(created_at__date__gt=last_30_days).select_related('product')
+        for log in service_logs:
+            cost = abs(log.change_quantity) * (log.product.cost_price or 0)
+            cogs += cost
+            
+        # Expenses (Rent, Bills, Marketing, etc)
+        total_expenses = expenses_qs.filter(expense_date__gt=last_30_days).aggregate(Sum('amount'))['amount__sum'] or 0
+        
+        # Staff Commissions
+        total_commissions = 0
+        for staff in staff_qs:
+            staff_revenue = period_visits.filter(staff_member=staff).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+            total_commissions += (staff_revenue * staff.commission_percentage) / 100
+            
+        net_profit = total_revenue - cogs - total_expenses - total_commissions
+
+        # 2. Monthly Sales & Customer Acquisition (Last 12 Months)
         monthly_stats = visits_qs.filter(
             visit_date__date__gte=last_12_months
         ).annotate(
@@ -150,12 +178,10 @@ class AnalyticsView(APIView):
 
         # Format for frontend
         formatted_monthly_data = []
-        # Create a map for easy lookup
         stats_map = {item['month'].strftime('%b'): item for item in monthly_stats}
         
-        # Generate last 12 months list to ensure all months are present even if 0 sales
         for i in range(11, -1, -1):
-            date_cursor = today - timedelta(days=i*30) # Approx
+            date_cursor = today - timedelta(days=i*30)
             month_name = date_cursor.strftime('%b')
             
             data = stats_map.get(month_name, {'sales': 0, 'customers': 0})
@@ -166,6 +192,13 @@ class AnalyticsView(APIView):
             })
 
         return Response({
+            'summary': {
+                'total_revenue': float(total_revenue),
+                'cogs': float(cogs),
+                'expenses': float(total_expenses),
+                'commissions': float(total_commissions),
+                'net_profit': float(net_profit),
+            },
             'monthly_sales': formatted_monthly_data
         })
 
@@ -561,3 +594,82 @@ class PayrollView(APIView):
             'period': {'start': start_date, 'end': end_date},
             'payroll': payroll_data
         })
+
+class ExpenseViewSet(viewsets.ModelViewSet):
+    """API endpoint for operating expenses"""
+    queryset = Expense.objects.all()
+    serializer_class = ExpenseSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Expense.objects.all()
+        # Filter by tenant
+        if not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+            else:
+                queryset = queryset.none()
+        
+        category = self.request.query_params.get('category')
+        if category:
+            queryset = queryset.filter(category=category)
+            
+        return queryset.order_by('-expense_date')
+
+    def perform_create(self, serializer):
+        if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+            serializer.save(tenant=self.request.user.profile.tenant)
+
+class GalleryImageViewSet(viewsets.ModelViewSet):
+    """API endpoint for portfolio gallery"""
+    queryset = GalleryImage.objects.all()
+    serializer_class = GalleryImageSerializer
+    
+    def get_permissions(self):
+        if self.action in ['list', 'retrieve']:
+            return [permissions.AllowAny()]
+        return [permissions.IsAuthenticated()]
+
+    def get_queryset(self):
+        queryset = GalleryImage.objects.all()
+        tenant_id = self.request.query_params.get('tenant')
+        
+        # Public Users
+        if not self.request.user.is_authenticated:
+            if tenant_id:
+                queryset = queryset.filter(tenant_id=tenant_id, is_public=True)
+            else:
+                queryset = queryset.none()
+        # Admin / Superuser
+        elif self.request.user.is_superuser:
+            if tenant_id:
+                queryset = queryset.filter(tenant_id=tenant_id)
+        # Authenticated Staff/Customer
+        else:
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                # If they provided a specific tenant, check they belong to it or it's public
+                if tenant_id:
+                    queryset = queryset.filter(tenant_id=tenant_id)
+                else:
+                    queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+                
+                # Customers only see public images
+                if self.request.user.profile.role == 'customer':
+                    queryset = queryset.filter(is_public=True)
+            else:
+                queryset = queryset.none()
+        
+        # Filter by staff or service
+        staff_id = self.request.query_params.get('staff')
+        if staff_id:
+            queryset = queryset.filter(staff_member_id=staff_id)
+            
+        service_id = self.request.query_params.get('service')
+        if service_id:
+            queryset = queryset.filter(service_id=service_id)
+            
+        return queryset.order_by('-created_at')
+
+    def perform_create(self, serializer):
+        if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+            serializer.save(tenant=self.request.user.profile.tenant)

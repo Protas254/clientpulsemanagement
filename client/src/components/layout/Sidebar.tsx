@@ -14,6 +14,8 @@ import {
   Mail,
   Star,
   Package,
+  Wallet,
+  ImageIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -24,8 +26,9 @@ const navItems = [
   { title: 'Customers', url: '/customers', icon: Users },
   { title: 'Services', url: '/services', icon: TrendingUp },
   { title: 'Inventory', url: '/inventory', icon: Package },
+  { title: 'Expenses', url: '/expenses', icon: Wallet },
+  { title: 'Work Gallery', url: '/gallery', icon: ImageIcon },
   { title: 'Rewards', url: '/rewards', icon: Gift },
-  { title: 'Manage Rewards', url: '/rewards/manage', icon: Award },
   { title: 'Reports', url: '/reports', icon: BarChart3 },
   { title: 'Contact Messages', url: '/contact-messages', icon: Mail },
   { title: 'Review Platform', url: '/platform-review', icon: Star },

@@ -129,6 +129,7 @@ export default function CustomerPortal() {
         redeemReward,
         sendContact,
         isContactLoading,
+        gallery,
     } = useCustomerPortal();
 
     const customerData = portalData?.customer;
@@ -338,10 +339,11 @@ export default function CustomerPortal() {
                         </p>
                     </div>
 
-                    <Tabs defaultValue="contact" className="w-full">
-                        <TabsList className="grid w-full grid-cols-3 mb-8 max-w-md mx-auto">
+                    <Tabs defaultValue="dashboard" className="w-full">
+                        <TabsList className="grid w-full grid-cols-4 mb-8 max-w-xl mx-auto">
                             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                             <TabsTrigger value="services">Book Services</TabsTrigger>
+                            <TabsTrigger value="portfolio">Our Gallery</TabsTrigger>
                             <TabsTrigger value="contact">Contact Us</TabsTrigger>
                         </TabsList>
 
@@ -688,6 +690,58 @@ export default function CustomerPortal() {
                                     );
                                 });
                             })()}
+                        </TabsContent>
+
+                        <TabsContent value="portfolio" className="space-y-6">
+                            <div className="text-center space-y-2 mb-8">
+                                <h2 className="text-3xl font-display font-bold text-amber-900 flex items-center justify-center gap-2">
+                                    <Camera className="w-8 h-8" />
+                                    Our Work Gallery
+                                </h2>
+                                <p className="text-muted-foreground">Take a look at some of the styles and treatments we've delivered recently</p>
+                            </div>
+
+                            {gallery && gallery.length > 0 ? (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                    {gallery.map((image: any) => (
+                                        <Card key={image.id} className="overflow-hidden group border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+                                            <div className="aspect-[4/5] relative overflow-hidden">
+                                                <img
+                                                    src={image.image.startsWith('http') ? image.image : `http://localhost:8000${image.image}`}
+                                                    alt={image.title}
+                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                                />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 text-white">
+                                                    <h3 className="font-bold text-lg">{image.title}</h3>
+                                                    <p className="text-xs text-white/80 line-clamp-2">{image.description}</p>
+                                                    <div className="flex flex-wrap gap-2 mt-2">
+                                                        {image.service_name && (
+                                                            <Badge className="bg-amber-600/80 hover:bg-amber-600 border-0 text-[10px]">
+                                                                {image.service_name}
+                                                            </Badge>
+                                                        )}
+                                                        {image.staff_member_name && (
+                                                            <Badge className="bg-white/20 hover:bg-white/30 border-0 text-[10px]">
+                                                                by {image.staff_member_name}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </Card>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-20 bg-muted/30 rounded-3xl border-2 border-dashed border-muted">
+                                    <div className="max-w-xs mx-auto space-y-4">
+                                        <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
+                                            <Camera className="w-8 h-8 text-muted-foreground" />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-amber-900">Gallery is empty</h3>
+                                        <p className="text-muted-foreground text-sm">We'll be adding images of our work soon. Stay tuned!</p>
+                                    </div>
+                                </div>
+                            )}
                         </TabsContent>
 
                         <TabsContent value="contact" className="space-y-6">
