@@ -8,12 +8,12 @@ from django.utils import timezone
 from datetime import timedelta
 from ..models import (
     User, Visit, Customer, Booking, Service, StaffMember, ContactMessage, 
-    Tenant, SubscriptionPlan, TenantSubscription, Notification, Review
+    Tenant, SubscriptionPlan, TenantSubscription, Notification, Review, Product, InventoryLog
 )
 from ..serializers import (
     UserSerializer, VisitSerializer, TenantSerializer, SubscriptionPlanSerializer, 
     TenantSubscriptionSerializer, ContactMessageSerializer, NotificationSerializer,
-    ReviewSerializer
+    ReviewSerializer, ProductSerializer, InventoryLogSerializer
 )
 
 class UserListView(generics.ListAPIView):
@@ -379,6 +379,23 @@ class ContactMessageViewSet(viewsets.ModelViewSet):
         
         serializer.save(tenant=tenant)
 
+    @action(detail=True, methods=['post'])
+    def mark_as_read(self, request, pk=None):
+        message = self.get_object()
+        message.is_read = True
+        message.save()
+        return Response({'status': 'marked as read'})
+
+    @action(detail=False, methods=['post'])
+    def delete_messages(self, request):
+        ids = request.data.get('ids', [])
+        if not ids:
+             return Response({'error': 'No IDs provided'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        queryset = self.get_queryset()
+        queryset.filter(id__in=ids).delete()
+        return Response({'status': 'messages deleted'})
+
 class ReviewViewSet(viewsets.ModelViewSet):
     queryset = Review.objects.all()
     serializer_class = ReviewSerializer
@@ -434,3 +451,113 @@ class ReviewViewSet(viewsets.ModelViewSet):
                 reviewer_type=reviewer_type,
                 user=self.request.user if reviewer_type == 'business_owner' else None
             )
+
+class ProductViewSet(viewsets.ModelViewSet):
+    """API endpoint for inventory products"""
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Product.objects.all()
+        # Filter by tenant
+        if not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+            else:
+                queryset = queryset.none()
+        return queryset.order_by('name')
+
+    def perform_create(self, serializer):
+        if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+            serializer.save(tenant=self.request.user.profile.tenant)
+        else:
+            serializer.save()
+
+class InventoryLogViewSet(viewsets.ModelViewSet):
+    """API endpoint for inventory logs"""
+    queryset = InventoryLog.objects.all()
+    serializer_class = InventoryLogSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = InventoryLog.objects.all()
+        # Filter by tenant
+        if not self.request.user.is_superuser:
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+                queryset = queryset.filter(tenant=self.request.user.profile.tenant)
+            else:
+                queryset = queryset.none()
+        
+        # Filter by product if requested
+        product_id = self.request.query_params.get('product', None)
+        if product_id:
+            queryset = queryset.filter(product_id=product_id)
+            
+        return queryset.order_by('-created_at')
+
+    def perform_create(self, serializer):
+        tenant = None
+        if hasattr(self.request.user, 'profile') and self.request.user.profile.tenant:
+            tenant = self.request.user.profile.tenant
+        
+        # Also update the product stock
+        # Ideally this should be in serializer.save() or signal, but performing here is explicit for API calls (e.g. manual restock)
+        # Note: If this is called, we assume the Change Quantity is valid.
+        
+        log = serializer.save(tenant=tenant, created_by=self.request.user)
+        
+        product = log.product
+        product.current_stock += log.change_quantity
+        product.save()
+
+
+class PayrollView(APIView):
+    """
+    Calculate staff payroll based on commission
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        if not hasattr(request.user, 'profile') or not request.user.profile.tenant:
+             return Response({'error': 'No tenant associated'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        tenant = request.user.profile.tenant
+        
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        
+        if not start_date or not end_date:
+            # Default to current month
+            today = timezone.now().date()
+            start_date = today.replace(day=1)
+            end_date = today # Till now
+        
+        staff_members = StaffMember.objects.filter(tenant=tenant)
+        payroll_data = []
+        
+        for staff in staff_members:
+            # Get completed visits for this staff
+            visits = Visit.objects.filter(
+                staff_member=staff,
+                tenant=tenant,
+                visit_date__date__range=[start_date, end_date],
+                payment_status='paid' # Only calculate for paid visits? Or all completed?
+            )
+            
+            total_revenue = visits.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+            commission_amount = (total_revenue * staff.commission_percentage) / 100
+            
+            payroll_data.append({
+                'staff_id': staff.id,
+                'staff_name': staff.name,
+                'commission_percentage': float(staff.commission_percentage),
+                'total_revenue': float(total_revenue),
+                'commission_earned': float(commission_amount),
+                'visit_count': visits.count()
+            })
+            
+        return Response({
+            'period': {'start': start_date, 'end': end_date},
+            'payroll': payroll_data
+        })

@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_save, pre_save, m2m_changed
 from django.dispatch import receiver
 from django.core.mail import send_mail
 from django.contrib.auth import get_user_model
@@ -7,7 +7,7 @@ from django.utils import timezone
 from .models import (
     Tenant, Booking, Customer, StaffMember, PaymentTransaction, 
     Notification, create_notification, UserProfile, ContactMessage, Service, Visit,
-    Review, TenantSubscription, CustomerReward
+    Review, TenantSubscription, CustomerReward, InventoryLog
 )
 
 # --- TENANT SIGNALS ---
@@ -408,6 +408,60 @@ def visit_review_request(sender, instance, created, **kwargs):
             
             # Mark as sent using update to avoid recursion
             Visit.objects.filter(pk=instance.pk).update(review_request_sent=True)
+    
+    # Inventory Deduction on Status Change (Pending -> Paid)
+    if instance.payment_status == 'paid':
+        # Check if already deducted to avoid double counting
+        # This handles the case where payment status changes to 'paid' AFTER services were linked
+        already_deducted = InventoryLog.objects.filter(notes__contains=f"Used in Visit {instance.id}").exists()
+        
+        if not already_deducted and instance.services.exists():
+            for service in instance.services.all():
+                for consumption in service.product_consumption.all():
+                    product = consumption.product
+                    quantity_used = consumption.quantity
+                    
+                    product.current_stock -= quantity_used
+                    product.save()
+                    
+                    InventoryLog.objects.create(
+                        tenant=instance.tenant,
+                        product=product,
+                        change_quantity=-quantity_used,
+                        reason='service_use',
+                        notes=f"Used in Visit {instance.id} for Service {service.name}"
+                    )
+
+@receiver(m2m_changed, sender=Visit.services.through)
+def deduct_inventory_on_service_add(sender, instance, action, pk_set, **kwargs):
+    """
+    Deduct inventory when services are added to a visit.
+    Logic moved here because Visit.save() runs before M2M services are linked.
+    """
+    if action == 'post_add' and instance.payment_status == 'paid':
+        # Get the services added
+        services = Service.objects.filter(pk__in=pk_set)
+        
+        for service in services:
+            for consumption in service.product_consumption.all():
+                product = consumption.product
+                quantity_used = consumption.quantity
+                
+                # Check duplication? InventoryLog usually tracks per action. 
+                # Assuming post_add is triggered once per batch of additions.
+                
+                # Update stock
+                product.current_stock -= quantity_used
+                product.save()
+                
+                # Create Log
+                InventoryLog.objects.create(
+                    tenant=instance.tenant,
+                    product=product,
+                    change_quantity=-quantity_used,
+                    reason='service_use',
+                    notes=f"Used in Visit {instance.id} for Service {service.name}"
+                )
 
 # --- PAYMENT SIGNALS ---
 

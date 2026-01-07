@@ -1,6 +1,11 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Customer, Sale, Reward, Service, Visit, StaffMember, Booking, CustomerReward, ContactMessage, Notification, UserProfile, Tenant, SubscriptionPlan, TenantSubscription, Review
+from .models import (
+    Customer, Sale, Reward, Service, Visit, StaffMember, Booking, 
+    CustomerReward, ContactMessage, Notification, UserProfile, Tenant, 
+    SubscriptionPlan, TenantSubscription, Review, Product, InventoryLog,
+    ServiceProductConsumption
+)
 
 User = get_user_model()
 
@@ -59,11 +64,62 @@ class UserSerializer(serializers.ModelSerializer):
         return user
 
 
+class ProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = '__all__'
+
+class InventoryLogSerializer(serializers.ModelSerializer):
+    product_name = serializers.ReadOnlyField(source='product.name')
+    created_by_name = serializers.ReadOnlyField(source='created_by.get_full_name')
+
+    class Meta:
+        model = InventoryLog
+        fields = '__all__'
+
+class ServiceProductConsumptionSerializer(serializers.ModelSerializer):
+    product_name = serializers.ReadOnlyField(source='product.name')
+    
+    class Meta:
+        model = ServiceProductConsumption
+        fields = ['id', 'product', 'product_name', 'quantity']
+        extra_kwargs = {
+             'id': {'read_only': False, 'required': False} # Allow updating existing
+        }
+
 class ServiceSerializer(serializers.ModelSerializer):
     """Serializer for salon/spa services"""
+    product_consumption = ServiceProductConsumptionSerializer(many=True, required=False)
+
     class Meta:
         model = Service
         fields = '__all__'
+    
+    def create(self, validated_data):
+        consumption_data = validated_data.pop('product_consumption', [])
+        service = Service.objects.create(**validated_data)
+        
+        for item in consumption_data:
+            ServiceProductConsumption.objects.create(service=service, **item)
+            
+        return service
+
+    def update(self, instance, validated_data):
+        consumption_data = validated_data.pop('product_consumption', None)
+        
+        # Update Service fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        if consumption_data is not None:
+            # Clear existing consumption and re-add (simple strategy)
+            # Or handle updates intelligently
+            instance.product_consumption.all().delete()
+            for item in consumption_data:
+                ServiceProductConsumption.objects.create(service=instance, **item)
+                
+        return instance
 
 
 class StaffMemberSerializer(serializers.ModelSerializer):

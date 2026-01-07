@@ -7,6 +7,12 @@ export interface Service {
     description: string;
     is_active: boolean;
     created_at: string;
+    product_consumption?: {
+        id: string;
+        product: string;
+        product_name?: string;
+        quantity: number;
+    }[];
 }
 
 export interface StaffMember {
@@ -15,6 +21,7 @@ export interface StaffMember {
     phone: string;
     email?: string;
     specialty?: string;
+    commission_percentage: number;
     is_active: boolean;
     joined_date: string;
     created_at: string;
@@ -818,9 +825,6 @@ export const updateTenantSettings = async (data: any) => {
     const isFormData = data instanceof FormData;
     const headers: Record<string, string> = {};
     const token = localStorage.getItem('token');
-    if (token) {
-        headers['Authorization'] = `Token ${token}`;
-    }
     if (!isFormData) {
         headers['Content-Type'] = 'application/json';
     }
@@ -832,6 +836,149 @@ export const updateTenantSettings = async (data: any) => {
     });
     if (!response.ok) {
         throw new Error('Failed to update tenant settings');
+    }
+
+    return response.json();
+};
+
+// Inventory API
+export interface Product {
+    id: string;
+    tenant: string;
+    name: string;
+    sku?: string;
+    description: string;
+    price: string;
+    cost_price?: string;
+    current_stock: number;
+    reorder_level: number;
+    is_active: boolean;
+    created_at: string;
+}
+
+export interface InventoryLog {
+    id: string;
+    product: string;
+    product_name?: string;
+    change_quantity: number;
+    reason: string;
+    notes: string;
+    created_at: string;
+    created_by_name?: string;
+}
+
+export const fetchProducts = async (): Promise<Product[]> => {
+    const response = await fetch(`${API_URL}products/`, {
+        headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch products');
+    }
+    return response.json();
+};
+
+export const createProduct = async (product: Omit<Product, 'id' | 'created_at' | 'tenant'>): Promise<Product> => {
+    const response = await fetch(`${API_URL}products/`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(product),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to create product');
+    }
+    return response.json();
+};
+
+export const updateProduct = async (id: string, product: Partial<Product>): Promise<Product> => {
+    const response = await fetch(`${API_URL}products/${id}/`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(product),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to update product');
+    }
+    return response.json();
+};
+
+export const deleteProduct = async (id: string) => {
+    const response = await fetch(`${API_URL}products/${id}/`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to delete product');
+    }
+};
+
+export const fetchInventoryLogs = async (productId?: string): Promise<InventoryLog[]> => {
+    let url = (`${API_URL}inventory-logs/`);
+    if (productId) {
+        url += `?product=${productId}`;
+    }
+    const response = await fetch(url, {
+        headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch inventory logs');
+    }
+    return response.json();
+};
+
+export const createInventoryLog = async (log: Omit<InventoryLog, 'id' | 'created_at' | 'created_by_name'>) => {
+    const response = await fetch(`${API_URL}inventory-logs/`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(log),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to create inventory log');
+    }
+    return response.json();
+};
+
+// Payroll API
+export interface PayrollReport {
+    period: {
+        start: string;
+        end: string;
+    };
+    payroll: {
+        staff_id: string;
+        staff_name: string;
+        commission_percentage: number;
+        total_revenue: number;
+        commission_earned: number;
+        visit_count: number;
+    }[];
+}
+
+export const fetchPayroll = async (startDate?: string, endDate?: string): Promise<PayrollReport> => {
+    let url = `${API_URL}payroll/`;
+    const params = new URLSearchParams();
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    if (params.toString()) {
+        url += `?${params.toString()}`;
+    }
+
+    const response = await fetch(url, {
+        headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch payroll report');
+    }
+    return response.json();
+};
+
+export const updateStaffCommission = async (id: string, commission: number) => {
+    const response = await fetch(`${API_URL}staff/${id}/`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ commission_percentage: commission }),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to update commission');
     }
     return response.json();
 };

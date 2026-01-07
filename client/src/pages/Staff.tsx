@@ -1,26 +1,23 @@
 import { useState, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { fetchStaff, createStaff, updateStaff, StaffMember } from '@/services/api';
-import { toast } from '@/hooks/use-toast';
-import { Users, Plus, Phone, Calendar, Mail } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
+    fetchStaff, createStaff, updateStaff, StaffMember,
+    fetchPayroll, PayrollReport, updateStaffCommission
+} from '@/services/api';
+import { toast } from '@/hooks/use-toast';
+import { Users, Plus, Phone, Calendar, Mail, DollarSign, Percent } from 'lucide-react';
+import {
+    Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+    Table, TableBody, TableCell, TableHead, TableHeader, TableRow
+} from '@/components/ui/table';
 
 export default function Staff() {
     const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -31,7 +28,16 @@ export default function Staff() {
         phone: '',
         email: '',
         specialty: '',
+        commission_percentage: '0',
         is_active: true,
+    });
+
+    // Payroll State
+    const [payrollData, setPayrollData] = useState<PayrollReport | null>(null);
+    const [payrollLoading, setPayrollLoading] = useState(false);
+    const [dateRange, setDateRange] = useState({
+        start: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+        end: new Date().toISOString().split('T')[0]
     });
 
     useEffect(() => {
@@ -43,253 +49,245 @@ export default function Staff() {
             const data = await fetchStaff();
             setStaff(data);
         } catch (error) {
-            toast({
-                title: 'Error',
-                description: 'Failed to load staff',
-                variant: 'destructive',
-            });
+            toast({ title: 'Error', description: 'Failed to load staff', variant: 'destructive' });
         } finally {
             setLoading(false);
         }
     };
 
+    const loadPayroll = async () => {
+        try {
+            setPayrollLoading(true);
+            const data = await fetchPayroll(dateRange.start, dateRange.end);
+            setPayrollData(data);
+        } catch (error) {
+            toast({ title: 'Error', description: 'Failed to load payroll report', variant: 'destructive' });
+        } finally {
+            setPayrollLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        // Load payroll when tab is active or date changes? 
+        // Better to load on demand or initial effect if we knew tab state.
+        // We'll trigger it when date changes, but only if we are in payroll tab?
+        // Let's just load it on mount of tab component if possible, 
+        // or just have a button or auto-load.
+        // For simplicity, we can load it here but guarding with a check?
+        // Or just load it when dates change.
+    }, [dateRange]);
+
     const handleSubmit = async () => {
         if (!formData.name || !formData.phone) {
-            toast({
-                title: 'Error',
-                description: 'Please fill in all required fields',
-                variant: 'destructive',
-            });
+            toast({ title: 'Error', description: 'Required fields missing', variant: 'destructive' });
             return;
         }
 
         try {
-            await createStaff(formData);
-            toast({
-                title: 'Success',
-                description: 'Staff member added successfully!',
+            await createStaff({
+                ...formData,
+                commission_percentage: Number(formData.commission_percentage)
             });
+            toast({ title: 'Success', description: 'Staff member added successfully!' });
             setShowForm(false);
-            setFormData({ name: '', phone: '', email: '', specialty: '', is_active: true });
+            setFormData({ name: '', phone: '', email: '', specialty: '', commission_percentage: '0', is_active: true });
             loadStaff();
         } catch (error) {
-            toast({
-                title: 'Error',
-                description: 'Failed to add staff member',
-                variant: 'destructive',
-            });
+            toast({ title: 'Error', description: 'Failed to add staff member', variant: 'destructive' });
         }
     };
 
     const toggleActive = async (staffMember: StaffMember) => {
         try {
             await updateStaff(staffMember.id, { is_active: !staffMember.is_active });
-            toast({
-                title: 'Success',
-                description: `${staffMember.name} has been ${staffMember.is_active ? 'deactivated' : 'activated'}`,
-            });
+            toast({ title: 'Success', description: `Updated ${staffMember.name}` });
             loadStaff();
         } catch (error) {
-            toast({
-                title: 'Error',
-                description: 'Failed to update staff member',
-                variant: 'destructive',
-            });
+            toast({ title: 'Error', description: 'Failed to update staff', variant: 'destructive' });
         }
     };
 
-    //     if (loading) {
-    //         return (
-    //             <AppLayout title="Staff" subtitle="Loading...">
-    //                 <div className="flex items-center justify-center h-64">
-    //                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
-    //                 </div>
-    //             </AppLayout>
-    //         );
-    //     }
+    const handleCommissionUpdate = async (id: string, newCommission: number) => {
+        try {
+            await updateStaffCommission(id, newCommission);
+            toast({ title: 'Success', description: 'Commission updated' });
+            loadStaff();
+            if (payrollData) loadPayroll(); // Refresh payroll if open
+        } catch (error) {
+            toast({ title: 'Error', description: 'Failed to update commission', variant: 'destructive' });
+        }
+    };
 
     const activeStaff = staff.filter(s => s.is_active);
     const inactiveStaff = staff.filter(s => !s.is_active);
 
     return (
-        <AppLayout
-            title="👥 Staff Management"
-            subtitle={`${activeStaff.length} active staff members`}
-        >
-            <div className="mb-6">
-                <Button
-                    onClick={() => setShowForm(true)}
-                    className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
-                >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Staff Member
-                </Button>
-            </div>
+        <AppLayout title="HR & Payroll">
+            <Tabs defaultValue="staff" className="space-y-4">
+                <TabsList>
+                    <TabsTrigger value="staff">Staff Management</TabsTrigger>
+                    <TabsTrigger value="payroll" onClick={() => loadPayroll()}>Payroll Report</TabsTrigger>
+                </TabsList>
 
-            {/* Active Staff */}
-            <div className="mb-8">
-                <h2 className="text-2xl font-display font-semibold mb-4 text-amber-900">
-                    Active Staff
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {activeStaff.map((staffMember) => (
-                        <Card key={staffMember.id} className="border-amber-200 hover:shadow-lg transition">
-                            <CardContent className="p-6">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-400 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                                        {staffMember.name.charAt(0)}
-                                    </div>
-                                    <Badge className="bg-green-100 text-green-700">Active</Badge>
-                                </div>
-
-                                <h3 className="text-lg font-semibold text-amber-900 mb-3">
-                                    {staffMember.name}
-                                </h3>
-
-                                <div className="space-y-2 text-sm text-gray-600 mb-4">
-                                    <div className="flex items-center gap-2">
-                                        <Phone className="w-4 h-4" />
-                                        {staffMember.phone}
-                                    </div>
-                                    {staffMember.email && (
-                                        <div className="flex items-center gap-2">
-                                            <Mail className="w-4 h-4" />
-                                            {staffMember.email}
-                                        </div>
-                                    )}
-                                    {staffMember.specialty && (
-                                        <div className="flex items-center gap-2 font-medium text-amber-700">
-                                            <Badge variant="outline" className="border-amber-200 text-amber-700">
-                                                {staffMember.specialty}
-                                            </Badge>
-                                        </div>
-                                    )}
-                                    <div className="flex items-center gap-2">
-                                        <Calendar className="w-4 h-4" />
-                                        Joined {new Date(staffMember.joined_date).toLocaleDateString()}
-                                    </div>
-                                </div>
-
-                                <Button
-                                    onClick={() => toggleActive(staffMember)}
-                                    variant="outline"
-                                    className="w-full"
-                                >
-                                    Deactivate
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    ))}
-                </div>
-            </div>
-
-            {/* Inactive Staff */}
-            {
-                inactiveStaff.length > 0 && (
-                    <div>
-                        <h2 className="text-2xl font-display font-semibold mb-4 text-gray-700">
-                            Inactive Staff
-                        </h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {inactiveStaff.map((staffMember) => (
-                                <Card key={staffMember.id} className="border-gray-200 opacity-60">
-                                    <CardContent className="p-6">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div className="w-16 h-16 bg-gray-300 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                                                {staffMember.name.charAt(0)}
-                                            </div>
-                                            <Badge variant="outline" className="text-gray-600">Inactive</Badge>
-                                        </div>
-
-                                        <h3 className="text-lg font-semibold text-gray-700 mb-3">
-                                            {staffMember.name}
-                                        </h3>
-
-                                        <div className="space-y-2 text-sm text-gray-500 mb-4">
-                                            <div className="flex items-center gap-2">
-                                                <Phone className="w-4 h-4" />
-                                                {staffMember.phone}
-                                            </div>
-                                        </div>
-
-                                        <Button
-                                            onClick={() => toggleActive(staffMember)}
-                                            variant="outline"
-                                            className="w-full"
-                                        >
-                                            Activate
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
+                <TabsContent value="staff">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-display font-semibold text-amber-900">Staff Members</h2>
+                        <Button onClick={() => setShowForm(true)} className="bg-gradient-to-r from-amber-600 to-orange-600">
+                            <Plus className="w-4 h-4 mr-2" /> Add Staff
+                        </Button>
                     </div>
-                )
-            }
 
-            {/* Add Staff Dialog */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                        {activeStaff.map((staffMember) => (
+                            <Card key={staffMember.id} className="border-amber-200 hover:shadow-lg transition">
+                                <CardContent className="p-6">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-400 rounded-full flex items-center justify-center text-white text-2xl font-bold">
+                                            {staffMember.name.charAt(0)}
+                                        </div>
+                                        <Badge className="bg-green-100 text-green-700">Active</Badge>
+                                    </div>
+                                    <h3 className="text-lg font-semibold text-amber-900 mb-1">{staffMember.name}</h3>
+                                    <p className="text-sm text-muted-foreground mb-3">{staffMember.specialty}</p>
+
+                                    <div className="space-y-2 text-sm text-gray-600 mb-4">
+                                        <div className="flex items-center justify-between bg-amber-50 p-2 rounded">
+                                            <span className="flex items-center gap-2"><Percent className="w-4 h-4" /> Commission</span>
+                                            <span className="font-bold">{staffMember.commission_percentage}%</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Phone className="w-4 h-4" /> {staffMember.phone}
+                                        </div>
+                                        {staffMember.email && (
+                                            <div className="flex items-center gap-2">
+                                                <Mail className="w-4 h-4" /> {staffMember.email}
+                                            </div>
+                                        )}
+                                        <div className="flex items-center gap-2">
+                                            <Calendar className="w-4 h-4" /> Joined {new Date(staffMember.joined_date).toLocaleDateString()}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <Button variant="outline" size="sm" className="flex-1" onClick={() => {
+                                            const newComm = prompt("Enter new commission %:", String(staffMember.commission_percentage));
+                                            if (newComm !== null) handleCommissionUpdate(staffMember.id, Number(newComm));
+                                        }}>
+                                            Set Comm.
+                                        </Button>
+                                        <Button onClick={() => toggleActive(staffMember)} variant="outline" size="sm" className="flex-1 text-red-600 border-red-200 hover:bg-red-50">
+                                            Deactivate
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="payroll">
+                    <Card>
+                        <CardHeader>
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                <CardTitle>Payroll Calculation</CardTitle>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        type="date"
+                                        value={dateRange.start}
+                                        onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+                                        className="w-auto"
+                                    />
+                                    <span>to</span>
+                                    <Input
+                                        type="date"
+                                        value={dateRange.end}
+                                        onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+                                        className="w-auto"
+                                    />
+                                    <Button onClick={loadPayroll} disabled={payrollLoading}>
+                                        {payrollLoading ? 'Calculating...' : 'Run Report'}
+                                    </Button>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Staff Member</TableHead>
+                                        <TableHead className="text-center">Total Visits</TableHead>
+                                        <TableHead className="text-right">Total Revenue Generated</TableHead>
+                                        <TableHead className="text-center">Commission Rate</TableHead>
+                                        <TableHead className="text-right font-bold text-green-700">Commission Payout</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {payrollLoading ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center py-10">Loading payroll data...</TableCell>
+                                        </TableRow>
+                                    ) : !payrollData || payrollData.payroll.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center py-10 text-muted-foreground">No payroll data for this period.</TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        payrollData.payroll.map((item) => (
+                                            <TableRow key={item.staff_id}>
+                                                <TableCell className="font-medium">{item.staff_name}</TableCell>
+                                                <TableCell className="text-center">{item.visit_count}</TableCell>
+                                                <TableCell className="text-right">KES {item.total_revenue.toLocaleString()}</TableCell>
+                                                <TableCell className="text-center">
+                                                    <Badge variant="outline">{item.commission_percentage}%</Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right font-bold text-green-700 text-lg">
+                                                    KES {item.commission_earned.toLocaleString()}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+
             <Dialog open={showForm} onOpenChange={setShowForm}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle className="font-display text-xl">Add New Staff Member</DialogTitle>
+                        <DialogTitle>Add New Staff Member</DialogTitle>
                     </DialogHeader>
-
                     <div className="space-y-4">
                         <div>
                             <Label>Name *</Label>
-                            <Input
-                                value={formData.name}
-                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                placeholder="Enter name..."
-                            />
+                            <Input value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
                         </div>
-
                         <div>
-                            <Label>Phone Number *</Label>
-                            <Input
-                                value={formData.phone}
-                                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                                placeholder="07XX XXX XXX"
-                            />
+                            <Label>Phone *</Label>
+                            <Input value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} />
                         </div>
-
                         <div>
                             <Label>Email</Label>
-                            <Input
-                                type="email"
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                placeholder="email@example.com"
-                            />
+                            <Input value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} />
                         </div>
-
                         <div>
-                            <Label>Specialty / Specification</Label>
+                            <Label>Specialty</Label>
+                            <Input value={formData.specialty} onChange={(e) => setFormData({ ...formData, specialty: e.target.value })} />
+                        </div>
+                        <div>
+                            <Label>Commission Percentage (%)</Label>
                             <Input
-                                value={formData.specialty}
-                                onChange={(e) => setFormData({ ...formData, specialty: e.target.value })}
-                                placeholder="e.g. Senior Barber, Hair Colorist"
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={formData.commission_percentage}
+                                onChange={(e) => setFormData({ ...formData, commission_percentage: e.target.value })}
                             />
                         </div>
-
-                        <div className="flex gap-3">
-                            <Button
-                                onClick={handleSubmit}
-                                className="flex-1 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700"
-                            >
-                                Add Staff
-                            </Button>
-                            <Button
-                                onClick={() => setShowForm(false)}
-                                variant="outline"
-                                className="flex-1"
-                            >
-                                Cancel
-                            </Button>
-                        </div>
+                        <Button onClick={handleSubmit} className="w-full bg-amber-600 hover:bg-amber-700">Save Staff Member</Button>
                     </div>
                 </DialogContent>
             </Dialog>
-        </AppLayout >
+        </AppLayout>
     );
 }

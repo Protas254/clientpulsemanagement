@@ -120,6 +120,7 @@ class StaffMember(models.Model):
     specialty = models.CharField(max_length=200, blank=True, help_text="e.g. Senior Barber, Hair Colorist")
     is_active = models.BooleanField(default=True)
     joined_date = models.DateField(auto_now_add=True)
+    commission_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, help_text="Percentage of service revenue earned by staff (0-100)")
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
@@ -152,6 +153,48 @@ class Service(models.Model):
     
     def __str__(self):
         return f"{self.name} - KES {self.price}"
+
+
+class Product(models.Model):
+    """Inventory Products (e.g., Shampoo, Dye, Retail items)"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
+    name = models.CharField(max_length=200)
+    sku = models.CharField(max_length=100, blank=True)
+    description = models.TextField(blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Retail Price")
+    cost_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Cost Price for profit calc")
+    current_stock = models.IntegerField(default=0)
+    reorder_level = models.IntegerField(default=5)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.current_stock})"
+
+class ServiceProductConsumption(models.Model):
+    """Mapping of products consumed by a service (e.g., 1 Hair Dye consumes 1 Red Dye Tube)"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    service = models.ForeignKey(Service, on_delete=models.CASCADE, related_name='product_consumption')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.IntegerField(default=1, help_text="Amount consumed per service")
+
+    def __str__(self):
+        return f"{self.service.name} uses {self.quantity} x {self.product.name}"
+
+class InventoryLog(models.Model):
+    """Log of stock changes"""
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='logs')
+    change_quantity = models.IntegerField(help_text="Positive for addition, negative for deduction")
+    reason = models.CharField(max_length=50) # restock, service_use, sale, adjustment, damage
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.product.name}: {self.change_quantity} ({self.reason})"
 
 
 class Customer(models.Model):
@@ -224,6 +267,31 @@ class Visit(models.Model):
                 recipient_type='customer',
                 customer=self.customer
             )
+            
+            
+            # Inventory deduction is now handled via m2m_changed signal in signals.py
+            # to ensure services are actually linked before deducting.
+
+    def _deduct_inventory(self):
+        """Deduct inventory for services in this visit"""
+        for service in self.services.all():
+            for consumption in service.product_consumption.all():
+                product = consumption.product
+                quantity_used = consumption.quantity
+                
+                # Check if enough stock (optional, or just go into negative)
+                # We will go into negative to track usage even if stock is off, or just update.
+                product.current_stock -= quantity_used
+                product.save()
+                
+                # Create Log
+                InventoryLog.objects.create(
+                    tenant=self.tenant,
+                    product=product,
+                    change_quantity=-quantity_used,
+                    reason='service_use',
+                    notes=f"Used in Visit {self.id} for Service {service.name}"
+                )
 
 
 # Keep Sale model for backward compatibility

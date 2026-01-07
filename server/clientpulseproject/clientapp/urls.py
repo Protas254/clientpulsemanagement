@@ -14,7 +14,8 @@ from .views import (
     TenantSearchView, TenantViewSet, SubscriptionPlanViewSet, TenantSubscriptionViewSet,
     TenantSettingsView, ReviewViewSet,
     PasswordResetRequestView, PasswordResetConfirmView,
-    RequestOTPView, VerifyOTPView, ResetPasswordOTPView
+    RequestOTPView, VerifyOTPView, ResetPasswordOTPView,
+    ProductViewSet, InventoryLogViewSet, PayrollView
 )
 
 # Router for ViewSets
@@ -30,6 +31,8 @@ router.register(r'tenants', TenantViewSet, basename='tenant')
 router.register(r'subscription-plans', SubscriptionPlanViewSet, basename='subscription-plan')
 router.register(r'tenant-subscriptions', TenantSubscriptionViewSet, basename='tenant-subscription')
 router.register(r'reviews', ReviewViewSet, basename='review')
+router.register(r'products', ProductViewSet, basename='product')
+router.register(r'inventory-logs', InventoryLogViewSet, basename='inventory-log')
 
 urlpatterns = [
     # Authentication
@@ -63,6 +66,7 @@ urlpatterns = [
     path('dashboard/daily-stats/', DailyStatsView.as_view(), name='daily-stats'),
     path('dashboard/top-customers/', TopCustomersView.as_view(), name='top-customers'),
     path('dashboard/analytics/', AnalyticsView.as_view(), name='analytics'),
+    path('payroll/', PayrollView.as_view(), name='payroll'),
     
     # Rewards
     path('rewards/', RewardListCreate.as_view(), name='reward-list-create'),

@@ -32,6 +32,7 @@ import ContactMessages from "./pages/ContactMessages";
 import ReviewPage from "./pages/ReviewPage";
 import Reviews from "./pages/Reviews";
 import PlatformReview from "./pages/PlatformReview";
+import Inventory from "./pages/Inventory";
 import ForgotPassword from "./pages/ForgotPassword";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
@@ -80,6 +81,7 @@ const App = () => (
             <Route path="/contact-messages" element={<ContactMessages />} />
             <Route path="/reviews" element={<Reviews />} />
             <Route path="/platform-review" element={<PlatformReview />} />
+            <Route path="/inventory" element={<Inventory />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/users" element={<Users />} />
           </Route>
