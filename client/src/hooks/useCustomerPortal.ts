@@ -71,7 +71,11 @@ export const useCustomerPortal = () => {
     const contactMutation = useMutation({
         mutationFn: sendContactMessage,
         onSuccess: () => {
-            toast({ title: "Message Sent", description: "Your message has been sent to the business owner." });
+            toast({
+                title: "Message Sent",
+                description: "Your message has been sent to the business owner.",
+                className: "bg-green-50 border-green-200 text-green-800"
+            });
         },
         onError: () => {
             toast({ title: "Failed to Send", description: "Could not send message. Please try again.", variant: "destructive" });

@@ -338,7 +338,7 @@ export default function CustomerPortal() {
                         </p>
                     </div>
 
-                    <Tabs defaultValue="dashboard" className="w-full">
+                    <Tabs defaultValue="contact" className="w-full">
                         <TabsList className="grid w-full grid-cols-3 mb-8 max-w-md mx-auto">
                             <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
                             <TabsTrigger value="services">Book Services</TabsTrigger>
@@ -731,7 +731,7 @@ export default function CustomerPortal() {
                                                 required
                                             />
                                         </div>
-                                        <Button type="submit" className="w-full tenant-brand-bg hover:opacity-90" disabled={isContactLoading}>
+                                        <Button type="submit" className="w-full bg-amber-900 hover:bg-amber-800 text-white font-bold" disabled={isContactLoading}>
                                             {isContactLoading ? 'Sending...' : 'Send Message'}
                                         </Button>
                                     </form>

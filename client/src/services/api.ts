@@ -727,6 +727,7 @@ export interface ContactMessage {
     email: string;
     subject: string;
     message: string;
+    is_read?: boolean;
     created_at?: string;
 }
 
@@ -751,6 +752,28 @@ export const fetchContactMessages = async (): Promise<ContactMessage[]> => {
     });
     if (!response.ok) {
         throw new Error('Failed to fetch contact messages');
+    }
+    return response.json();
+};
+
+export const deleteContactMessage = async (id: string) => {
+    const response = await fetch(`${API_URL}contact-messages/${id}/`, {
+        method: 'DELETE',
+        headers: getAuthHeaders(),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to delete contact message');
+    }
+};
+
+export const markContactMessageAsRead = async (id: string) => {
+    const response = await fetch(`${API_URL}contact-messages/${id}/`, {
+        method: 'PATCH',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ is_read: true }),
+    });
+    if (!response.ok) {
+        throw new Error('Failed to mark message as read');
     }
     return response.json();
 };
