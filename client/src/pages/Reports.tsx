@@ -13,6 +13,8 @@ import {
 } from '@/components/ui/select';
 import { fetchAnalytics } from '@/services/api';
 import { useQuery } from '@tanstack/react-query';
+import { exportToExcel, exportToPDF } from '@/lib/exportUtils';
+import { toast } from 'sonner';
 
 export default function Reports() {
   const { data: analyticsData, isLoading } = useQuery({
@@ -20,15 +22,23 @@ export default function Reports() {
     queryFn: fetchAnalytics,
   });
 
-  //   if (isLoading) {
-  //     return (
-  //       <AppLayout title="Reports" subtitle="Analytics and business insights">
-  //         <div className="flex items-center justify-center h-96">
-  //           <div className="w-8 h-8 border-4 border-amber-600 border-t-transparent rounded-full animate-spin" />
-  //         </div>
-  //       </AppLayout>
-  //     );
-  //   }
+  const handleExportExcel = () => {
+    if (!analyticsData) {
+      toast.error('No report data available to export');
+      return;
+    }
+    toast.success('Preparing Excel report...');
+    exportToExcel(analyticsData, 'ClientPulse_Report');
+  };
+
+  const handleExportPDF = () => {
+    if (!analyticsData) {
+      toast.error('No report data available to export');
+      return;
+    }
+    toast.success('Generating PDF report...');
+    exportToPDF(analyticsData, 'ClientPulse_Business_Report');
+  };
 
   const {
     monthly_sales = [],
@@ -77,11 +87,11 @@ export default function Reports() {
           </Select>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExportPDF}>
             <FileText className="w-4 h-4 mr-2" />
             Export PDF
           </Button>
-          <Button variant="chocolate">
+          <Button variant="chocolate" onClick={handleExportExcel}>
             <Download className="w-4 h-4 mr-2" />
             Export Excel
           </Button>
