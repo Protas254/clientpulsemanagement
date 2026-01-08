@@ -5,7 +5,7 @@ from django.db.models import Sum, Count, Q
 from ..models import Customer, Reward, Visit, Sale, CustomerReward, Booking
 from ..serializers import (
     CustomerSerializer, RewardSerializer, VisitSerializer, 
-    SaleSerializer, CustomerRewardSerializer
+    SaleSerializer, CustomerRewardSerializer, TenantSerializer
 )
 
 class CustomerListCreate(generics.ListCreateAPIView):
@@ -89,8 +89,14 @@ class CustomerPortalDetailsView(APIView):
         except Customer.DoesNotExist:
             return Response({'error': 'Customer not found'}, status=404)
 
-        # Get all active rewards
-        all_rewards = Reward.objects.filter(status='active')
+        # Check permissions
+        if not request.user.is_superuser:
+             if hasattr(request.user, 'profile') and request.user.profile.tenant:
+                 if customer.tenant != request.user.profile.tenant:
+                     return Response({'error': 'Permission denied'}, status=403)
+
+        # Get all active rewards for this tenant
+        all_rewards = Reward.objects.filter(tenant=customer.tenant, status='active')
         rewards_data = RewardSerializer(all_rewards, many=True).data
 
         # Get customer's visit history
@@ -109,21 +115,17 @@ class CustomerPortalDetailsView(APIView):
         redemptions = CustomerReward.objects.filter(customer=customer).order_by('-date_claimed')
         redemptions_data = CustomerRewardSerializer(redemptions, many=True).data
 
+        # Get children (for parent-on-behalf booking)
+        children = Customer.objects.filter(parent=customer)
+        children_data = CustomerSerializer(children, many=True).data
+        
+        # Serialize objects
+        customer_data = CustomerSerializer(customer).data
+        tenant_data = TenantSerializer(customer.tenant).data if customer.tenant else None
+
         return Response({
-            'customer': {
-                'id': customer.id,
-                'name': customer.name,
-                'email': customer.email,
-                'phone': customer.phone,
-                'location': customer.location,
-                'status': customer.status,
-                'notes': customer.notes,
-                'points': customer.points,
-                'visit_count': customer.visit_count,
-                'last_purchase': customer.last_purchase,
-                'created_at': customer.created_at,
-                'tenant_id': customer.tenant.id if customer.tenant else None,
-            },
+            'customer': customer_data,
+            'tenant': tenant_data,
             'statistics': {
                 'total_spent': float(total_spent),
                 'total_visits': customer.visit_count,
@@ -132,7 +134,8 @@ class CustomerPortalDetailsView(APIView):
             'visits': visits_data,
             'purchases': purchases_data,
             'eligible_rewards': rewards_data,
-            'redemptions': redemptions_data
+            'redemptions': redemptions_data,
+            'children': children_data
         })
 
 class TopCustomersView(APIView):
@@ -178,3 +181,33 @@ class TopCustomersView(APIView):
                 } for c in top_by_spending
             ]
         })
+
+class AddChildView(APIView):
+    """View for customers to create child profiles linked to their account"""
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        # Only customers can add children to themselves
+        parent_customer = None
+        if hasattr(request.user, 'customer_profile'):
+            parent_customer = request.user.customer_profile
+        
+        if not parent_customer:
+            return Response({'error': 'Only customers can add child profiles'}, status=403)
+            
+        name = request.data.get('name')
+        if not name:
+             return Response({'error': 'Name is required'}, status=400)
+             
+        # Create child profile
+        child = Customer.objects.create(
+            name=name,
+            parent=parent_customer,
+            tenant=parent_customer.tenant,
+            is_minor=True,
+            is_registered=False,
+            status='ACTIVE'
+        )
+        
+        serializer = CustomerSerializer(child)
+        return Response(serializer.data, status=201)

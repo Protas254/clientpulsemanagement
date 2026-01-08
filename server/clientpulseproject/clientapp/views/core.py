@@ -143,6 +143,7 @@ class AnalyticsView(APIView):
         expenses_qs = Expense.objects.filter(tenant=tenant)
         inventory_logs_qs = InventoryLog.objects.filter(tenant=tenant, reason='service_use')
         staff_qs = StaffMember.objects.filter(tenant=tenant)
+        customers_qs = Customer.objects.filter(tenant=tenant)
 
         # 1. Financial Breakdown (Last 30 Days)
         period_visits = visits_qs.filter(visit_date__date__gt=last_30_days, payment_status='paid')
@@ -191,15 +192,69 @@ class AnalyticsView(APIView):
                 'customers': data['customers']
             })
 
+        # 3. Summary & Retention Stats (Last 12 Months)
+        annual_visits = visits_qs.filter(visit_date__date__gte=last_12_months, payment_status='paid')
+        total_annual_sales = annual_visits.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        total_annual_customers = annual_visits.values('customer').distinct().count()
+        total_annual_visits = annual_visits.count()
+        
+        avg_monthly_sales = float(total_annual_sales) / 12 if total_annual_sales else 0
+        
+        # Retention calculation
+        returning_customers = annual_visits.values('customer').annotate(
+            visit_count=Count('id')
+        ).filter(visit_count__gt=1).count()
+        
+        retention_rate = (returning_customers / total_annual_customers * 100) if total_annual_customers > 0 else 0
+        avg_visits_per_client = (total_annual_visits / total_annual_customers) if total_annual_customers > 0 else 0
+        avg_visit_value = (float(total_annual_sales) / total_annual_visits) if total_annual_visits > 0 else 0
+        
+        avg_rating = Review.objects.filter(tenant=tenant).aggregate(Avg('rating'))['rating__avg'] or 0
+
+        # Customer growth by status
+        customer_growth_data = []
+        for i in range(5, -1, -1): # Last 6 months
+            date_cursor = today - timedelta(days=i*30)
+            month_name = date_cursor.strftime('%b')
+            
+            # Simple simulation of growth if we don't have historical status tracking
+            status_counts = Customer.objects.filter(
+                tenant=tenant,
+                created_at__lte=date_cursor
+            ).values('status').annotate(count=Count('id'))
+            
+            counts_map = {item['status']: item['count'] for item in status_counts}
+            customer_growth_data.append({
+                'month': month_name,
+                'active': counts_map.get('active', 0),
+                'vip': counts_map.get('vip', 0),
+                'inactive': counts_map.get('inactive', 0)
+            })
+
         return Response({
             'summary': {
-                'total_revenue': float(total_revenue),
+                'total_revenue': float(total_revenue), # Last 30 days
                 'cogs': float(cogs),
                 'expenses': float(total_expenses),
                 'commissions': float(total_commissions),
                 'net_profit': float(net_profit),
+                'total_annual_sales': float(total_annual_sales),
+                'avg_monthly_sales': round(avg_monthly_sales, 2),
+                'total_customers_gained': total_annual_customers,
+                'total_customers': customers_qs.count(),
+                'registered_customers': customers_qs.filter(is_registered=True).count(),
+                'walk_in_customers': customers_qs.filter(is_registered=False).count(),
+                'child_customers': customers_qs.filter(is_minor=True).count(),
+                'child_visits_count': visits_qs.filter(customer__is_minor=True).count()
             },
-            'monthly_sales': formatted_monthly_data
+            'monthly_sales': formatted_monthly_data,
+            'customer_growth': customer_growth_data,
+            'retention_stats': {
+                'retention_rate': round(retention_rate, 1),
+                'avg_visits_per_client': round(avg_visits_per_client, 1),
+                'avg_visit_value': round(avg_visit_value, 2),
+                'customer_rating': round(float(avg_rating), 1)
+            }
         })
 
 class TenantSearchView(generics.ListAPIView):

@@ -374,7 +374,8 @@ class CustomerSignupView(APIView):
                 name=data['full_name'],
                 phone=data['phone_number'],
                 email=data.get('email', ''),
-                status='ACTIVE'
+                status='ACTIVE',
+                is_registered=True
             )
             
             # Update UserProfile (for role)

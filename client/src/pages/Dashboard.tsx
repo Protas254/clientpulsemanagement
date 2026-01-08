@@ -6,7 +6,7 @@ import { fetchDailyStats, fetchDashboardStats, DailyStats, DashboardStats, fetch
 import { Button } from '@/components/ui/button';
 import { Users, TrendingUp, Scissors, Sparkles, Calendar, Star, X } from 'lucide-react';
 import { createReview } from '@/services/api';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/hooks/use-toast';
@@ -195,6 +195,9 @@ export default function Dashboard() {
         <DialogContent className="sm:max-w-[500px] rounded-3xl">
           <DialogHeader>
             <DialogTitle className="text-2xl font-display font-bold text-amber-900">Share Your Experience</DialogTitle>
+            <DialogDescription className="text-amber-700/60">
+              Help us improve by sharing your feedback about the platform.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
             <div className="text-center">

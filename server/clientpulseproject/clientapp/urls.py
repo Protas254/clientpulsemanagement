@@ -6,7 +6,7 @@ from .views import (
     SaleListCreate, SaleDetail, 
     DashboardStatsView, DailyStatsView, TopCustomersView,
     RewardListCreate, RewardDetail, 
-    CustomerRewardCheckView, CustomerSignupView, CustomerPortalDetailsView,
+    CustomerRewardCheckView, CustomerSignupView, CustomerPortalDetailsView, AddChildView,
     ServiceViewSet, VisitViewSet, StaffMemberViewSet,
     AnalyticsView, BookingViewSet, CustomerRewardViewSet, RewardsStatsView,
     initiate_stk_push, mpesa_callback, ContactMessageViewSet, NotificationViewSet,
@@ -58,6 +58,7 @@ urlpatterns = [
     path('customers/<uuid:pk>/', CustomerDetail.as_view(), name='customer-detail'),
     path('customers/<uuid:pk>/portal-details/', CustomerPortalDetailsView.as_view(), name='customer-portal-details'),
     path('customers/<uuid:pk>/update-profile/', CustomerProfileUpdateView.as_view(), name='customer-profile-update'),
+    path('customers/add-child/', AddChildView.as_view(), name='add-child'),
     path('customers/<uuid:customer_id>/service-history/', CustomerServiceHistoryView.as_view(), name='customer-service-history'),
     
     # Sales (backward compatibility)

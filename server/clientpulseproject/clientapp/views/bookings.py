@@ -69,7 +69,11 @@ class BookingViewSet(viewsets.ModelViewSet):
         elif hasattr(self.request.user, 'customer_profile') and self.request.user.customer_profile.tenant:
             tenant = self.request.user.customer_profile.tenant
             
-        serializer.save(tenant=tenant)
+        booked_by = None
+        if hasattr(self.request.user, 'customer_profile'):
+            booked_by = self.request.user.customer_profile
+            
+        serializer.save(tenant=tenant, booked_by_customer=booked_by)
 
 class VisitViewSet(viewsets.ModelViewSet):
     """API endpoint for customer visits"""

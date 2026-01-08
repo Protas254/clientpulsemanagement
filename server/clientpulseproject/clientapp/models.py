@@ -202,14 +202,20 @@ class Customer(models.Model):
     tenant = models.ForeignKey(Tenant, on_delete=models.CASCADE, null=True, blank=True)
     user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True, related_name='customer_profile')
     name = models.CharField(max_length=200)
-    email = models.EmailField()
-    phone = models.CharField(max_length=20)
+    email = models.EmailField(blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
     status = models.CharField(max_length=20, default='ACTIVE')
     location = models.CharField(max_length=200, blank=True)
     notes = models.TextField(blank=True)
     points = models.IntegerField(default=0)
     last_purchase = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Real World Solution: Walk-in / Child / No-Account handling
+    is_registered = models.BooleanField(default=False, help_text="True if they have a system user account")
+    is_minor = models.BooleanField(default=False, help_text="Flag for children/minors")
+    parent_contact = models.CharField(max_length=20, blank=True, null=True, help_text="Parent contact info for minors")
+    parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='children')
     
     # New fields for Kinyozi/Salon/Spa
     visit_count = models.IntegerField(default=0, help_text="Total number of visits")
@@ -243,30 +249,14 @@ class Visit(models.Model):
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='paid')
     notes = models.TextField(blank=True)
+    booking = models.ForeignKey('Booking', on_delete=models.SET_NULL, null=True, blank=True, related_name='visit_record')
     review_request_sent = models.BooleanField(default=False)
     
     def __str__(self):
         return f"{self.customer.name} - {self.visit_date.strftime('%Y-%m-%d')}"
     
     def save(self, *args, **kwargs):
-        """Auto-increment customer visit count when creating new visit"""
-        is_new = self.pk is None
         super().save(*args, **kwargs)
-        if is_new:
-            self.customer.visit_count += 1
-            # Add points: 1 point per currency unit
-            points_earned = int(self.total_amount)
-            self.customer.points += points_earned
-            self.customer.last_purchase = self.visit_date.date()
-            self.customer.save()
-            
-            # Notification: Points Earned
-            create_notification(
-                title="Points Earned",
-                message=f"You earned {points_earned} points today. Total points: {self.customer.points}.",
-                recipient_type='customer',
-                customer=self.customer
-            )
             
             
             # Inventory deduction is now handled via m2m_changed signal in signals.py
@@ -349,6 +339,9 @@ class Booking(models.Model):
     notes = models.TextField(blank=True)
     reminder_sent = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    
+    # Parent booking on behalf of child
+    booked_by_customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, null=True, blank=True, related_name='booked_on_behalf')
 
     def __str__(self):
         return f"{self.customer.name} - {self.service.name} - {self.booking_date}"

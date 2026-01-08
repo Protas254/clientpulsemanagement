@@ -381,21 +381,123 @@ def staff_notifications(sender, instance, created, **kwargs):
                 send_email=False
             )
 
+@receiver(pre_save, sender=Visit)
+def track_visit_status_changes(sender, instance, **kwargs):
+    if instance.pk:
+        try:
+            old_instance = Visit.objects.get(pk=instance.pk)
+            instance._old_payment_status = old_instance.payment_status
+        except Visit.DoesNotExist:
+            pass
+
 # --- VISIT SIGNALS ---
+
+@receiver(post_save, sender=Visit)
+def update_customer_stats(sender, instance, created, **kwargs):
+    """
+    Update customer statistics and check for reward eligibility when a visit is paid.
+    Handles child/minor linking by notifying the parent if the customer is a minor.
+    """
+    if instance.payment_status == 'paid':
+        customer = instance.customer
+        tenant = instance.tenant
+        
+        # 1. Update Customer Visit Count and Points
+        # points = 1 point per 100 KES spent
+        points_earned = int(instance.total_amount // 100)
+        
+        # We only update if it's a NEW visit or if we haven't processed this payment yet
+        # Using a simple check to prevent double counting if status toggles
+        if created or (hasattr(instance, '_old_payment_status') and instance._old_payment_status != 'paid'):
+            customer.visit_count += 1
+            customer.points += points_earned
+            customer.last_purchase = instance.visit_date.date()
+            customer.save()
+            
+            # 2. Update Linked Booking
+            if instance.booking:
+                Booking.objects.filter(pk=instance.booking.pk).update(status='completed')
+
+            # 3. Notify Parent if Customer is a Minor
+            if customer.is_minor and customer.parent:
+                parent = customer.parent
+                service_name = "Service"
+                if instance.services.exists():
+                    service_name = instance.services.first().name
+                elif instance.booking:
+                    service_name = instance.booking.service.name
+
+                create_notification(
+                    title="Service Completed for Child",
+                    message=f"Hi {parent.name}, {customer.name} has just completed a service ({service_name}) at {tenant.name}. Total: KES {instance.total_amount}.",
+                    recipient_type='customer',
+                    customer=parent,
+                    send_email=True if parent.email else False
+                )
+            
+            # 3. Check for Reward Eligibility
+            from .models import Reward, CustomerReward
+            
+            # Visit-based rewards
+            eligible_visit_rewards = Reward.objects.filter(
+                tenant=tenant,
+                status='active',
+                visits_required__isnull=False,
+                visits_required__lte=customer.visit_count
+            )
+            
+            for reward in eligible_visit_rewards:
+                # Check if this visit matches the criteria (e.g. exactly at the interval)
+                # Logic: If visits_required is 5, reward at 5, 10, 15...
+                if customer.visit_count % reward.visits_required == 0:
+                    CustomerReward.objects.create(
+                        tenant=tenant,
+                        customer=customer,
+                        reward=reward,
+                        status='pending'
+                    )
+            
+            # Points-based rewards
+            # Only award if they have enough points and haven't reached a limit
+            eligible_point_rewards = Reward.objects.filter(
+                tenant=tenant,
+                status='active',
+                visits_required__isnull=True,
+                points_required__lte=customer.points
+            )
+            
+            # Simple logic: If they have enough points, suggest they can redeem.
+            # In some systems, points are "spent", in others they are "accumulated tiers".
+            # Here we follow the points_required as a milestone.
+            for reward in eligible_point_rewards:
+                # Check if they already have this reward pending/unclaimed to avoid spam
+                exists = CustomerReward.objects.filter(
+                    customer=customer,
+                    reward=reward,
+                    status='pending'
+                ).exists()
+                
+                if not exists:
+                    CustomerReward.objects.create(
+                        tenant=tenant,
+                        customer=customer,
+                        reward=reward,
+                        status='pending'
+                    )
 
 @receiver(post_save, sender=Visit)
 def visit_review_request(sender, instance, created, **kwargs):
     """Send a review request when a visit is marked as paid"""
-    if instance.payment_status == 'paid' and not instance.review_request_sent:
+    # Track old status to detect change
+    if not hasattr(instance, '_old_payment_status'):
+        return
+
+    if instance.payment_status == 'paid' and instance._old_payment_status != 'paid' and not instance.review_request_sent:
         customer = instance.customer
         tenant = instance.tenant
         
         if customer and tenant:
-            # In a real app, we'd delay this by 2 hours using Celery.
-            # For now, we'll send it immediately.
-            
             # The review link points to the customer portal or a dedicated review page
-            # We'll use a dedicated review page route: /review/:visitId
             review_link = f"http://localhost:5173/review/{instance.id}"
             
             create_notification(
@@ -403,7 +505,7 @@ def visit_review_request(sender, instance, created, **kwargs):
                 message=f"Hi {customer.name}, thank you for visiting {tenant.name} today! We'd love to hear your feedback. Please rate your experience here: {review_link}",
                 recipient_type='customer',
                 customer=customer,
-                send_email=True
+                send_email=True if customer.email else False
             )
             
             # Mark as sent using update to avoid recursion

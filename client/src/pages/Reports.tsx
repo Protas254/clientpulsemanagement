@@ -33,13 +33,30 @@ export default function Reports() {
   const {
     monthly_sales = [],
     customer_growth = [],
-    summary = { total_annual_sales: 0, avg_monthly_sales: 0, total_customers_gained: 0 },
-    retention_stats = { retention_rate: 0, avg_visits_per_client: 0, avg_visit_value: 0, customer_rating: 0 }
+    summary = {
+      total_annual_sales: 0,
+      avg_monthly_sales: 0,
+      total_customers_gained: 0,
+      total_revenue: 0,
+      net_profit: 0,
+      total_customers: 0,
+      registered_customers: 0,
+      walk_in_customers: 0,
+      child_customers: 0,
+      child_visits_count: 0
+    },
+    retention_stats: {
+      retention_rate = 0,
+      avg_visits_per_client = 0,
+      avg_visit_value = 0,
+      customer_rating = 0
+    } = { retention_rate: 0, avg_visits_per_client: 0, avg_visit_value: 0, customer_rating: 0 }
   } = analyticsData || {};
 
-  const totalAnnualSales = summary.total_annual_sales;
-  const avgMonthlySales = summary.avg_monthly_sales;
-  const totalCustomersGained = summary.total_customers_gained;
+  const totalAnnualSales = summary.total_annual_sales ?? summary.total_revenue ?? 0;
+  const avgMonthlySales = summary.avg_monthly_sales ?? 0;
+  const totalCustomersGained = summary.total_customers_gained ?? 0;
+  const netProfit = summary.net_profit ?? 0;
 
   return (
     <AppLayout title="Reports" subtitle="Analytics and business insights">
@@ -120,6 +137,40 @@ export default function Reports() {
         <CustomerGrowthChart data={customer_growth} />
       </div>
 
+      {/* Customer Segments */}
+      <Card className="animate-fade-in mb-8">
+        <CardHeader>
+          <CardTitle className="font-display text-lg">Customer Segment Analytics</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="text-center">
+              <p className="text-3xl font-display font-semibold text-foreground">{summary.total_customers}</p>
+              <p className="text-sm text-muted-foreground mt-1">Total Customers</p>
+            </div>
+            <div className="text-center">
+              <p className="text-3xl font-display font-semibold text-blue-600">{summary.registered_customers}</p>
+              <p className="text-sm text-muted-foreground mt-1">Registered Users</p>
+            </div>
+            <div className="text-center">
+              <p className="text-3xl font-display font-semibold text-amber-600">{summary.walk_in_customers}</p>
+              <p className="text-sm text-muted-foreground mt-1">Walk-in (No Account)</p>
+            </div>
+            <div className="text-center">
+              <p className="text-3xl font-display font-semibold text-pink-600">{summary.child_customers}</p>
+              <p className="text-sm text-muted-foreground mt-1">Child Profiles</p>
+            </div>
+          </div>
+          {summary.child_visits_count > 0 && (
+            <div className="mt-6 pt-6 border-t text-center">
+              <p className="text-sm text-muted-foreground">
+                <span className="font-semibold text-foreground">{summary.child_visits_count}</span> services delivered to children/minors.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Retention Stats */}
       <Card className="animate-fade-in">
         <CardHeader>
@@ -128,19 +179,19 @@ export default function Reports() {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="text-center">
-              <p className="text-4xl font-display font-semibold text-caramel">{retention_stats.retention_rate}%</p>
+              <p className="text-4xl font-display font-semibold text-caramel">{retention_rate}%</p>
               <p className="text-sm text-muted-foreground mt-1">Retention Rate</p>
             </div>
             <div className="text-center">
-              <p className="text-4xl font-display font-semibold text-chocolate-medium">{retention_stats.avg_visits_per_client}</p>
+              <p className="text-4xl font-display font-semibold text-chocolate-medium">{avg_visits_per_client}</p>
               <p className="text-sm text-muted-foreground mt-1">Avg. Visits/Client</p>
             </div>
             <div className="text-center">
-              <p className="text-4xl font-display font-semibold text-caramel">KES {retention_stats.avg_visit_value.toLocaleString()}</p>
+              <p className="text-4xl font-display font-semibold text-caramel">KES {avg_visit_value.toLocaleString()}</p>
               <p className="text-sm text-muted-foreground mt-1">Avg. Visit Value</p>
             </div>
             <div className="text-center">
-              <p className="text-4xl font-display font-semibold text-chocolate-medium">{retention_stats.customer_rating || '-'}</p>
+              <p className="text-4xl font-display font-semibold text-chocolate-medium">{customer_rating || '-'}</p>
               <p className="text-sm text-muted-foreground mt-1">Customer Rating</p>
             </div>
           </div>

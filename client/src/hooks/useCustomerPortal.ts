@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { checkRewards, fetchServices, fetchBookings, updateCustomerProfile, createBooking, redeemReward, sendContactMessage, fetchGallery } from '@/services/api';
+import { checkRewards, fetchServices, fetchBookings, updateCustomerProfile, createBooking, redeemReward, sendContactMessage, fetchGallery, addChild } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToast } from '@/hooks/use-toast';
 
@@ -88,6 +88,16 @@ export const useCustomerPortal = () => {
             toast({ title: "Failed to Send", description: "Could not send message. Please try again.", variant: "destructive" });
         }
     });
+    const addChildMutation = useMutation({
+        mutationFn: addChild,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['portalData'] });
+            toast({ title: "Profile Added", description: "Child profile has been added successfully." });
+        },
+        onError: (error: any) => {
+            toast({ title: "Failed to Add", description: error.message || "Could not add child profile.", variant: "destructive" });
+        }
+    });
 
     return {
         portalData: portalQuery.data,
@@ -103,6 +113,8 @@ export const useCustomerPortal = () => {
         redeemReward: redeemMutation.mutate,
         sendContact: contactMutation.mutate,
         isContactLoading: contactMutation.isPending,
+        addChild: addChildMutation.mutate,
+        isAddingChild: addChildMutation.isPending,
         refreshPortal: () => queryClient.invalidateQueries({ queryKey: ['portalData'] }),
     };
 };

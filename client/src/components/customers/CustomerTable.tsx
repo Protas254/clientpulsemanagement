@@ -35,11 +35,9 @@ export function CustomerTable({ customers, onEdit, onDelete }: CustomerTableProp
         <TableHeader>
           <TableRow className="bg-secondary/50 hover:bg-secondary/50">
             <TableHead className="font-semibold">Customer</TableHead>
-            <TableHead className="font-semibold">Phone</TableHead>
-            <TableHead className="font-semibold">Email</TableHead>
-            <TableHead className="font-semibold">Last Purchase</TableHead>
-            <TableHead className="font-semibold">Status</TableHead>
-            <TableHead className="font-semibold">Last Purchase</TableHead>
+            <TableHead className="font-semibold">Contact Info</TableHead>
+            <TableHead className="font-semibold">Type / Status</TableHead>
+            <TableHead className="font-semibold">Last Visit</TableHead>
             <TableHead className="font-semibold text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -71,14 +69,33 @@ export function CustomerTable({ customers, onEdit, onDelete }: CustomerTableProp
                   </div>
                 </div>
               </TableCell>
-              <TableCell className="text-muted-foreground">{customer.phone}</TableCell>
               <TableCell>
-                <Badge
-                  variant="outline"
-                  className={statusColors[customer.status]}
-                >
-                  {customer.status.toUpperCase()}
-                </Badge>
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm text-foreground">{customer.phone || '-'}</p>
+                  {customer.is_minor && customer.parent_contact && (
+                    <p className="text-[10px] text-muted-foreground italic">Parent: {customer.parent_contact}</p>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex flex-wrap gap-1">
+                  {customer.is_minor && (
+                    <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
+                      CHILD
+                    </Badge>
+                  )}
+                  {!customer.is_registered && (
+                    <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+                      WALK-IN
+                    </Badge>
+                  )}
+                  <Badge
+                    variant="outline"
+                    className={statusColors[customer.status as keyof typeof statusColors]}
+                  >
+                    {customer.status.toUpperCase()}
+                  </Badge>
+                </div>
               </TableCell>
               <TableCell>
                 {customer.last_purchase ? (

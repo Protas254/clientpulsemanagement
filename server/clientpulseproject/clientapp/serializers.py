@@ -132,6 +132,9 @@ class StaffMemberSerializer(serializers.ModelSerializer):
 class CustomerSerializer(serializers.ModelSerializer):
     favorite_services = ServiceSerializer(many=True, read_only=True)
     preferred_staff = StaffMemberSerializer(read_only=True)
+    parent_name = serializers.ReadOnlyField(source='parent.name')
+    tenant_id = serializers.ReadOnlyField(source='tenant.id')
+    parent_id = serializers.ReadOnlyField(source='parent.id')
     
     class Meta:
         model = Customer
@@ -184,6 +187,7 @@ class BookingSerializer(serializers.ModelSerializer):
     customer_name = serializers.ReadOnlyField(source='customer.name')
     service_name = serializers.ReadOnlyField(source='service.name')
     staff_member_name = serializers.ReadOnlyField(source='staff_member.name')
+    booked_by_name = serializers.ReadOnlyField(source='booked_by_customer.name')
     
     class Meta:
         model = Booking

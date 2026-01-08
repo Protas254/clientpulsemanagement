@@ -59,8 +59,8 @@ export interface Visit {
 export interface Customer {
     id: string;
     name: string;
-    email: string;
-    phone: string;
+    email?: string;
+    phone?: string;
     status: 'active' | 'inactive' | 'vip';
     location?: string;
     notes?: string;
@@ -72,6 +72,10 @@ export interface Customer {
     preferred_staff?: StaffMember;
     service_notes?: string;
     photo?: string;
+    is_registered: boolean;
+    is_minor: boolean;
+    parent_contact?: string;
+    parent_id?: string;
 }
 
 export interface Sale {
@@ -481,7 +485,20 @@ export const fetchDailyStats = async (): Promise<DailyStats> => {
     return response.json();
 };
 
-export const fetchTopCustomers = async () => {
+export const addChild = async (name: string): Promise<Customer> => {
+    const response = await fetch(`${API_URL}customers/add-child/`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ name }),
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add child profile');
+    }
+    return response.json();
+};
+
+export const fetchTopCustomers = async (): Promise<any> => {
     const response = await fetch(`${API_URL}dashboard/top-customers/`, {
         headers: getAuthHeaders(),
     });
@@ -502,6 +519,11 @@ export interface AnalyticsData {
         total_annual_sales?: number;
         avg_monthly_sales?: number;
         total_customers_gained?: number;
+        total_customers?: number;
+        registered_customers?: number;
+        walk_in_customers?: number;
+        child_customers?: number;
+        child_visits_count?: number;
     };
     monthly_sales: {
         month: string;
@@ -608,6 +630,7 @@ export interface Booking {
     booking_date: string;
     status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
     notes: string;
+    booked_by_customer?: string;
     created_at: string;
 }
 

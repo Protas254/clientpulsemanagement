@@ -21,13 +21,17 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+import { Switch } from '@/components/ui/switch';
+
 const customerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().min(10, 'Phone number is required'),
+  email: z.string().email('Invalid email address').optional().or(z.literal('')),
+  phone: z.string().optional(),
   location: z.string().optional(),
   status: z.enum(['active', 'inactive', 'vip']),
   notes: z.string().optional(),
+  is_minor: z.boolean().default(false),
+  parent_contact: z.string().optional(),
 });
 
 type CustomerFormData = z.infer<typeof customerSchema>;
@@ -46,10 +50,14 @@ export function CustomerForm({ customer, onSubmit, onCancel }: CustomerFormProps
       email: customer?.email || '',
       phone: customer?.phone || '',
       location: customer?.location || '',
-      status: customer?.status || 'active',
+      status: (customer?.status?.toLowerCase() as any) || 'active',
       notes: customer?.notes || '',
+      is_minor: customer?.is_minor || false,
+      parent_contact: customer?.parent_contact || '',
     },
   });
+
+  const isMinor = form.watch('is_minor');
 
   return (
     <Form {...form}>
@@ -60,11 +68,29 @@ export function CustomerForm({ customer, onSubmit, onCancel }: CustomerFormProps
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Full Name</FormLabel>
+                <FormLabel>Full Name / Kid's Name</FormLabel>
                 <FormControl>
-                  <Input placeholder="John Doe" {...field} />
+                  <Input placeholder="e.g. Brian (Kid)" {...field} />
                 </FormControl>
                 <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="is_minor"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                <div className="space-y-0.5">
+                  <FormLabel>Child / Minor</FormLabel>
+                </div>
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
               </FormItem>
             )}
           />
@@ -88,28 +114,44 @@ export function CustomerForm({ customer, onSubmit, onCancel }: CustomerFormProps
             name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Phone Number</FormLabel>
+                <FormLabel>{isMinor ? 'Parent Phone' : 'Phone Number'}</FormLabel>
                 <FormControl>
-                  <Input placeholder="+1 (555) 123-4567" {...field} />
+                  <Input placeholder="+254..." {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="location"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Location</FormLabel>
-                <FormControl>
-                  <Input placeholder="New York, NY" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {isMinor ? (
+            <FormField
+              control={form.control}
+              name="parent_contact"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Parent/Guardian Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter parent name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          ) : (
+            <FormField
+              control={form.control}
+              name="location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Location</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Nairobi, Kenya" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          )}
 
           <FormField
             control={form.control}

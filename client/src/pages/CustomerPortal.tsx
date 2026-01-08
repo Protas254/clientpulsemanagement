@@ -38,15 +38,16 @@ import {
     ArrowRight,
     Clock,
     Check,
-    Camera
+    Camera,
+    User,
 } from 'lucide-react';
 import { Service, Reward, CustomerReward } from '@/services/api';
 
 interface CustomerData {
     id: string;
     name: string;
-    email: string;
-    phone: string;
+    email?: string;
+    phone?: string;
     location: string;
     status: string;
     notes: string;
@@ -56,6 +57,8 @@ interface CustomerData {
     photo?: string;
     visit_count: number;
     tenant_id?: string;
+    is_minor: boolean;
+    parent_id?: string;
 }
 
 interface Purchase {
@@ -79,6 +82,7 @@ interface PortalData {
     visits: any[];
     eligible_rewards: Reward[];
     redemptions: CustomerReward[];
+    children: CustomerData[];
 }
 
 const statusColors = {
@@ -103,17 +107,17 @@ const categoryIcons = {
 };
 
 const categoryColors = {
-    hair: 'bg-amber-100 text-amber-700',
-    salon: 'bg-amber-100 text-amber-700',
-    barber: 'bg-blue-100 text-blue-700',
-    spa: 'bg-pink-100 text-pink-700',
-    nails: 'bg-rose-100 text-rose-700',
-    facial: 'bg-fuchsia-100 text-fuchsia-700',
-    massage: 'bg-indigo-100 text-indigo-700',
-    makeup: 'bg-purple-100 text-purple-700',
-    body: 'bg-emerald-100 text-emerald-700',
-    packages: 'bg-orange-100 text-orange-700',
-    other: 'bg-gray-100 text-gray-700',
+    hair: 'bg-amber-100 text-amber-900 border-amber-200',
+    salon: 'bg-amber-100 text-amber-900 border-amber-200',
+    barber: 'bg-sky-100 text-sky-900 border-sky-200',
+    spa: 'bg-pink-100 text-pink-900 border-pink-200',
+    nails: 'bg-rose-100 text-rose-900 border-rose-200',
+    facial: 'bg-fuchsia-100 text-fuchsia-900 border-fuchsia-200',
+    massage: 'bg-indigo-100 text-indigo-900 border-indigo-200',
+    makeup: 'bg-violet-100 text-violet-900 border-violet-200',
+    body: 'bg-emerald-100 text-emerald-900 border-emerald-200',
+    packages: 'bg-orange-100 text-orange-900 border-orange-200',
+    other: 'bg-slate-100 text-slate-900 border-slate-200',
 };
 
 export default function CustomerPortal() {
@@ -130,6 +134,8 @@ export default function CustomerPortal() {
         sendContact,
         isContactLoading,
         gallery,
+        addChild,
+        isAddingChild,
     } = useCustomerPortal();
 
     const customerData = portalData?.customer;
@@ -138,6 +144,24 @@ export default function CustomerPortal() {
     const visits = portalData?.visits || [];
     const rewards = portalData?.eligible_rewards || [];
     const redemptions = portalData?.redemptions || [];
+    const children = portalData?.children || [];
+    const [bookingFor, setBookingFor] = useState<string>('me');
+
+    // New child profile state
+    const [isAddChildOpen, setIsAddChildOpen] = useState(false);
+    const [childName, setChildName] = useState('');
+
+    const handleAddChild = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!childName.trim()) return;
+
+        addChild(childName, {
+            onSuccess: () => {
+                setIsAddChildOpen(false);
+                setChildName('');
+            }
+        });
+    };
 
     const [selectedService, setSelectedService] = useState<Service | null>(null);
     const [bookingDate, setBookingDate] = useState('');
@@ -214,16 +238,21 @@ export default function CustomerPortal() {
             return;
         }
 
+        const actualCustomerId = bookingFor === 'me' ? customerData.id : bookingFor;
+        const bookedBy = bookingFor === 'me' ? undefined : customerData.id;
+
         confirmBooking({
-            customer: customerData.id,
+            customer: actualCustomerId,
+            booked_by_customer: bookedBy,
             service: selectedService.id,
             staff_member: null,
             booking_date: dateTime.toISOString(),
             status: 'pending',
-            notes: 'Booking request from Customer Portal'
+            notes: `Booking request from ${customerData.name}${bookingFor !== 'me' ? ' for their child' : ''}`
         }, {
             onSuccess: () => {
                 setSelectedService(null);
+                setBookingFor('me');
             }
         });
     };
@@ -261,7 +290,7 @@ export default function CustomerPortal() {
         });
     };
 
-    const getBookingStatus = (serviceId: number) => {
+    const getBookingStatus = (serviceId: string) => {
         // Find the most recent booking for this service that isn't cancelled or completed
         const booking = bookings.find(b =>
             b.service === serviceId &&
@@ -353,30 +382,37 @@ export default function CustomerPortal() {
                                 <div className="space-y-6">
                                     {/* Quick Stats */}
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                        <Card className="animate-fade-in">
-                                            <CardContent className="pt-6">
-                                                <div className="text-center p-4 rounded-xl tenant-brand-bg shadow-lg">
-                                                    <p className="text-gray-500 mb-1 text-sm font-medium">Loyalty Points</p>
-                                                    <div className="text-5xl font-bold text-gray-900">{customerData.points}</div>
+                                        <Card className="animate-fade-in overflow-hidden border-0 shadow-lg group hover:scale-[1.02] transition-transform duration-300">
+                                            <CardContent className="p-0">
+                                                <div className="bg-gradient-to-br from-amber-500 to-orange-600 p-6 text-white text-center relative overflow-hidden">
+                                                    <div className="absolute top-[-10%] right-[-10%] w-24 h-24 bg-white/10 rounded-full blur-2xl" />
+                                                    <div className="absolute bottom-[-10%] left-[-10%] w-24 h-24 bg-black/10 rounded-full blur-2xl" />
+                                                    <p className="text-white/80 mb-2 text-sm font-medium uppercase tracking-wider">Loyalty Points</p>
+                                                    <div className="text-6xl font-bold font-display drop-shadow-md">{customerData.points}</div>
+                                                    <div className="mt-2 text-xs text-white/60">Points available for redemption</div>
                                                 </div>
                                             </CardContent>
                                         </Card>
-                                        <Card className="animate-fade-in" style={{ animationDelay: '0.1s' }}>
-                                            <CardContent className="pt-6 text-center">
-                                                <DollarSign className="w-8 h-8 mx-auto tenant-brand-text mb-2" />
-                                                <p className="text-2xl font-display font-semibold text-foreground">
+                                        <Card className="animate-fade-in border-0 shadow-md group hover:shadow-lg transition-shadow duration-300 bg-white" style={{ animationDelay: '0.1s' }}>
+                                            <CardContent className="p-6 text-center flex flex-col items-center justify-center">
+                                                <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mb-3 group-hover:bg-emerald-100 transition-colors">
+                                                    <DollarSign className="w-6 h-6 text-emerald-600" />
+                                                </div>
+                                                <p className="text-3xl font-display font-bold text-slate-800">
                                                     KES {statistics.total_spent.toLocaleString()}
                                                 </p>
-                                                <p className="text-sm text-muted-foreground">Total Spent</p>
+                                                <p className="text-sm font-medium text-slate-500 uppercase tracking-tight">Total Investment</p>
                                             </CardContent>
                                         </Card>
-                                        <Card className="animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                                            <CardContent className="pt-6 text-center">
-                                                <ShoppingBag className="w-8 h-8 mx-auto text-orange-600 mb-2" />
-                                                <p className="text-2xl font-display font-semibold text-foreground">
+                                        <Card className="animate-fade-in border-0 shadow-md group hover:shadow-lg transition-shadow duration-300 bg-white" style={{ animationDelay: '0.2s' }}>
+                                            <CardContent className="p-6 text-center flex flex-col items-center justify-center">
+                                                <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center mb-3 group-hover:bg-amber-100 transition-colors">
+                                                    <ShoppingBag className="w-6 h-6 text-amber-600" />
+                                                </div>
+                                                <p className="text-3xl font-display font-bold text-slate-800">
                                                     {statistics.total_visits}
                                                 </p>
-                                                <p className="text-sm text-muted-foreground">Total Visits</p>
+                                                <p className="text-sm font-medium text-slate-500 uppercase tracking-tight">Total Experiences</p>
                                             </CardContent>
                                         </Card>
                                     </div>
@@ -384,10 +420,21 @@ export default function CustomerPortal() {
                                     {/* Available Rewards */}
                                     <Card className="animate-fade-in">
                                         <CardHeader>
-                                            <CardTitle className="font-display text-lg flex items-center gap-2">
-                                                <Gift className="w-5 h-5 tenant-brand-text" />
-                                                Available Rewards
-                                            </CardTitle>
+                                            <div className="flex items-center justify-between">
+                                                <CardTitle className="font-display text-lg flex items-center gap-2">
+                                                    <Gift className="w-5 h-5 tenant-brand-text" />
+                                                    Available Rewards
+                                                </CardTitle>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => setIsAddChildOpen(true)}
+                                                    className="tenant-brand-border tenant-brand-text hover:tenant-brand-bg-soft h-8"
+                                                >
+                                                    <Plus className="w-4 h-4 mr-1" />
+                                                    Add Family Member
+                                                </Button>
+                                            </div>
                                         </CardHeader>
                                         <CardContent>
                                             {rewards.length > 0 ? (
@@ -395,48 +442,49 @@ export default function CustomerPortal() {
                                                     {rewards.map((reward) => {
                                                         const isPointsEligible = reward.points_required > 0 && customerData.points >= reward.points_required;
                                                         const isVisitsEligible = (reward.visits_required || 0) > 0 && customerData.visit_count >= (reward.visits_required || 0);
-                                                        // If neither requirement is set, it's free/always available? Or if one is met?
-                                                        // Logic: If points_required > 0, need points. If visits_required > 0, need visits.
-                                                        // Usually rewards are EITHER points OR visits.
                                                         const isEligible = (reward.points_required > 0 && isPointsEligible) ||
                                                             ((reward.visits_required || 0) > 0 && isVisitsEligible) ||
                                                             (reward.points_required === 0 && (reward.visits_required || 0) === 0);
 
                                                         return (
-                                                            <div key={reward.id} className={`flex items-center justify-between p-4 rounded-lg transition-colors ${isEligible ? 'bg-secondary/50 hover:bg-secondary/70' : 'bg-muted/30 opacity-75'}`}>
+                                                            <div key={reward.id} className={`flex items-center justify-between p-4 rounded-xl transition-all duration-300 border-l-4 ${isEligible ? 'bg-slate-50 border-amber-500 hover:bg-slate-100 shadow-sm' : 'bg-slate-50/50 border-slate-300 opacity-75'}`}>
                                                                 <div>
                                                                     <div className="flex items-center gap-2 mb-1">
-                                                                        <h3 className="font-semibold text-lg">{reward.name}</h3>
-                                                                        <Badge variant="secondary" className="tenant-brand-bg-soft">
+                                                                        <h3 className="font-bold text-slate-800 text-lg">{reward.name}</h3>
+                                                                        <Badge className={isEligible ? 'bg-amber-100 text-amber-700 hover:bg-amber-100 border-0' : 'bg-slate-200 text-slate-600 hover:bg-slate-200 border-0'}>
                                                                             {reward.type}
                                                                         </Badge>
                                                                         {!isEligible && (
-                                                                            <Badge variant="outline" className="border-gray-400 text-gray-500">
+                                                                            <Badge variant="outline" className="border-slate-300 text-slate-500">
                                                                                 Locked
                                                                             </Badge>
                                                                         )}
                                                                     </div>
-                                                                    <p className="text-muted-foreground text-sm">{reward.description}</p>
+                                                                    <p className="text-slate-500 text-sm max-w-md">{reward.description}</p>
                                                                     {!isEligible && (
-                                                                        <p className="text-xs text-orange-600 mt-1 font-medium">
-                                                                            {reward.points_required > 0
-                                                                                ? `Need ${reward.points_required - customerData.points} more points`
-                                                                                : `Need ${(reward.visits_required || 0) - customerData.visit_count} more visits`
-                                                                            }
-                                                                        </p>
+                                                                        <div className="flex items-center gap-1 mt-2">
+                                                                            <Clock className="w-3 h-3 text-orange-500" />
+                                                                            <p className="text-[10px] text-orange-600 font-bold uppercase tracking-wider">
+                                                                                {reward.points_required > 0
+                                                                                    ? `${reward.points_required - customerData.points} points to go`
+                                                                                    : `${(reward.visits_required || 0) - customerData.visit_count} visits to go`
+                                                                                }
+                                                                            </p>
+                                                                        </div>
                                                                     )}
                                                                 </div>
                                                                 <div className="text-right">
-                                                                    <div className="font-bold tenant-brand-text text-lg">
+                                                                    <div className={`font-black text-xl ${isEligible ? 'text-amber-600' : 'text-slate-400'}`}>
                                                                         {reward.points_required > 0 ? `${reward.points_required} pts` : `${reward.visits_required} visits`}
                                                                     </div>
                                                                     <Button
-                                                                        variant={isEligible ? "link" : "ghost"}
-                                                                        className={isEligible ? "tenant-brand-text p-0 h-auto font-medium" : "text-muted-foreground p-0 h-auto font-medium cursor-not-allowed"}
+                                                                        variant={isEligible ? "default" : "secondary"}
+                                                                        size="sm"
+                                                                        className={isEligible ? "tenant-brand-bg mt-2 px-6 rounded-full shadow-md hover:shadow-lg transition-all" : "mt-2 px-6 rounded-full opacity-50 cursor-not-allowed"}
                                                                         onClick={() => isEligible && handleRedeemReward(reward)}
                                                                         disabled={!isEligible}
                                                                     >
-                                                                        Redeem <ArrowRight className="w-4 h-4 ml-1" />
+                                                                        {isEligible ? 'Claim Now' : 'Claim Locked'}
                                                                     </Button>
                                                                 </div>
                                                             </div>
@@ -444,9 +492,20 @@ export default function CustomerPortal() {
                                                     })}
                                                 </div>
                                             ) : (
-                                                <div className="text-center py-8 text-muted-foreground bg-muted/30 rounded-xl">
-                                                    <p>No rewards available for your current point balance.</p>
-                                                    <p className="text-sm mt-2">Keep earning points to unlock rewards!</p>
+                                                <div className="text-center py-12 bg-gradient-to-br from-slate-50 to-slate-100 rounded-2xl border border-slate-100 relative overflow-hidden group">
+                                                    <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                                        <Gift className="w-32 h-32" />
+                                                    </div>
+                                                    <div className="relative z-10">
+                                                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto shadow-sm mb-4">
+                                                            <Gift className="w-8 h-8 text-slate-300" />
+                                                        </div>
+                                                        <p className="text-lg font-bold text-slate-800">No rewards available yet</p>
+                                                        <p className="text-sm text-slate-500 mt-2 max-w-xs mx-auto">Continue your journey with us! Points from your next visit will bring you closer to exclusive gifts.</p>
+                                                        <Button variant="link" onClick={() => navigate('/services')} className="mt-4 text-amber-600 font-bold">
+                                                            View Services Menu <ArrowRight className="w-4 h-4 ml-1" />
+                                                        </Button>
+                                                    </div>
                                                 </div>
                                             )}
                                         </CardContent>
@@ -459,34 +518,44 @@ export default function CustomerPortal() {
                                         </CardHeader>
                                         <CardContent>
                                             {(visits.length > 0 || redemptions.length > 0) ? (
-                                                <div className="space-y-3">
+                                                <div className="space-y-4">
                                                     {/* Visits History with Rating Button */}
                                                     {visits.map((visit) => (
                                                         <div
                                                             key={`v-${visit.id}`}
-                                                            className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border tenant-brand-border/50"
+                                                            className="flex items-center justify-between p-5 rounded-2xl bg-white border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 border-l-[6px] border-l-amber-500"
                                                         >
-                                                            <div>
-                                                                <p className="font-medium text-foreground">
-                                                                    {visit.services_detail?.map((s: any) => s.name).join(', ') || 'Service'}
-                                                                </p>
-                                                                <p className="text-sm text-muted-foreground">
-                                                                    {format(new Date(visit.visit_date), 'MMM d, yyyy')} • {visit.staff_member_name || 'Staff'}
-                                                                </p>
+                                                            <div className="space-y-1">
+                                                                <div className="flex items-center gap-2">
+                                                                    <p className="font-bold text-slate-800 text-lg">
+                                                                        {visit.services_detail?.map((s: any) => s.name).join(', ') || 'Service'}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="flex items-center gap-3 text-slate-500 text-sm">
+                                                                    <span className="flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                                                                        <Calendar className="w-3.5 h-3.5" />
+                                                                        {format(new Date(visit.visit_date), 'MMM d, yyyy')}
+                                                                    </span>
+                                                                    <span className="flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                                                                        <User className="w-3.5 h-3.5" />
+                                                                        {visit.staff_member_name || 'Staff'}
+                                                                    </span>
+                                                                </div>
                                                             </div>
-                                                            <div className="flex flex-col items-end gap-2">
-                                                                <p className="font-semibold text-foreground">
+                                                            <div className="flex flex-col items-end gap-3">
+                                                                <p className="text-xl font-black text-slate-900">
                                                                     KES {parseFloat(visit.total_amount).toLocaleString()}
                                                                 </p>
                                                                 {visit.has_review ? (
-                                                                    <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+                                                                    <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-bold ring-1 ring-emerald-100">
+                                                                        <Check className="w-3 h-3" />
                                                                         Reviewed
-                                                                    </Badge>
+                                                                    </div>
                                                                 ) : (
                                                                     <Button
                                                                         size="sm"
                                                                         variant="outline"
-                                                                        className="h-7 text-xs tenant-brand-border tenant-brand-text hover:tenant-brand-bg-soft"
+                                                                        className="h-8 rounded-full text-xs font-bold border-amber-200 text-amber-700 hover:bg-amber-50 hover:border-amber-300 shadow-sm"
                                                                         onClick={() => navigate(`/review/${visit.id}`)}
                                                                     >
                                                                         Rate Service
@@ -500,25 +569,29 @@ export default function CustomerPortal() {
                                                     {redemptions.map((redemption) => (
                                                         <div
                                                             key={`r-${redemption.id}`}
-                                                            className="flex items-center justify-between p-3 rounded-lg bg-green-50/50 border border-green-100"
+                                                            className="flex items-center justify-between p-4 rounded-2xl bg-emerald-50/30 border border-emerald-100/50 shadow-sm border-l-[6px] border-l-emerald-400"
                                                         >
-                                                            <div>
+                                                            <div className="space-y-1">
                                                                 <div className="flex items-center gap-2">
-                                                                    <Gift className="w-4 h-4 text-green-600" />
-                                                                    <p className="font-medium text-foreground">Redeemed: {redemption.reward_name}</p>
+                                                                    <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                                                                        <Gift className="w-4 h-4 text-emerald-600" />
+                                                                    </div>
+                                                                    <p className="font-bold text-slate-800">Reward Claimed: {redemption.reward_name}</p>
                                                                 </div>
-                                                                <p className="text-sm text-muted-foreground">
-                                                                    {format(new Date(redemption.date_claimed), 'MMM d, yyyy')}
+                                                                <p className="text-xs text-slate-500 ml-10">
+                                                                    Claimed on {format(new Date(redemption.date_claimed), 'MMM d, yyyy')}
                                                                 </p>
                                                             </div>
-                                                            <Badge variant="outline" className="text-green-600 border-green-200">
+                                                            <Badge className="bg-emerald-500 text-white border-0 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest">
                                                                 {redemption.status}
                                                             </Badge>
                                                         </div>
                                                     ))}
                                                 </div>
                                             ) : (
-                                                <p className="text-muted-foreground text-center py-4">No service history available.</p>
+                                                <div className="text-center py-12 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                                                    <p className="text-slate-400 font-medium">Your service history will appear here once you visit us.</p>
+                                                </div>
                                             )}
                                         </CardContent>
                                     </Card>
@@ -631,52 +704,63 @@ export default function CustomerPortal() {
 
                                     return (
                                         <div key={category} className="mb-8">
-                                            <h2 className="text-2xl font-display font-semibold mb-4 text-amber-900 flex items-center gap-2">
-                                                <Icon className="w-6 h-6" />
-                                                {category.charAt(0).toUpperCase() + category.slice(1)} Services
+                                            <h2 className="text-xl font-display font-medium mb-6 text-slate-800 flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100">
+                                                    <Icon className="w-5 h-5 text-slate-600" />
+                                                </div>
+                                                {category.charAt(0).toUpperCase() + category.slice(1)} Selection
                                             </h2>
                                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                                 {categoryServices.map((service) => {
                                                     const status = getBookingStatus(service.id);
                                                     return (
-                                                        <Card key={service.id} className="hover:shadow-lg transition-all duration-300 border-amber-100">
+                                                        <Card key={service.id} className="group hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 border-slate-100 overflow-hidden relative">
+                                                            <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                <div className="w-8 h-8 rounded-full bg-white shadow-md flex items-center justify-center">
+                                                                    <Plus className="w-4 h-4 text-emerald-600" />
+                                                                </div>
+                                                            </div>
                                                             <CardContent className="p-6">
                                                                 <div className="flex justify-between items-start mb-4">
-                                                                    <Badge className={categoryColors[category as keyof typeof categoryColors] || categoryColors.other}>
+                                                                    <Badge variant="outline" className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${categoryColors[category as keyof typeof categoryColors] || categoryColors.other}`}>
                                                                         {service.category}
                                                                     </Badge>
-                                                                    <span className="font-bold text-lg text-amber-700">
-                                                                        KES {parseFloat(service.price).toLocaleString()}
-                                                                    </span>
+                                                                    <div className="flex flex-col items-end">
+                                                                        <span className="font-black text-xl text-slate-900">
+                                                                            KES {parseFloat(service.price).toLocaleString()}
+                                                                        </span>
+                                                                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Pricing</span>
+                                                                    </div>
                                                                 </div>
-                                                                <h3 className="text-xl font-display font-bold text-foreground mb-2">
+                                                                <h3 className="text-xl font-bold text-slate-800 mb-2 group-hover:text-amber-600 transition-colors">
                                                                     {service.name}
                                                                 </h3>
-                                                                <p className="text-muted-foreground text-sm mb-4 min-h-[40px]">
+                                                                <p className="text-slate-500 text-sm mb-6 line-clamp-2 min-h-[40px]">
                                                                     {service.description}
                                                                 </p>
-                                                                <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
-                                                                    <span className="text-sm text-muted-foreground flex items-center gap-1">
-                                                                        <Clock className="w-4 h-4" />
-                                                                        {service.duration} mins
-                                                                    </span>
+                                                                <div className="flex items-center justify-between pt-4 border-t border-slate-50">
+                                                                    <div className="flex items-center gap-4">
+                                                                        <span className="text-xs font-bold text-slate-400 flex items-center gap-1.5 uppercase tracking-tighter">
+                                                                            <Clock className="w-3.5 h-3.5" />
+                                                                            {service.duration} MINS
+                                                                        </span>
+                                                                    </div>
                                                                     {status === 'pending' ? (
-                                                                        <Button disabled className="bg-yellow-100 text-yellow-700 hover:bg-yellow-200">
-                                                                            <Clock className="w-4 h-4 mr-2" />
-                                                                            Booked
+                                                                        <Button disabled className="bg-amber-50 text-amber-600 hover:bg-amber-100 rounded-full h-9 border-amber-100 border px-6 text-xs font-black uppercase tracking-tighter">
+                                                                            <Clock className="w-3 h-3 mr-1.5" />
+                                                                            Pending
                                                                         </Button>
                                                                     ) : status === 'confirmed' ? (
-                                                                        <Button disabled className="bg-green-100 text-green-700 hover:bg-green-200">
-                                                                            <Check className="w-4 h-4 mr-2" />
-                                                                            Approved
+                                                                        <Button disabled className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-full h-9 border-emerald-100 border px-6 text-xs font-black uppercase tracking-tighter">
+                                                                            <Check className="w-3 h-3 mr-1.5" />
+                                                                            Confirmed
                                                                         </Button>
                                                                     ) : (
                                                                         <Button
                                                                             onClick={() => initiateBooking(service)}
-                                                                            className="bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-md transition-all"
+                                                                            className="rounded-full h-9 px-6 text-xs font-black uppercase tracking-widest bg-slate-900 border-0 shadow-lg hover:shadow-xl hover:scale-105 transition-all"
                                                                             disabled={isBookingLoading}
                                                                         >
-                                                                            <Plus className="w-4 h-4 mr-2" />
                                                                             Book Now
                                                                         </Button>
                                                                     )}
@@ -694,37 +778,41 @@ export default function CustomerPortal() {
 
                         <TabsContent value="portfolio" className="space-y-6">
                             <div className="text-center space-y-2 mb-8">
-                                <h2 className="text-3xl font-display font-bold text-amber-900 flex items-center justify-center gap-2">
-                                    <Camera className="w-8 h-8" />
+                                <h2 className="text-3xl font-display font-bold text-slate-800 flex items-center justify-center gap-3">
+                                    <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center border border-amber-100 shadow-sm">
+                                        <Camera className="w-6 h-6 text-amber-600" />
+                                    </div>
                                     Our Work Gallery
                                 </h2>
-                                <p className="text-muted-foreground">Take a look at some of the styles and treatments we've delivered recently</p>
+                                <p className="text-slate-500 font-medium max-w-lg mx-auto">Take a look at some of the stunning transformations and artistic details we've delivered recently</p>
                             </div>
 
                             {gallery && gallery.length > 0 ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                                     {gallery.map((image: any) => (
-                                        <Card key={image.id} className="overflow-hidden group border-0 shadow-lg hover:shadow-xl transition-all duration-300">
-                                            <div className="aspect-[4/5] relative overflow-hidden">
+                                        <Card key={image.id} className="overflow-hidden group cursor-pointer border-0 shadow-lg hover:shadow-2xl transition-all duration-500 rounded-[2rem]">
+                                            <div className="relative aspect-[4/5] overflow-hidden">
                                                 <img
                                                     src={image.image.startsWith('http') ? image.image : `http://localhost:8000${image.image}`}
-                                                    alt={image.title}
-                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                                    alt={image.title || "Gallery Image"}
+                                                    className="object-cover w-full h-full transition-transform duration-1000 group-hover:scale-110"
                                                 />
-                                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 text-white">
-                                                    <h3 className="font-bold text-lg">{image.title}</h3>
-                                                    <p className="text-xs text-white/80 line-clamp-2">{image.description}</p>
-                                                    <div className="flex flex-wrap gap-2 mt-2">
-                                                        {image.service_name && (
-                                                            <Badge className="bg-amber-600/80 hover:bg-amber-600 border-0 text-[10px]">
-                                                                {image.service_name}
-                                                            </Badge>
-                                                        )}
-                                                        {image.staff_member_name && (
-                                                            <Badge className="bg-white/20 hover:bg-white/30 border-0 text-[10px]">
-                                                                by {image.staff_member_name}
-                                                            </Badge>
-                                                        )}
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-6">
+                                                    <div className="transform translate-y-4 group-hover:translate-y-0 transition-transform duration-500">
+                                                        <h3 className="text-white font-bold text-xl mb-1">{image.title}</h3>
+                                                        <p className="text-white/70 text-sm line-clamp-2 mb-3">{image.description}</p>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {image.service_name && (
+                                                                <Badge className="bg-amber-500 text-white border-0 text-[10px] font-bold uppercase tracking-widest px-2 group-hover:bg-white group-hover:text-amber-600 transition-colors">
+                                                                    {image.service_name}
+                                                                </Badge>
+                                                            )}
+                                                            {image.staff_member_name && (
+                                                                <Badge className="bg-white/20 text-white border-0 text-[10px] font-bold uppercase tracking-widest px-2 backdrop-blur-md">
+                                                                    {image.staff_member_name}
+                                                                </Badge>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
@@ -732,13 +820,24 @@ export default function CustomerPortal() {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-20 bg-muted/30 rounded-3xl border-2 border-dashed border-muted">
-                                    <div className="max-w-xs mx-auto space-y-4">
-                                        <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto">
-                                            <Camera className="w-8 h-8 text-muted-foreground" />
+                                <div className="text-center py-24 bg-gradient-to-tr from-slate-50 via-slate-100 to-amber-50/20 rounded-[3rem] border-2 border-dashed border-slate-200 shadow-inner relative overflow-hidden">
+                                    <div className="absolute -top-12 -left-12 w-48 h-48 bg-amber-200/20 rounded-full blur-3xl" />
+                                    <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-blue-200/20 rounded-full blur-3xl" />
+                                    <div className="relative z-10 max-w-sm mx-auto space-y-6">
+                                        <div className="w-24 h-24 bg-white rounded-[2rem] rotate-12 flex items-center justify-center mx-auto shadow-2xl ring-1 ring-slate-100 hover:rotate-0 transition-all duration-500">
+                                            <Camera className="w-12 h-12 text-amber-500 -rotate-12 hover:rotate-0 transition-all duration-500" />
                                         </div>
-                                        <h3 className="text-xl font-bold text-amber-900">Gallery is empty</h3>
-                                        <p className="text-muted-foreground text-sm">We'll be adding images of our work soon. Stay tuned!</p>
+                                        <div>
+                                            <h3 className="text-2xl font-black text-slate-800 tracking-tight">Gallery is empty</h3>
+                                            <p className="text-slate-500 mt-2 font-medium">We're curating some amazing moments to share with you. Explore our services while you wait!</p>
+                                        </div>
+                                        <Button
+                                            variant="outline"
+                                            className="rounded-full border-2 border-slate-200 font-bold hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all"
+                                            onClick={() => navigate('/services')}
+                                        >
+                                            View Services
+                                        </Button>
                                     </div>
                                 </div>
                             )}
@@ -807,11 +906,40 @@ export default function CustomerPortal() {
                             </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
-                            <div className="space-y-2">
-                                <h4 className="font-medium leading-none">{selectedService?.name}</h4>
-                                <p className="text-sm text-muted-foreground">
-                                    {selectedService?.duration} mins • KES {selectedService ? parseFloat(selectedService.price).toLocaleString() : 0}
-                                </p>
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <h4 className="font-medium leading-none">{selectedService?.name}</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                        {selectedService?.duration} mins • KES {selectedService ? parseFloat(selectedService.price).toLocaleString() : 0}
+                                    </p>
+                                </div>
+
+                                {children.length > 0 && (
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="booking-for">Who is this booking for?</Label>
+                                        <div className="flex flex-wrap gap-2">
+                                            <Button
+                                                variant={bookingFor === 'me' ? 'default' : 'outline'}
+                                                className={bookingFor === 'me' ? 'tenant-brand-bg' : ''}
+                                                size="sm"
+                                                onClick={() => setBookingFor('me')}
+                                            >
+                                                Myself
+                                            </Button>
+                                            {children.map((child) => (
+                                                <Button
+                                                    key={child.id}
+                                                    variant={bookingFor === child.id ? 'default' : 'outline'}
+                                                    className={bookingFor === child.id ? 'tenant-brand-bg' : ''}
+                                                    size="sm"
+                                                    onClick={() => setBookingFor(child.id)}
+                                                >
+                                                    {child.name}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="date">Date</Label>
@@ -915,6 +1043,37 @@ export default function CustomerPortal() {
                                 <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
                                 <Button type="submit" disabled={isUpdating}>
                                     {isUpdating ? 'Updating...' : 'Save Changes'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </DialogContent>
+                </Dialog>
+                {/* Add Child Dialog */}
+                <Dialog open={isAddChildOpen} onOpenChange={setIsAddChildOpen}>
+                    <DialogContent className="sm:max-w-[425px]">
+                        <DialogHeader>
+                            <DialogTitle>Add Family Member</DialogTitle>
+                            <DialogDescription>
+                                Create a profile for your child or minor. You can book services for them.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleAddChild}>
+                            <div className="grid gap-4 py-4">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="child-name">Full Name</Label>
+                                    <Input
+                                        id="child-name"
+                                        placeholder="Enter name (e.g. Brian Junior)"
+                                        value={childName}
+                                        onChange={(e) => setChildName(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                            </div>
+                            <DialogFooter>
+                                <Button type="button" variant="outline" onClick={() => setIsAddChildOpen(false)}>Cancel</Button>
+                                <Button type="submit" disabled={isAddingChild} className="tenant-brand-bg">
+                                    {isAddingChild ? 'Adding...' : 'Add Member'}
                                 </Button>
                             </DialogFooter>
                         </form>

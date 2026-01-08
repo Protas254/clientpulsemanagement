@@ -10,6 +10,7 @@ interface User {
     first_name?: string;
     last_name?: string;
     photo?: string;
+    tenant_id?: string;
 }
 
 interface AuthState {
