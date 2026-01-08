@@ -89,6 +89,10 @@ export default function Settings() {
     );
   }
 
+  const isValidHex = (hex: string) => {
+    return /^#[0-9A-Fa-f]{6}$/.test(hex);
+  };
+
   return (
     <AppLayout title="Settings" subtitle="Manage your account and preferences">
       <div className="max-w-3xl space-y-6 pb-12">
@@ -173,7 +177,7 @@ export default function Settings() {
                   id="primaryColor"
                   type="color"
                   className="w-20 h-10 p-1 cursor-pointer"
-                  value={tenant.primary_color ?? '#D97706'}
+                  value={isValidHex(tenant.primary_color) ? tenant.primary_color : '#D97706'}
                   onChange={(e) => setTenant({ ...tenant, primary_color: e.target.value })}
                 />
                 <Input
@@ -184,7 +188,7 @@ export default function Settings() {
                 />
                 <div
                   className="w-10 h-10 rounded-lg shadow-inner border"
-                  style={{ backgroundColor: tenant.primary_color ?? '#D97706' }}
+                  style={{ backgroundColor: isValidHex(tenant.primary_color) ? tenant.primary_color : '#D97706' }}
                 />
               </div>
               <p className="text-[10px] text-muted-foreground">This color will be used for buttons and accents in your Customer Portal</p>

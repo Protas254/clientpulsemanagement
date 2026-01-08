@@ -133,15 +133,41 @@ export interface Reward {
 
 const API_URL = 'http://localhost:8000/api/';
 
-const getAuthHeaders = () => {
+const getAuthHeaders = (isFormData: boolean = false) => {
     const token = localStorage.getItem('token');
-    const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-    };
+    const headers: Record<string, string> = {};
+
+    if (!isFormData) {
+        headers['Content-Type'] = 'application/json';
+    }
+
     if (token) {
         headers['Authorization'] = `Token ${token}`;
     }
     return headers;
+};
+
+const apiFetch = async (url: string, options: RequestInit = {}) => {
+    const isFormData = options.body instanceof FormData;
+    const response = await fetch(url, {
+        ...options,
+        headers: {
+            ...getAuthHeaders(isFormData),
+            ...options.headers,
+        },
+    });
+
+    if (response.status === 401) {
+        // Handle unauthorized - clear storage and redirect
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('customerData');
+        // We can't use useNavigate here as it's not a component
+        window.location.href = '/login?expired=true';
+        throw new Error('Unauthorized');
+    }
+
+    return response;
 };
 
 // Website functions removed as requested
@@ -466,9 +492,7 @@ export const createSale = async (sale: Omit<Sale, 'id' | 'date' | 'customer_name
 
 // Dashboard Stats
 export const fetchDashboardStats = async (): Promise<DashboardStats> => {
-    const response = await fetch(`${API_URL}dashboard-stats/`, {
-        headers: getAuthHeaders(),
-    });
+    const response = await apiFetch(`${API_URL}dashboard-stats/`);
     if (!response.ok) {
         throw new Error('Failed to fetch dashboard stats');
     }
@@ -476,9 +500,7 @@ export const fetchDashboardStats = async (): Promise<DashboardStats> => {
 };
 
 export const fetchDailyStats = async (): Promise<DailyStats> => {
-    const response = await fetch(`${API_URL}dashboard/daily-stats/`, {
-        headers: getAuthHeaders(),
-    });
+    const response = await apiFetch(`${API_URL}dashboard/daily-stats/`);
     if (!response.ok) {
         throw new Error('Failed to fetch daily stats');
     }
@@ -486,9 +508,8 @@ export const fetchDailyStats = async (): Promise<DailyStats> => {
 };
 
 export const addChild = async (name: string): Promise<Customer> => {
-    const response = await fetch(`${API_URL}customers/add-child/`, {
+    const response = await apiFetch(`${API_URL}customers/add-child/`, {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify({ name }),
     });
     if (!response.ok) {
@@ -499,9 +520,7 @@ export const addChild = async (name: string): Promise<Customer> => {
 };
 
 export const fetchTopCustomers = async (): Promise<any> => {
-    const response = await fetch(`${API_URL}dashboard/top-customers/`, {
-        headers: getAuthHeaders(),
-    });
+    const response = await apiFetch(`${API_URL}dashboard/top-customers/`);
     if (!response.ok) {
         throw new Error('Failed to fetch top customers');
     }
@@ -831,9 +850,7 @@ export const fetchNotifications = async (customerId?: string): Promise<Notificat
         ? `${API_URL}notifications/?customer_id=${customerId}`
         : `${API_URL}notifications/`;
 
-    const response = await fetch(url, {
-        headers: getAuthHeaders(),
-    });
+    const response = await apiFetch(url);
     if (!response.ok) {
         throw new Error('Failed to fetch notifications');
     }
@@ -841,9 +858,7 @@ export const fetchNotifications = async (customerId?: string): Promise<Notificat
 };
 
 export const fetchTenantSettings = async () => {
-    const response = await fetch(`${API_URL}tenant/settings/`, {
-        headers: getAuthHeaders(),
-    });
+    const response = await apiFetch(`${API_URL}tenant/settings/`);
     if (!response.ok) {
         throw new Error('Failed to fetch tenant settings');
     }
@@ -1037,22 +1052,17 @@ export const updateStaffCommission = async (id: string, commission: number) => {
 };
 
 export const markNotificationAsRead = async (id: string): Promise<void> => {
-    const response = await fetch(`${API_URL}notifications/${id}/mark_as_read/`, {
+    const response = await apiFetch(`${API_URL}notifications/${id}/mark_as_read/`, {
         method: 'POST',
-        headers: getAuthHeaders(),
     });
     if (!response.ok) {
         throw new Error('Failed to mark notification as read');
     }
 };
 
-export const markAllNotificationsAsRead = async (customerId?: number): Promise<void> => {
-    const response = await fetch(`${API_URL}notifications/mark_all_as_read/`, {
+export const markAllNotificationsAsRead = async (customerId?: string): Promise<void> => {
+    const response = await apiFetch(`${API_URL}notifications/mark_all_as_read/`, {
         method: 'POST',
-        headers: {
-            ...getAuthHeaders(),
-            'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ customer_id: customerId }),
     });
     if (!response.ok) {
@@ -1061,9 +1071,7 @@ export const markAllNotificationsAsRead = async (customerId?: number): Promise<v
 };
 
 export const fetchUserProfile = async () => {
-    const response = await fetch(`${API_URL}admin/update-profile/`, {
-        headers: getAuthHeaders(),
-    });
+    const response = await apiFetch(`${API_URL}admin/update-profile/`);
     if (!response.ok) {
         throw new Error('Failed to fetch user profile');
     }
@@ -1071,11 +1079,8 @@ export const fetchUserProfile = async () => {
 };
 
 export const updateAdminProfile = async (data: FormData) => {
-    const response = await fetch(`${API_URL}admin/update-profile/`, {
+    const response = await apiFetch(`${API_URL}admin/update-profile/`, {
         method: 'PATCH',
-        headers: {
-            'Authorization': `Token ${localStorage.getItem('token')}`,
-        },
         body: data,
     });
     if (!response.ok) {
