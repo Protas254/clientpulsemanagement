@@ -12,6 +12,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog';
 import {
     Select,
@@ -205,6 +206,9 @@ export default function Visits() {
                 <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="font-display text-2xl">New Customer Visit</DialogTitle>
+                        <DialogDescription>
+                            Record a new walk-in visit and select the services provided.
+                        </DialogDescription>
                     </DialogHeader>
 
                     <div className="space-y-6">

@@ -34,6 +34,7 @@ const Signup = () => {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
   const [isSearchingTenants, setIsSearchingTenants] = useState(false);
+  const [customerReferralCode, setCustomerReferralCode] = useState("");
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -166,7 +167,8 @@ const Signup = () => {
         phone_number: customerPhone,
         password: customerPassword,
         confirm_password: customerConfirmPassword,
-        tenant_id: selectedTenant.id
+        tenant_id: selectedTenant.id,
+        referral_code: customerReferralCode
       });
       toast({
         title: "Registration successful!",
@@ -469,6 +471,21 @@ const Signup = () => {
                     onChange={(e) => setCustomerConfirmPassword(e.target.value)}
                     className="h-12 bg-muted/50 border-border focus:border-accent focus:ring-accent/30"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="referralCode" className="text-foreground">
+                    Referral Code (Optional)
+                  </Label>
+                  <Input
+                    id="referralCode"
+                    type="text"
+                    placeholder="ENTER-CODE"
+                    value={customerReferralCode}
+                    onChange={(e) => setCustomerReferralCode(e.target.value.toUpperCase())}
+                    className="h-12 bg-muted/50 border-border focus:border-accent focus:ring-accent/30 font-mono tracking-widest"
+                  />
+                  <p className="text-[10px] text-muted-foreground ml-1">Got a friend's code? Enter it here for bonus points!</p>
                 </div>
 
                 <div className="space-y-2 relative">

@@ -60,7 +60,7 @@ export function CustomerRewardsWallet({ customerId }: CustomerRewardsWalletProps
               <p className="text-4xl font-bold text-foreground">{currentPoints}</p>
             </div>
           </div>
-          
+
           {nextReward && (
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
@@ -104,8 +104,8 @@ export function CustomerRewardsWallet({ customerId }: CustomerRewardsWalletProps
                   key={reward.id}
                   className={cn(
                     "flex items-center justify-between p-4 rounded-lg border transition-all",
-                    canRedeem 
-                      ? "border-primary/30 bg-primary/5 hover:bg-primary/10" 
+                    canRedeem
+                      ? "border-primary/30 bg-primary/5 hover:bg-primary/10"
                       : "border-border/50 bg-muted/30 opacity-60"
                   )}
                 >
@@ -181,7 +181,7 @@ export function CustomerRewardsWallet({ customerId }: CustomerRewardsWalletProps
               Are you sure you want to redeem this reward?
             </DialogDescription>
           </DialogHeader>
-          
+
           {selectedReward && (
             <div className="py-4 space-y-3">
               <div className="flex justify-between">
@@ -213,6 +213,10 @@ export function CustomerRewardsWallet({ customerId }: CustomerRewardsWalletProps
       {/* Success Dialog */}
       <Dialog open={showSuccess} onOpenChange={setShowSuccess}>
         <DialogContent className="sm:max-w-[350px] bg-card border-border text-center">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Success</DialogTitle>
+            <DialogDescription>Reward has been successfully redeemed.</DialogDescription>
+          </DialogHeader>
           <div className="py-6 space-y-4">
             <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 mx-auto flex items-center justify-center animate-bounce">
               <CheckCircle2 className="w-10 h-10 text-green-600" />

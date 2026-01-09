@@ -63,21 +63,31 @@ class CustomerRewardCheckView(APIView):
         all_rewards = Reward.objects.filter(status='active')
         rewards_data = RewardSerializer(all_rewards, many=True).data
 
-        # Get customer's visit history
+        # Calculate statistics
+        total_spent = Visit.objects.filter(customer=customer).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
+        total_purchases = Sale.objects.filter(customer=customer).count()
+
+        # Get history (sliced for return)
         visits = Visit.objects.filter(customer=customer).order_by('-visit_date')[:10]
         visits_data = VisitSerializer(visits, many=True).data
 
-        # Get purchase history (backward compatibility)
         purchases = Sale.objects.filter(customer=customer).order_by('-date')[:10]
         purchases_data = SaleSerializer(purchases, many=True).data
-
-        # Calculate statistics
-        total_spent = visits.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-        total_purchases = purchases.count()
 
         # Get redemption history
         redemptions = CustomerReward.objects.filter(customer=customer).order_by('-date_claimed')[:10]
         redemptions_data = CustomerRewardSerializer(redemptions, many=True).data
+
+        # Get referrals
+        referrals = Customer.objects.filter(referred_by=customer).order_by('-created_at')
+        referrals_data = [
+            {
+                'id': str(ref.id),
+                'name': ref.name,
+                'date': ref.created_at.isoformat(),
+                'points_earned': 50
+            } for ref in referrals
+        ]
 
         return Response({
             'tenant': TenantSerializer(customer.tenant).data if customer.tenant else None,
@@ -94,6 +104,7 @@ class CustomerRewardCheckView(APIView):
                 'last_purchase': customer.last_purchase,
                 'created_at': customer.created_at,
                 'tenant_id': customer.tenant.id if customer.tenant else None,
+                'referral_code': customer.referral_code,
             },
             'statistics': {
                 'total_spent': float(total_spent),
@@ -103,7 +114,8 @@ class CustomerRewardCheckView(APIView):
             'visits': visits_data,
             'purchases': purchases_data,
             'eligible_rewards': rewards_data,
-            'redemptions': redemptions_data
+            'redemptions': redemptions_data,
+            'referrals': referrals_data
         })
 
 class CustomerRewardViewSet(viewsets.ModelViewSet):

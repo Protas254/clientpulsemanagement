@@ -15,7 +15,9 @@ import {
   fetchRevenueAnalytics,
   fetchCustomerAnalytics,
   fetchOperationalMetrics,
-  fetchAnalyticsDashboardStats
+  fetchAnalyticsDashboardStats,
+  fetchReferralAnalytics,
+  exportAnalyticsReport
 } from '@/services/api';
 import { useQuery } from '@tanstack/react-query';
 import { exportToExcel, exportToPDF } from '@/lib/exportUtils';
@@ -29,6 +31,7 @@ const COLORS = ['#D97706', '#059669', '#2563EB', '#DC2626', '#7C3AED', '#DB2777'
 
 export default function Reports() {
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
+  const [activeTab, setActiveTab] = useState('overview');
 
   // Queries
   const { data: dashboardStats, isLoading: statsLoading } = useQuery({
@@ -51,22 +54,69 @@ export default function Reports() {
     queryFn: () => fetchOperationalMetrics(30),
   });
 
-  const handleExportExcel = () => {
-    if (!revenueData) {
-      toast.error('No report data available to export');
-      return;
-    }
-    toast.success('Preparing Excel report...');
-    exportToExcel(revenueData, 'ClientPulse_Revenue_Report');
-  };
+  const { data: referralData, isLoading: referralLoading } = useQuery({
+    queryKey: ['referralAnalytics'],
+    queryFn: fetchReferralAnalytics,
+  });
 
   const handleExportPDF = () => {
-    if (!revenueData) {
-      toast.error('No report data available to export');
-      return;
+    try {
+      if (!revenueData && !customerData && !operationalData) {
+        toast.error('No report data available to export');
+        return;
+      }
+      toast.success('Generating PDF report...');
+
+      // Pass a combined object
+      exportToPDF({
+        revenue: revenueData,
+        customers: customerData,
+        operations: operationalData,
+        dashboard: dashboardStats,
+        referrals: referralData,
+        period: period
+      }, 'ClientPulse_Business_Report');
+    } catch (error) {
+      console.error('PDF Export Error:', error);
+      toast.error('Failed to generate PDF. Check console for details.');
     }
-    toast.success('Generating PDF report...');
-    exportToPDF(revenueData, 'ClientPulse_Business_Report');
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      // First try backend export
+      const tabToType: Record<string, string> = {
+        overview: 'revenue',
+        revenue: 'revenue',
+        customers: 'customers',
+        operations: 'bookings',
+        referrals: 'referrals'
+      };
+
+      const reportType = tabToType[activeTab] || 'revenue';
+      toast.info(`Exporting ${reportType} report...`);
+      await exportAnalyticsReport(reportType, period === 'daily' ? 30 : (period === 'weekly' ? 84 : 365));
+      toast.success('Excel report exported successfully');
+    } catch (err) {
+      console.warn('Backend export failed, trying client-side fallback...', err);
+      try {
+        if (revenueData || customerData) {
+          exportToExcel({
+            revenue: revenueData,
+            customers: customerData,
+            operations: operationalData,
+            dashboard: dashboardStats,
+            referrals: referralData
+          }, 'ClientPulse_Report');
+          toast.success('Client-side Excel report generated');
+        } else {
+          toast.error('Failed to export Excel report. No data available.');
+        }
+      } catch (fallbackErr) {
+        console.error('Excel Export Error:', fallbackErr);
+        toast.error('Failed to export Excel report.');
+      }
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -79,13 +129,14 @@ export default function Reports() {
 
         {/* Header Controls */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <Tabs defaultValue="overview" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
               <TabsList>
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="revenue">Revenue</TabsTrigger>
                 <TabsTrigger value="customers">Customers</TabsTrigger>
                 <TabsTrigger value="operations">Operations</TabsTrigger>
+                <TabsTrigger value="referrals">Referrals</TabsTrigger>
               </TabsList>
 
               <div className="flex gap-2">
@@ -101,11 +152,11 @@ export default function Reports() {
                     <SelectItem value="monthly">Last 12 Months</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                <Button variant="outline" size="sm" onClick={handleExportPDF} className="h-9 px-4 border-slate-200">
                   <FileText className="w-4 h-4 mr-2" />
                   PDF
                 </Button>
-                <Button variant="default" size="sm" onClick={handleExportExcel}>
+                <Button variant="chocolate" size="sm" onClick={handleExportExcel} className="h-9 px-4">
                   <Download className="w-4 h-4 mr-2" />
                   Excel
                 </Button>
@@ -422,6 +473,72 @@ export default function Reports() {
                       </CardContent>
                     </Card>
                   </div>
+                </>
+              )}
+            </TabsContent>
+
+            {/* Referrals Content */}
+            <TabsContent value="referrals" className="space-y-6">
+              {referralLoading ? <div>Loading referral data...</div> : referralData && (
+                <>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Referrals</CardTitle>
+                        <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{referralData.total_referrals}</div>
+                        <p className="text-xs text-muted-foreground">Successful new signups via friend codes</p>
+                      </CardContent>
+                    </Card>
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Active Referrers</CardTitle>
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">{referralData.active_referrers}</div>
+                        <p className="text-xs text-muted-foreground">Customers who have referred at least 1 friend</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Top Referrers Leaderboard</CardTitle>
+                      <CardDescription>Customers driving the most viral growth</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {referralData.referral_leaderboard.map((referrer: any, i: number) => (
+                          <div key={referrer.id} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center justify-center h-8 w-8 rounded-full bg-amber-100 text-amber-700 font-bold text-sm">
+                                {i + 1}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-slate-800">{referrer.name}</p>
+                                <p className="text-xs text-muted-foreground">{referrer.points} Points Earned</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="flex items-center gap-1.5 justify-end">
+                                <span className="text-xl font-black text-[#4a3728]">{referrer.count}</span>
+                                <Users className="w-4 h-4 text-slate-400" />
+                              </div>
+                              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Referrals</p>
+                            </div>
+                          </div>
+                        ))}
+                        {referralData.referral_leaderboard.length === 0 && (
+                          <div className="py-10 text-center text-slate-400">
+                            <p className="text-sm">No referrals tracked yet.</p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </>
               )}
             </TabsContent>

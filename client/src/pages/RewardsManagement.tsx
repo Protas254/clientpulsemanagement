@@ -6,7 +6,7 @@ import { RewardCard } from '@/components/rewards/RewardCard';
 import { RewardForm } from '@/components/rewards/RewardForm';
 import { fetchRewards, createReward, updateReward, deleteReward, Reward, fetchCustomers, redeemReward } from '@/services/api';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -207,6 +207,9 @@ export default function RewardsManagement() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Redeem Reward for Customer</DialogTitle>
+            <DialogDescription>
+              Submit a reward redemption request on behalf of a customer.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">

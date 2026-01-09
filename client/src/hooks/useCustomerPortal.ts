@@ -1,22 +1,29 @@
+import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { checkRewards, fetchServices, fetchBookings, updateCustomerProfile, createBooking, redeemReward, sendContactMessage, fetchGallery, addChild } from '@/services/api';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useToast } from '@/hooks/use-toast';
 
 export const useCustomerPortal = () => {
-    const { customerData, setCustomerData } = useAuthStore();
+    const { customerData, setCustomerData, user } = useAuthStore();
     const queryClient = useQueryClient();
     const { toast } = useToast();
 
-    const identifier = customerData?.customer?.email || customerData?.customer?.phone;
+    const identifier = customerData?.customer?.email || customerData?.customer?.phone || user?.email || user?.username;
 
     // Fetch Portal Data (Customer, Statistics, Purchases, Visits, Rewards, Redemptions)
     const portalQuery = useQuery({
         queryKey: ['portalData', identifier],
         queryFn: () => checkRewards(identifier!),
         enabled: !!identifier,
-        staleTime: 1000 * 60 * 5, // 5 minutes
     });
+
+    // Sync portal data to Auth Store
+    useEffect(() => {
+        if (portalQuery.data && (!customerData || portalQuery.data.customer.id !== customerData.customer?.id)) {
+            setCustomerData(portalQuery.data);
+        }
+    }, [portalQuery.data, customerData, setCustomerData]);
 
     // Fetch Services
     const servicesQuery = useQuery({

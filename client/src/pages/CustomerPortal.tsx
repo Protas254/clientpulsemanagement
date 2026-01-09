@@ -40,6 +40,7 @@ import {
     Check,
     Camera,
     User,
+    Users,
     Search,
 } from 'lucide-react';
 import { Service, Reward, CustomerReward } from '@/services/api';
@@ -61,6 +62,7 @@ interface CustomerData {
     tenant_id?: string;
     is_minor: boolean;
     parent_id?: string;
+    referral_code?: string;
 }
 
 interface Purchase {
@@ -85,6 +87,12 @@ interface PortalData {
     eligible_rewards: Reward[];
     redemptions: CustomerReward[];
     children: CustomerData[];
+    referrals?: {
+        id: string;
+        name: string;
+        date: string;
+        points_earned: number;
+    }[];
 }
 
 const statusColors = {
@@ -147,6 +155,7 @@ export default function CustomerPortal() {
     const rewards = portalData?.eligible_rewards || [];
     const redemptions = portalData?.redemptions || [];
     const children = portalData?.children || [];
+    const referrals = portalData?.referrals || [];
     const [bookingFor, setBookingFor] = useState<string>('me');
 
     // New child profile state
@@ -441,6 +450,73 @@ export default function CustomerPortal() {
                                             </CardContent>
                                         </Card>
                                     </div>
+
+                                    {/* Referral Program */}
+                                    <Card className="animate-fade-in border-0 shadow-lg overflow-hidden bg-[#4a3728] text-white">
+                                        <CardContent className="p-0">
+                                            <div className="flex flex-col md:flex-row">
+                                                <div className="p-6 flex-1 space-y-4">
+                                                    <div className="flex items-center gap-2">
+                                                        <Users className="w-5 h-5 text-amber-400" />
+                                                        <h3 className="text-xl font-bold font-display">Refer a Friend, Get Rewarded!</h3>
+                                                    </div>
+                                                    <p className="text-white/80 text-sm">
+                                                        Share your unique code with friends. When they sign up, both of you get <span className="text-amber-400 font-bold">50 bonus points</span>!
+                                                    </p>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg px-4 py-2 font-mono text-xl font-black tracking-widest text-amber-400 select-all">
+                                                            {customerData.referral_code || '---'}
+                                                        </div>
+                                                        <Button
+                                                            variant="secondary"
+                                                            size="sm"
+                                                            className="bg-amber-500 hover:bg-amber-600 border-0 text-white font-bold"
+                                                            onClick={() => {
+                                                                navigator.clipboard.writeText(customerData.referral_code || '');
+                                                                toast({
+                                                                    title: "Code Copied!",
+                                                                    description: "Your referral code is ready to share.",
+                                                                });
+                                                            }}
+                                                        >
+                                                            Copy Code
+                                                        </Button>
+                                                    </div>
+
+                                                    {/* Referral History List */}
+                                                    {referrals.length > 0 && (
+                                                        <div className="mt-6 pt-6 border-t border-white/10 space-y-3">
+                                                            <p className="text-xs font-bold uppercase tracking-widest text-amber-400/80">Your Referrals ({referrals.length})</p>
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                                {referrals.map((ref) => (
+                                                                    <div key={ref.id} className="flex items-center justify-between p-2 rounded-lg bg-white/5 border border-white/10">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-[10px] font-bold">
+                                                                                {ref.name.split(' ').map(n => n[0]).join('')}
+                                                                            </div>
+                                                                            <div>
+                                                                                <p className="text-xs font-medium">{ref.name}</p>
+                                                                                <p className="text-[10px] text-white/40">{format(new Date(ref.date), 'MMM d, yyyy')}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 text-[10px] h-5">
+                                                                            +{ref.points_earned}
+                                                                        </Badge>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="md:w-48 bg-amber-500/10 flex items-center justify-center p-6 border-l border-white/10">
+                                                    <div className="text-center">
+                                                        <div className="text-3xl font-black text-amber-400">{referrals.length * 50}</div>
+                                                        <div className="text-[10px] font-black uppercase tracking-widest text-white/60">Total Referral Points</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
 
                                     {/* Available Rewards */}
                                     <Card className="animate-fade-in">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -73,6 +73,9 @@ export function RewardForm({ isOpen, onClose, onSave, reward }: RewardFormProps)
           <DialogTitle className="text-foreground">
             {reward ? 'Edit Reward' : 'Add New Reward'}
           </DialogTitle>
+          <DialogDescription>
+            {reward ? 'Update the details for this reward.' : 'Create a new reward that customers can redeem with points.'}
+          </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">

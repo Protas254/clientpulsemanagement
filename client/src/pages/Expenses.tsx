@@ -9,7 +9,7 @@ import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table';
 import {
-    Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter
 } from '@/components/ui/dialog';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -177,6 +177,9 @@ export default function Expenses() {
                         <DialogContent>
                             <DialogHeader>
                                 <DialogTitle>Record New Expense</DialogTitle>
+                                <DialogDescription>
+                                    Enter the details of your business expense for tracking and analytics.
+                                </DialogDescription>
                             </DialogHeader>
                             <div className="space-y-4 py-4">
                                 <div className="grid gap-2">

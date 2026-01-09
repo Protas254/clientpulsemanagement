@@ -115,6 +115,17 @@ class CustomerPortalDetailsView(APIView):
         redemptions = CustomerReward.objects.filter(customer=customer).order_by('-date_claimed')
         redemptions_data = CustomerRewardSerializer(redemptions, many=True).data
 
+        # Get referrals
+        referrals = Customer.objects.filter(referred_by=customer).order_by('-created_at')
+        referrals_data = [
+            {
+                'id': str(ref.id),
+                'name': ref.name,
+                'date': ref.created_at.isoformat(),
+                'points_earned': 50  # Default reward for a referral
+            } for ref in referrals
+        ]
+
         # Get children (for parent-on-behalf booking)
         children = Customer.objects.filter(parent=customer)
         children_data = CustomerSerializer(children, many=True).data
@@ -135,7 +146,8 @@ class CustomerPortalDetailsView(APIView):
             'purchases': purchases_data,
             'eligible_rewards': rewards_data,
             'redemptions': redemptions_data,
-            'children': children_data
+            'children': children_data,
+            'referrals': referrals_data
         })
 
 class TopCustomersView(APIView):

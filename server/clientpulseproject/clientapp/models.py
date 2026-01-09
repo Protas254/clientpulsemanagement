@@ -209,6 +209,8 @@ class Customer(models.Model):
     location = models.CharField(max_length=200, blank=True)
     notes = models.TextField(blank=True)
     points = models.IntegerField(default=0)
+    referral_code = models.CharField(max_length=20, unique=True, blank=True, null=True)
+    referred_by = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='referrals')
     last_purchase = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -227,7 +229,16 @@ class Customer(models.Model):
     photo = models.ImageField(upload_to='customer_photos/', null=True, blank=True)
 
     def save(self, *args, **kwargs):
+        if not self.referral_code:
+            self.referral_code = self.generate_referral_code()
         super().save(*args, **kwargs)
+
+    def generate_referral_code(self):
+        """Generate a random 8-character unique referral code"""
+        while True:
+            code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+            if not Customer.objects.filter(referral_code=code).exists():
+                return code
 
     def __str__(self):
         return self.name

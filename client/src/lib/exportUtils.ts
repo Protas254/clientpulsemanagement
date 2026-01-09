@@ -1,5 +1,5 @@
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
@@ -7,121 +7,241 @@ import { format } from 'date-fns';
 // Add type support for jspdf-autotable
 declare module 'jspdf' {
     interface jsPDF {
+        // Only if using prototype method, but we will use the function approach
         autoTable: (options: any) => jsPDF;
+        lastAutoTable: {
+            finalY: number;
+        };
     }
 }
 
 export const exportToExcel = (data: any, fileName: string) => {
-    const { monthly_sales, customer_growth, summary, retention_stats } = data;
+    try {
+        // Check if combined data or flat data
+        const revenue = data.revenue || data;
+        const customers = data.customers || {};
+        const operations = data.operations || {};
+        const dashboard = data.dashboard || {};
+        const referrals = data.referrals || {};
 
-    // Create workbook
-    const wb = XLSX.utils.book_new();
+        const wb = XLSX.utils.book_new();
 
-    // Summary Sheet
-    const summaryData = [
-        ['Metric', 'Value'],
-        ['Total Revenue (30d)', (summary.total_revenue || 0).toLocaleString()],
-        ['Annual Revenue', (summary.total_annual_sales || summary.total_revenue || 0).toLocaleString()],
-        ['Avg. Monthly Sales', (summary.avg_monthly_sales || 0).toLocaleString()],
-        ['Total Customers', summary.total_customers || 0],
-        ['Registered Customers', summary.registered_customers || 0],
-        ['Walk-in Customers', summary.walk_in_customers || 0],
-        ['Child Profiles', summary.child_customers || 0],
-        ['Child Services Delivered', summary.child_visits_count || 0],
-        ['Retention Rate (%)', `${retention_stats.retention_rate || 0}%`],
-        ['Avg. Visits per Client', retention_stats.avg_visits_per_client || 0],
-        ['Avg. Visit Value', (retention_stats.avg_visit_value || 0).toLocaleString()],
-        ['Customer Satisfaction (Rating)', retention_stats.customer_rating || '-'],
-    ];
-    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(wb, wsSummary, 'Business Summary');
+        // Summary Sheet
+        const summaryData = [
+            ['General Business Summary', 'Value'],
+            ['Generated On', format(new Date(), 'dd MMM yyyy HH:mm')],
+            [],
+            ['Financial Overview', ''],
+            ['Total Revenue (Period)', revenue.total_stats?.revenue || 0],
+            ['Avg Ticket Size', revenue.total_stats?.avg_ticket || 0],
+            ['This Month Growth', `${dashboard.this_month?.growth_percentage || 0}%`],
+            [],
+            ['Customer Metrics', ''],
+            ['Total Customers', customers.overview?.total_customers || 0],
+            ['New Customers (30d)', customers.overview?.new_customers_30d || 0],
+            ['Retention Rate', `${customers.overview?.retention_rate || 0}%`],
+            ['Average CLV', customers.lifetime_value?.avg_clv || 0],
+            [],
+            ['Operational Metrics', ''],
+            ['Total Visits', revenue.total_stats?.visits || 0],
+            ['Lead Conversion Rate', `${operations.rates?.conversion_rate || 0}%`],
+            ['Completion Rate', `${operations.rates?.completion_rate || 0}%`],
+            ['Cancellation Rate', `${operations.rates?.cancellation_rate || 0}%`],
+            [],
+            ['Referral Program', ''],
+            ['Total Referrals', referrals.total_referrals || 0],
+            ['Active Referrers', referrals.active_referrers || 0],
+        ];
+        const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+        XLSX.utils.book_append_sheet(wb, wsSummary, 'Business Overview');
 
-    // Sales Data Sheet
-    const salesData = [
-        ['Month', 'Sales (KES)', 'New Customers'],
-        ...monthly_sales.map((item: any) => [item.month, item.sales, item.customers])
-    ];
-    const wsSales = XLSX.utils.aoa_to_sheet(salesData);
-    XLSX.utils.book_append_sheet(wb, wsSales, 'Monthly Performance');
+        // Revenue Trend Sheet
+        if (revenue.revenue_trend) {
+            const trendData = [
+                ['Date', 'Revenue (KES)', 'Visits', 'Avg Ticket'],
+                ...revenue.revenue_trend.map((item: any) => [item.date, item.revenue, item.visits, item.avg_ticket])
+            ];
+            const wsTrend = XLSX.utils.aoa_to_sheet(trendData);
+            XLSX.utils.book_append_sheet(wb, wsTrend, 'Revenue Trend');
+        }
 
-    // Customer Growth Sheet
-    const growthData = [
-        ['Month', 'Active', 'VIP', 'Inactive'],
-        ...customer_growth.map((item: any) => [item.month, item.active, item.vip, item.inactive])
-    ];
-    const wsGrowth = XLSX.utils.aoa_to_sheet(growthData);
-    XLSX.utils.book_append_sheet(wb, wsGrowth, 'Customer Growth');
+        // Service Performance Sheet
+        if (revenue.service_performance) {
+            const serviceData = [
+                ['Service Name', 'Category', 'Revenue (KES)', 'Count'],
+                ...revenue.service_performance.map((item: any) => [item.service_name, item.category, item.revenue, item.count])
+            ];
+            const wsService = XLSX.utils.aoa_to_sheet(serviceData);
+            XLSX.utils.book_append_sheet(wb, wsService, 'Service Performance');
+        }
 
-    // Write and save
-    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    const finalData = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
-    saveAs(finalData, `${fileName}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+        // Staff Performance Sheet
+        if (revenue.staff_performance) {
+            const staffData = [
+                ['Staff Name', 'Revenue (KES)', 'Visits', 'Avg Ticket'],
+                ...revenue.staff_performance.map((item: any) => [item.staff_name, item.revenue, item.visits, item.avg_ticket])
+            ];
+            const wsStaff = XLSX.utils.aoa_to_sheet(staffData);
+            XLSX.utils.book_append_sheet(wb, wsStaff, 'Staff Performance');
+        }
+
+        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const finalData = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8' });
+        saveAs(finalData, `${fileName}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    } catch (error) {
+        console.error('Error generating Excel:', error);
+        throw error;
+    }
 };
 
 export const exportToPDF = (data: any, fileName: string) => {
-    const doc = new jsPDF() as any;
-    const dateStr = format(new Date(), 'dd MMM yyyy HH:mm');
+    try {
+        const doc = new jsPDF() as any;
+        const dateStr = format(new Date(), 'dd MMM yyyy HH:mm');
 
-    // Add Logo/Title
-    doc.setFontSize(22);
-    doc.setTextColor(120, 53, 15); // amber-900
-    doc.text('ClientPulse Business Report', 14, 22);
+        // Extract data
+        const revenue = data.revenue || (data.total_stats ? data : null);
+        const customers = data.customers;
+        const operations = data.operations;
+        const dashboard = data.dashboard;
+        const referrals = data.referrals;
 
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text(`Generated on: ${dateStr}`, 14, 30);
-    doc.text('------------------------------------------------------------------------------------------------------------------', 14, 35);
+        const fmt = (val: number) => `KES ${(val || 0).toLocaleString()}`;
 
-    // Summary Section
-    doc.setFontSize(16);
-    doc.setTextColor(0);
-    doc.text('Key Performance Indicators', 14, 45);
+        // Header
+        const addHeader = (title: string) => {
+            doc.setFontSize(22);
+            doc.setTextColor(69, 26, 3);
+            doc.text(title, 14, 22);
 
-    const summaryHeaders = [['Metric', 'Value']];
-    const summaryBody = [
-        ['Annual Revenue', `KES ${(data.summary.total_annual_sales || data.summary.total_revenue || 0).toLocaleString()}`],
-        ['Avg. Monthly Sales', `KES ${(data.summary.avg_monthly_sales || 0).toLocaleString()}`],
-        ['Net Profit (30d)', `KES ${(data.summary.net_profit || 0).toLocaleString()}`],
-        ['Retention Rate', `${data.retention_stats.retention_rate || 0}%`],
-        ['Total Customers', (data.summary.total_customers || 0).toString()],
-        ['Customer Satisfaction', `${data.retention_stats.customer_rating || '-'} / 5`],
-    ];
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text(`Generated on: ${dateStr}`, 14, 30);
+            doc.text('------------------------------------------------------------------------------------------------------------------', 14, 35);
+        };
 
-    doc.autoTable({
-        head: summaryHeaders,
-        body: summaryBody,
-        startY: 50,
-        theme: 'striped',
-        headStyles: { fillColor: [120, 53, 15] },
-    });
+        addHeader('ClientPulse Business Intelligence Report');
 
-    // Monthly Performance Table
-    doc.setFontSize(16);
-    doc.text('Monthly Revenue & Acquisition', 14, doc.lastAutoTable.finalY + 15);
+        // Section 1: Financial & Growth Overview
+        doc.setFontSize(16);
+        doc.setTextColor(0);
+        doc.text('1. Financial & Growth Overview', 14, 45);
 
-    const salesHeaders = [['Month', 'Sales (KES)', 'New Customers']];
-    const salesBody = data.monthly_sales.map((item: any) => [
-        item.month,
-        `KES ${item.sales.toLocaleString()}`,
-        item.customers
-    ]);
+        const summaryBody = [
+            ['Overall Revenue (Selected Period)', revenue ? fmt(revenue.total_stats?.revenue) : 'N/A'],
+            ['Monthly Revenue Growth', dashboard ? `${dashboard.this_month?.growth_percentage || 0}%` : 'N/A'],
+            ['Average Transaction Value', revenue ? fmt(revenue.total_stats?.avg_ticket) : 'N/A'],
+            ['Retention Rate (LTM)', customers ? `${customers.overview?.retention_rate || 0}%` : 'N/A'],
+            ['Total Client Base', customers ? (customers.overview?.total_customers || 0).toString() : 'N/A'],
+            ['Registered vs Walk-in', dashboard ? `${dashboard.summary?.registered_customers || 0} / ${dashboard.summary?.walk_in_customers || 0}` : 'N/A'],
+        ];
 
-    doc.autoTable({
-        head: salesHeaders,
-        body: salesBody,
-        startY: doc.lastAutoTable.finalY + 20,
-        theme: 'grid',
-        headStyles: { fillColor: [180, 83, 9] }, // amber-700
-    });
+        autoTable(doc, {
+            head: [['Key Performance Indicator', 'Current Value']],
+            body: summaryBody,
+            startY: 52,
+            theme: 'striped',
+            headStyles: { fillColor: [69, 26, 3] },
+            styles: { fontSize: 10, cellPadding: 3 },
+        });
 
-    // Footer
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(150);
-        doc.text(`Page ${i} of ${pageCount} - Private & Confidential`, doc.internal.pageSize.getWidth() / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+        let currentY = (doc as any).lastAutoTable?.finalY || 100;
+
+        // Section 2: Revenue Trend
+        if (revenue?.revenue_trend && revenue.revenue_trend.length > 0) {
+            if (currentY + 60 > 280) { doc.addPage(); currentY = 20; }
+            doc.setFontSize(14);
+            doc.text('2. Revenue Trend Analysis', 14, currentY + 15);
+
+            const trendHeaders = [['Date Range', 'Revenue', 'Visits', 'Avg Ticket']];
+            const trendBody = revenue.revenue_trend.slice(-10).map((item: any) => [
+                item.date,
+                fmt(item.revenue),
+                (item.visits || 0).toString(),
+                fmt(item.avg_ticket)
+            ]);
+
+            autoTable(doc, {
+                head: trendHeaders,
+                body: trendBody,
+                startY: currentY + 20,
+                theme: 'grid',
+                headStyles: { fillColor: [180, 83, 9] },
+                styles: { fontSize: 9 },
+            });
+            currentY = (doc as any).lastAutoTable?.finalY || currentY + 100;
+        }
+
+        // Section 3: Operational Efficiency
+        if (operations) {
+            if (currentY + 60 > 280) { doc.addPage(); currentY = 20; }
+            else { currentY += 15; }
+
+            doc.setFontSize(14);
+            doc.text('3. Operational Performance', 14, currentY);
+
+            const opBody = [
+                ['Booking Conversion Rate', `${operations.rates?.conversion_rate || 0}%`],
+                ['Cancellation Rate', `${operations.rates?.cancellation_rate || 0}%`],
+                ['Completion Rate', `${operations.rates?.completion_rate || 0}%`],
+                ['Avg Lead Time (Days)', (operations.avg_lead_time_days || 0).toString()],
+            ];
+
+            autoTable(doc, {
+                head: [['Operational Metric', 'Efficiency % / Value']],
+                body: opBody,
+                startY: currentY + 5,
+                theme: 'striped',
+                headStyles: { fillColor: [5, 150, 105] },
+                styles: { fontSize: 10 },
+            });
+            currentY = (doc as any).lastAutoTable?.finalY || currentY + 60;
+        }
+
+        // Section 4: Top Performing Services
+        if (revenue?.service_performance) {
+            if (currentY + 60 > 280) { doc.addPage(); currentY = 20; }
+            else { currentY += 15; }
+
+            doc.setFontSize(14);
+            doc.text('4. Service Performance (Top 5)', 14, currentY);
+
+            const serviceHeaders = [['Service Name', 'Category', 'Revenue', 'Visits']];
+            const serviceBody = revenue.service_performance.slice(0, 5).map((item: any) => [
+                item.service_name,
+                item.category,
+                fmt(item.revenue),
+                (item.count || 0).toString()
+            ]);
+
+            autoTable(doc, {
+                head: serviceHeaders,
+                body: serviceBody,
+                startY: currentY + 5,
+                theme: 'grid',
+                headStyles: { fillColor: [37, 99, 235] },
+                styles: { fontSize: 9 },
+            });
+            currentY = (doc as any).lastAutoTable?.finalY || currentY + 60;
+        }
+
+        // Finalize
+        const pageCount = doc.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(
+                `ClientPulse - Confidential Business Report - Page ${i} of ${pageCount}`,
+                doc.internal.pageSize.getWidth() / 2,
+                doc.internal.pageSize.getHeight() - 10,
+                { align: 'center' }
+            );
+        }
+
+        doc.save(`${fileName}_${format(new Date(), 'yyyyMMdd_HHmm')}.pdf`);
+    } catch (error) {
+        console.error('Error generating PDF:', error);
+        throw error;
     }
-
-    doc.save(`${fileName}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
 };

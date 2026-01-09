@@ -16,6 +16,7 @@ import {
     DialogContent,
     DialogHeader,
     DialogTitle,
+    DialogDescription,
 } from '@/components/ui/dialog';
 import {
     Select,
@@ -402,6 +403,9 @@ export default function Bookings() {
                 <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle>New Booking</DialogTitle>
+                        <DialogDescription>
+                            Create a new appointment for a customer.
+                        </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div className="space-y-2">

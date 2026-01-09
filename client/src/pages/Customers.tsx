@@ -11,6 +11,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { useSearchParams } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
@@ -151,6 +152,9 @@ export default function Customers() {
             <DialogTitle className="font-display text-xl">
               {editingCustomer ? 'Edit Customer' : 'Add New Customer'}
             </DialogTitle>
+            <DialogDescription>
+              {editingCustomer ? "Update the customer's profile information." : "Create a new customer profile for your business."}
+            </DialogDescription>
           </DialogHeader>
           <CustomerForm
             customer={editingCustomer}

@@ -19,6 +19,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
@@ -471,7 +472,11 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
 
       {/* Profile View Dialog (Customer Only) */}
       <Dialog open={isProfileModalOpen} onOpenChange={setIsProfileModalOpen}>
-        <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden bg-transparent border-none shadow-none">
+        <DialogContent className="sm:max-w-[425px] p-0 overflow-hidden bg-transparent border-none shadow-none text-transparent">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Customer Profile</DialogTitle>
+            <DialogDescription>Full profile details of the customer.</DialogDescription>
+          </DialogHeader>
           {customerData?.customer && (
             <CustomerProfileCard
               customerData={customerData.customer}
@@ -494,6 +499,9 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
                 ? (customerData?.customer?.name?.split(' ')[0] || 'Customer')
                 : (user?.first_name || 'Owner')}'s Profile
             </DialogTitle>
+            <DialogDescription>
+              Update your personal information and profile picture.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdateProfile} className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">

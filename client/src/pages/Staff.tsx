@@ -14,7 +14,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { Users, Plus, Phone, Calendar, Mail, DollarSign, Percent } from 'lucide-react';
 import {
-    Dialog, DialogContent, DialogHeader, DialogTitle,
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
@@ -55,8 +55,12 @@ export default function Staff() {
 
     useEffect(() => {
         if (lastMessage) {
-            if (lastMessage.title === 'Staff Added' || lastMessage.message?.includes('Appointment')) {
-                loadStaff();
+            // lastMessage.message is the object { title, message, ... }
+            const msgData = lastMessage.message;
+            if (msgData) {
+                if (msgData.title === 'Staff Added' || (typeof msgData.message === 'string' && msgData.message.includes('Appointment'))) {
+                    loadStaff();
+                }
             }
         }
     }, [lastMessage]);
@@ -303,6 +307,9 @@ export default function Staff() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Add New Staff Member</DialogTitle>
+                        <DialogDescription>
+                            Fill in the details below to register a new staff member to your business.
+                        </DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                         <div>

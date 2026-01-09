@@ -118,9 +118,11 @@ def booking_notifications(sender, instance, created, **kwargs):
     customer = instance.customer
     tenant = instance.tenant
     
-    # Find tenant admin
-    admin_profile = tenant.userprofile_set.filter(role='tenant_admin').first()
-    admin_user = admin_profile.user if admin_profile else None
+    # Safely get tenant admin
+    admin_user = None
+    if tenant:
+        admin_profile = tenant.userprofile_set.filter(role='tenant_admin').first()
+        admin_user = admin_profile.user if admin_profile else None
 
     if created:
         # 1. New Booking Created

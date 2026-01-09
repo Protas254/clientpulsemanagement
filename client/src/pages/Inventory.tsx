@@ -9,7 +9,7 @@ import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table';
 import {
-    Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter
+    Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter
 } from '@/components/ui/dialog';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -163,6 +163,9 @@ export default function Inventory() {
                             <DialogContent>
                                 <DialogHeader>
                                     <DialogTitle>Adjust Stock Level</DialogTitle>
+                                    <DialogDescription>
+                                        Record a stock addition or deduction for a specific product.
+                                    </DialogDescription>
                                 </DialogHeader>
                                 <div className="space-y-4 py-4">
                                     <div className="space-y-2">
@@ -233,6 +236,9 @@ export default function Inventory() {
                             <DialogContent className="max-w-lg">
                                 <DialogHeader>
                                     <DialogTitle>{currentProduct.id ? 'Edit Product' : 'Add New Product'}</DialogTitle>
+                                    <DialogDescription>
+                                        {currentProduct.id ? "Update the product details and reorder settings." : "Define a new product for your inventory."}
+                                    </DialogDescription>
                                 </DialogHeader>
                                 <div className="grid grid-cols-2 gap-4 py-4">
                                     <div className="space-y-2 col-span-2">

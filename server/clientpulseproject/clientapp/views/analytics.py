@@ -1,3 +1,5 @@
+from django.http import HttpResponse
+import csv
 from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -376,3 +378,123 @@ class AnalyticsViewSet(viewsets.ViewSet):
             },
             'pending_bookings': pending_bookings.count()
         })
+
+    @action(detail=False, methods=['get'])
+    def referral_analytics(self, request):
+        """Get analytics for the referral program"""
+        tenant = self.get_tenant()
+        if not tenant and not request.user.is_superuser:
+            return Response({'error': 'Permission denied'}, status=403)
+            
+        customers = Customer.objects.all()
+        if tenant:
+            customers = customers.filter(tenant=tenant)
+            
+        # Top referrers
+        top_referrers = customers.annotate(
+            referral_count=Count('referrals')
+        ).filter(referral_count__gt=0).order_by('-referral_count')[:10]
+        
+        # Stats
+        total_referrals = customers.filter(referred_by__isnull=False).count()
+        active_referrers = customers.annotate(rc=Count('referrals')).filter(rc__gt=0).count()
+        
+        return Response({
+            'total_referrals': total_referrals,
+            'active_referrers': active_referrers,
+            'referral_leaderboard': [
+                {
+                    'id': str(c.id),
+                    'name': c.name,
+                    'count': c.referral_count,
+                    'points': c.points
+                }
+                for c in top_referrers
+            ]
+        })
+    
+    @action(detail=False, methods=['get'])
+    def export_report(self, request):
+        """Export analytics data to CSV"""
+        tenant = self.get_tenant()
+        if not tenant and not request.user.is_superuser:
+            return Response({'error': 'Permission denied'}, status=403)
+            
+        report_type = request.query_params.get('type', 'revenue') # revenue, customers, bookings
+        days = int(request.query_params.get('days', 30))
+        start_date = timezone.now() - timedelta(days=days)
+        
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename="{report_type}_report_{timezone.now().date()}.csv"'
+        
+        writer = csv.writer(response)
+        
+        if report_type == 'revenue':
+            writer.writerow(['Date', 'Customer', 'Staff Member', 'Amount', 'Payment Status'])
+            visits = Visit.objects.filter(visit_date__gte=start_date).order_by('-visit_date')
+            if tenant:
+                visits = visits.filter(tenant=tenant)
+            
+            for visit in visits:
+                writer.writerow([
+                    visit.visit_date.strftime('%Y-%m-%d %H:%M'),
+                    visit.customer.name,
+                    visit.staff_member.name if visit.staff_member else 'N/A',
+                    visit.total_amount,
+                    visit.payment_status
+                ])
+                
+        elif report_type == 'customers':
+            writer.writerow(['Name', 'Email', 'Phone', 'Visit Count', 'Total Spent', 'Points', 'Referral Code', 'Referred By', 'Joined Date'])
+            customers = Customer.objects.all()
+            if tenant:
+                customers = customers.filter(tenant=tenant)
+            
+            customers = customers.annotate(
+                total_spent=Sum('visit__total_amount')
+            ).order_by('-total_spent')
+            
+            for customer in customers:
+                writer.writerow([
+                    customer.name,
+                    customer.email or 'N/A',
+                    customer.phone or 'N/A',
+                    customer.visit_count,
+                    customer.total_spent or 0,
+                    customer.points,
+                    customer.referral_code,
+                    customer.referred_by.name if customer.referred_by else 'Direct',
+                    customer.created_at.strftime('%Y-%m-%d')
+                ])
+                
+        elif report_type == 'bookings':
+            writer.writerow(['Booking Date', 'Customer', 'Service', 'Staff Member', 'Status', 'Created At'])
+            bookings = Booking.objects.filter(booking_date__gte=start_date).order_by('-booking_date')
+            if tenant:
+                bookings = bookings.filter(tenant=tenant)
+                
+            for b in bookings:
+                writer.writerow([
+                    b.booking_date.strftime('%Y-%m-%d %H:%M'),
+                    b.customer.name,
+                    b.service.name,
+                    b.staff_member.name if b.staff_member else 'N/A',
+                    b.status,
+                    b.created_at.strftime('%Y-%m-%d %H:%M')
+                ])
+
+        elif report_type == 'referrals':
+            writer.writerow(['Referrer', 'Referred Customer', 'Date Joined', 'Points Awarded'])
+            referrals = Customer.objects.filter(referred_by__isnull=False, created_at__gte=start_date).order_by('-created_at')
+            if tenant:
+                referrals = referrals.filter(tenant=tenant)
+            
+            for ref in referrals:
+                writer.writerow([
+                    ref.referred_by.name,
+                    ref.name,
+                    ref.created_at.strftime('%Y-%m-%d %H:%M'),
+                    50 # Fixed bonus points
+                ])
+        
+        return response

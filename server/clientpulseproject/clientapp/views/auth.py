@@ -374,6 +374,11 @@ class CustomerSignupView(APIView):
                 last_name=' '.join(data['full_name'].split(' ')[1:]) if ' ' in data['full_name'] else ''
             )
             
+            # Handle Referral
+            referred_by = None
+            if data.get('referral_code'):
+                referred_by = Customer.objects.filter(referral_code__iexact=data['referral_code']).first()
+
             # Create Customer Profile
             customer = Customer.objects.create(
                 user=user,
@@ -382,23 +387,30 @@ class CustomerSignupView(APIView):
                 phone=data['phone_number'],
                 email=data.get('email', ''),
                 status='ACTIVE',
-                is_registered=True
+                is_registered=True,
+                referred_by=referred_by,
+                points=50 if referred_by else 0 # Bonus for being referred
             )
+
+            # Reward the referrer
+            if referred_by:
+                referred_by.points += 50
+                referred_by.save()
+                
+                # Notify Referrer
+                create_notification(
+                    title="Referral Reward!",
+                    message=f"You've earned 50 points because {data['full_name']} signed up using your code!",
+                    recipient_type='customer',
+                    customer=referred_by,
+                    send_email=True
+                )
             
             # Update UserProfile (for role)
             profile, _ = UserProfile.objects.get_or_create(user=user)
             profile.role = 'customer'
             profile.tenant = tenant
             profile.save()
-            
-            # Notify Tenant
-            create_notification(
-                title="New Customer Signup",
-                message=f"{data['full_name']} has signed up.",
-                recipient_type='admin',
-                tenant=tenant,
-                send_email=True
-            )
             
             return Response({'message': 'Account created successfully'}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

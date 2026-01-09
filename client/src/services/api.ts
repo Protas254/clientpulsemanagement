@@ -323,9 +323,7 @@ export const deleteService = async (id: string) => {
 
 // Staff API
 export const fetchStaff = async (): Promise<StaffMember[]> => {
-    const response = await fetch(`${API_URL}staff/`, {
-        headers: getAuthHeaders(),
-    });
+    const response = await apiFetch(`${API_URL}staff/`);
     if (!response.ok) {
         throw new Error('Failed to fetch staff');
     }
@@ -333,10 +331,9 @@ export const fetchStaff = async (): Promise<StaffMember[]> => {
 };
 
 export const createStaff = async (staff: Omit<StaffMember, 'id' | 'created_at' | 'joined_date'>): Promise<StaffMember> => {
-    const response = await fetch(`${API_URL}staff/`, {
+    const response = await apiFetch(`${API_URL}staff/`, {
         method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(staff),
+        body: staff instanceof FormData ? staff : JSON.stringify(staff),
     });
     if (!response.ok) {
         throw new Error('Failed to create staff member');
@@ -345,10 +342,9 @@ export const createStaff = async (staff: Omit<StaffMember, 'id' | 'created_at' |
 };
 
 export const updateStaff = async (id: string, staff: Partial<StaffMember>): Promise<StaffMember> => {
-    const response = await fetch(`${API_URL}staff/${id}/`, {
+    const response = await apiFetch(`${API_URL}staff/${id}/`, {
         method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(staff),
+        body: staff instanceof FormData ? staff : JSON.stringify(staff),
     });
     if (!response.ok) {
         throw new Error('Failed to update staff member');
@@ -357,9 +353,8 @@ export const updateStaff = async (id: string, staff: Partial<StaffMember>): Prom
 };
 
 export const deleteStaff = async (id: string) => {
-    const response = await fetch(`${API_URL}staff/${id}/`, {
+    const response = await apiFetch(`${API_URL}staff/${id}/`, {
         method: 'DELETE',
-        headers: getAuthHeaders(),
     });
     if (!response.ok) {
         throw new Error('Failed to delete staff member');
@@ -1398,5 +1393,30 @@ export const fetchAnalyticsDashboardStats = async (): Promise<AnalyticsDashboard
     });
     if (!response.ok) throw new Error('Failed to fetch dashboard stats');
     return response.json();
+};
+
+export const fetchReferralAnalytics = async () => {
+    const response = await fetch(`${API_URL}analytics/referral_analytics/`, {
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch referral analytics');
+    return response.json();
+};
+
+export const exportAnalyticsReport = async (type: string, days: number = 30) => {
+    const response = await fetch(`${API_URL}analytics/export_report/?type=${type}&days=${days}`, {
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to export report');
+
+    // Handle CSV download
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${type}_report_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
 };
 
