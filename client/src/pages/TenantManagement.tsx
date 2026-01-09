@@ -137,6 +137,29 @@ const TenantManagement = () => {
             setLoading(false);
         }
     };
+    const handleApproveTenant = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`http://localhost:8000/api/tenants/${tenantId}/`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Token ${token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ is_active: true, status: 'active' }),
+            });
+
+            if (response.ok) {
+                toast.success('Tenant approved successfully');
+                fetchTenantData(); // Refresh the data
+            } else {
+                toast.error('Failed to approve tenant');
+            }
+        } catch (error) {
+            console.error('Error approving tenant:', error);
+            toast.error('Error approving tenant');
+        }
+    };
 
     //    if (loading) {
     //        return (
@@ -210,6 +233,17 @@ const TenantManagement = () => {
                                     <span className="text-sm text-gray-600">📍 {tenant.city}</span>
                                 </div>
                             </div>
+                        </div>
+
+                        <div className="flex items-center space-x-3">
+                            {!tenant.is_active && (
+                                <Button
+                                    onClick={handleApproveTenant}
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                >
+                                    Approve Business
+                                </Button>
+                            )}
                         </div>
 
                         {/* Mobile Kebab Menu */}

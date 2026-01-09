@@ -80,6 +80,30 @@ const SuperAdminDashboard = () => {
     }
   };
 
+  const handleApproveTenant = async (e: React.MouseEvent, tenantId: string) => {
+    e.stopPropagation();
+    try {
+      const response = await fetch(`http://localhost:8000/api/tenants/${tenantId}/`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Token ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_active: true, status: 'active' }),
+      });
+
+      if (response.ok) {
+        toast.success('Tenant approved successfully');
+        fetchTenants(); // Refresh the list
+      } else {
+        toast.error('Failed to approve tenant');
+      }
+    } catch (error) {
+      console.error('Error approving tenant:', error);
+      toast.error('Error approving tenant');
+    }
+  };
+
   const handleTenantClick = (tenantId: string) => {
     navigate(`/super-admin/tenant/${tenantId}`);
   };
@@ -271,12 +295,22 @@ const SuperAdminDashboard = () => {
                           </div>
                         </div>
                       </div>
-                      <Button
-                        variant="outline"
-                        className="border-amber-300 hover:bg-amber-50 text-amber-700"
-                      >
-                        Manage →
-                      </Button>
+                      <div className="flex flex-col space-y-2">
+                        {!tenant.is_active && (
+                          <Button
+                            onClick={(e) => handleApproveTenant(e, tenant.id)}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            Approve
+                          </Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          className="border-amber-300 hover:bg-amber-50 text-amber-700"
+                        >
+                          Manage →
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

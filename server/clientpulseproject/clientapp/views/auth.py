@@ -39,14 +39,15 @@ class BusinessRegistrationView(APIView):
         if serializer.is_valid():
             data = serializer.validated_data
             
-            # Create Tenant (Inactive)
+            # Create Tenant (Inactive - Requires Super Admin Approval)
             tenant = Tenant.objects.create(
                 name=data['business_name'],
                 business_type=data['business_type'],
                 city=data['city'],
                 phone_number=data['phone_number'],
                 email=data['email'],
-                is_active=True
+                is_active=False,
+                status='pending'
             )
             
             # Create User (Owner)
@@ -123,9 +124,10 @@ class LoginView(APIView):
                     role = 'admin'
                 if user.profile.tenant:
                     # Check if tenant is active (approved)
-                    if role == 'tenant_admin' and not user.profile.tenant.is_active:
+                    if role in ['tenant_admin', 'staff'] and not user.profile.tenant.is_active:
+                        msg = 'Your business account is pending approval.' if role == 'tenant_admin' else 'This business is currently under review.'
                         return Response(
-                            {'error': 'Your business account is pending approval. You will be notified once approved.'}, 
+                            {'error': f'{msg} You will be notified once approved.'}, 
                             status=status.HTTP_403_FORBIDDEN
                         )
                     

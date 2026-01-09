@@ -4,7 +4,7 @@ from rest_framework import viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Sum, Count, Avg, Q, F
-from django.db.models.functions import TruncDate, TruncWeek, TruncMonth, ExtractHour
+from django.db.models.functions import TruncDate, TruncWeek, TruncMonth, ExtractHour, ExtractWeekDay
 from django.utils import timezone
 from datetime import timedelta, datetime
 from decimal import Decimal
@@ -130,7 +130,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'])
     def customer_analytics(self, request):
-        """Get customer analytics including retention, CLV, and visit patterns"""
+        """Get detailed customer analytics"""
         tenant = self.get_tenant()
         if not tenant and not request.user.is_superuser:
             return Response({'error': 'Permission denied'}, status=403)
@@ -149,19 +149,19 @@ class AnalyticsViewSet(viewsets.ViewSet):
         
         # Returning customers (customers with more than 1 visit)
         returning_customers = customers.annotate(
-            visit_count=Count('visit')
-        ).filter(visit_count__gt=1).count()
+            visits_count=Count('visits')
+        ).filter(visits_count__gt=1).count()
         
         # Retention rate
         retention_rate = (returning_customers / total_customers * 100) if total_customers > 0 else 0
         
         # Customer Lifetime Value
         clv_data = customers.annotate(
-            total_spent=Sum('visit__total_amount'),
-            visit_count=Count('visit')
+            total_spent_calc=Sum('visits__total_amount'),
+            visits_count_calc=Count('visits')
         ).aggregate(
-            avg_clv=Avg('total_spent'),
-            avg_visits=Avg('visit_count')
+            avg_clv=Avg('total_spent_calc'),
+            avg_visits=Avg('visits_count_calc')
         )
         
         # Visit frequency patterns
@@ -170,8 +170,9 @@ class AnalyticsViewSet(viewsets.ViewSet):
             visits = visits.filter(tenant=tenant)
         
         # Peak days
+        # Django ExtractWeekDay: 1=Sunday, 2=Monday, ..., 7=Saturday
         peak_days = visits.annotate(
-            day_of_week=F('visit_date__week_day')
+            day_of_week=ExtractWeekDay('visit_date')
         ).values('day_of_week').annotate(
             count=Count('id')
         ).order_by('-count')
@@ -185,11 +186,15 @@ class AnalyticsViewSet(viewsets.ViewSet):
         
         # Top customers by spend
         top_customers = customers.annotate(
-            total_spent=Sum('visit__total_amount'),
-            visit_count=Count('visit')
-        ).filter(total_spent__isnull=False).order_by('-total_spent')[:10]
+            total_spent_calc=Sum('visits__total_amount'),
+            visits_count_calc=Count('visits')
+        ).filter(total_spent_calc__isnull=False).order_by('-total_spent_calc')[:10]
         
-        day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+        # Map Django week_day (1-7) to names
+        day_map = {
+            1: 'Sunday', 2: 'Monday', 3: 'Tuesday', 4: 'Wednesday',
+            5: 'Thursday', 6: 'Friday', 7: 'Saturday'
+        }
         
         return Response({
             'overview': {
@@ -205,26 +210,26 @@ class AnalyticsViewSet(viewsets.ViewSet):
             'visit_patterns': {
                 'peak_days': [
                     {
-                        'day': day_names[item['day_of_week'] - 2] if item['day_of_week'] >= 2 else day_names[item['day_of_week'] + 5],
+                        'day': day_map.get(item['day_of_week'], 'Unknown'),
                         'visits': item['count']
                     }
-                    for item in peak_days
+                    for item in peak_days if item['day_of_week'] is not None
                 ],
                 'peak_hours': [
                     {
                         'hour': f"{item['hour']}:00",
                         'visits': item['count']
                     }
-                    for item in peak_hours
+                    for item in peak_hours if item['hour'] is not None
                 ]
             },
             'top_customers': [
                 {
                     'id': str(customer.id),
                     'name': customer.name,
-                    'total_spent': float(customer.total_spent or 0),
-                    'visits': customer.visit_count,
-                    'avg_per_visit': float(customer.total_spent / customer.visit_count) if customer.visit_count > 0 else 0
+                    'total_spent': float(customer.total_spent_calc or 0),
+                    'visits': getattr(customer, 'visits_count_calc', 0),
+                    'avg_per_visit': float(customer.total_spent_calc / customer.visits_count_calc) if getattr(customer, 'visits_count_calc', 0) > 0 else 0
                 }
                 for customer in top_customers
             ]
