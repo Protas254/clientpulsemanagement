@@ -526,7 +526,7 @@ export default function CustomerPortal() {
                                                         </div>
                                                         <p className="text-lg font-bold text-slate-800">No rewards available yet</p>
                                                         <p className="text-sm text-slate-500 mt-2 max-w-xs mx-auto">Continue your journey with us! Points from your next visit will bring you closer to exclusive gifts.</p>
-                                                        <Button variant="link" onClick={() => navigate('/services')} className="mt-4 text-amber-600 font-bold">
+                                                        <Button variant="link" onClick={() => handleTabChange('services')} className="mt-4 text-amber-600 font-bold">
                                                             View Services Menu <ArrowRight className="w-4 h-4 ml-1" />
                                                         </Button>
                                                     </div>
