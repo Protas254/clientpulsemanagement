@@ -21,6 +21,7 @@ export interface StaffMember {
     phone: string;
     email?: string;
     specialty?: string;
+    photo?: string;
     commission_percentage: number;
     is_active: boolean;
     joined_date: string;
@@ -1254,3 +1255,132 @@ export const deleteGalleryImage = async (id: string) => {
     });
     if (!response.ok) throw new Error('Failed to delete image');
 };
+
+// Analytics API
+export interface RevenueAnalytics {
+    period: string;
+    date_range: {
+        start: string;
+        end: string;
+    };
+    total_stats: {
+        revenue: number;
+        visits: number;
+        avg_ticket: number;
+    };
+    revenue_trend: Array<{
+        date: string;
+        revenue: number;
+        visits: number;
+        avg_ticket: number;
+    }>;
+    service_performance: Array<{
+        service_name: string;
+        category: string;
+        revenue: number;
+        count: number;
+    }>;
+    staff_performance: Array<{
+        staff_id: string;
+        staff_name: string;
+        revenue: number;
+        visits: number;
+        avg_ticket: number;
+    }>;
+}
+
+export interface CustomerAnalytics {
+    overview: {
+        total_customers: number;
+        new_customers_30d: number;
+        returning_customers: number;
+        retention_rate: number;
+    };
+    lifetime_value: {
+        avg_clv: number;
+        avg_visits_per_customer: number;
+    };
+    visit_patterns: {
+        peak_days: Array<{ day: string; visits: number }>;
+        peak_hours: Array<{ hour: string; visits: number }>;
+    };
+    top_customers: Array<{
+        id: string;
+        name: string;
+        total_spent: number;
+        visits: number;
+        avg_per_visit: number;
+    }>;
+}
+
+export interface OperationalMetrics {
+    period_days: number;
+    booking_stats: {
+        total: number;
+        confirmed: number;
+        cancelled: number;
+        completed: number;
+        pending: number;
+    };
+    rates: {
+        conversion_rate: number;
+        cancellation_rate: number;
+        completion_rate: number;
+    };
+    avg_lead_time_days: number;
+    status_distribution: Array<{
+        status: string;
+        count: number;
+        percentage: number;
+    }>;
+    busiest_hours: Array<{
+        hour: string;
+        bookings: number;
+    }>;
+}
+
+export interface DashboardStats {
+    today: {
+        bookings: number;
+        revenue: number;
+    };
+    this_month: {
+        revenue: number;
+        visits: number;
+        growth_percentage: number;
+    };
+    pending_bookings: number;
+}
+
+export const fetchRevenueAnalytics = async (period: 'daily' | 'weekly' | 'monthly' = 'monthly'): Promise<RevenueAnalytics> => {
+    const response = await fetch(`${API_URL}analytics/revenue_analytics/?period=${period}`, {
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch revenue analytics');
+    return response.json();
+};
+
+export const fetchCustomerAnalytics = async (): Promise<CustomerAnalytics> => {
+    const response = await fetch(`${API_URL}analytics/customer_analytics/`, {
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch customer analytics');
+    return response.json();
+};
+
+export const fetchOperationalMetrics = async (days: number = 30): Promise<OperationalMetrics> => {
+    const response = await fetch(`${API_URL}analytics/operational_metrics/?days=${days}`, {
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch operational metrics');
+    return response.json();
+};
+
+export const fetchAnalyticsDashboardStats = async (): Promise<DashboardStats> => {
+    const response = await fetch(`${API_URL}analytics/dashboard_stats/`, {
+        headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch dashboard stats');
+    return response.json();
+};
+

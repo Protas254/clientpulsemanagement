@@ -118,6 +118,7 @@ class StaffMember(models.Model):
     phone = models.CharField(max_length=20)
     email = models.EmailField(blank=True, null=True)
     specialty = models.CharField(max_length=200, blank=True, help_text="e.g. Senior Barber, Hair Colorist")
+    photo = models.ImageField(upload_to='staff_photos/', blank=True, null=True, help_text="Optional staff profile photo")
     is_active = models.BooleanField(default=True)
     joined_date = models.DateField(auto_now_add=True)
     commission_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, help_text="Percentage of service revenue earned by staff (0-100)")

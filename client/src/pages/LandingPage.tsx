@@ -134,6 +134,7 @@ const LandingPage = () => {
                         <a href="#features" className="text-sm font-medium hover:text-primary transition-colors">Features</a>
                         <a href="#how-it-works" className="text-sm font-medium hover:text-primary transition-colors">How it Works</a>
                         <a href="#pricing" className="text-sm font-medium hover:text-primary transition-colors">Pricing</a>
+                        <a href="#faq" className="text-sm font-medium hover:text-primary transition-colors">FAQ</a>
                     </div>
 
                     <div className="flex items-center gap-4">
@@ -440,6 +441,76 @@ const LandingPage = () => {
                     </div>
                 </div>
                 <ReviewMarquee reviews={[...businessOwnerReviews, ...customerReviews]} />
+            </section>
+
+            {/* FAQ Section */}
+            <section id="faq" className="py-24 bg-white">
+                <div className="container mx-auto px-4">
+                    <div className="text-center max-w-3xl mx-auto mb-16">
+                        <h2 className="text-3xl md:text-5xl font-display font-bold mb-6 text-chocolate-dark">
+                            Frequently Asked <span className="text-accent">Questions</span>
+                        </h2>
+                        <p className="text-lg text-muted-foreground">
+                            Everything you need to know about ClientPulse. Can't find the answer you're looking for? Feel free to contact us.
+                        </p>
+                    </div>
+
+                    <div className="max-w-3xl mx-auto space-y-4">
+                        {[
+                            {
+                                question: "How does the 14-day free trial work?",
+                                answer: "Start using ClientPulse immediately with full access to all features. No credit card required. After 14 days, choose a plan that fits your business or continue with our free tier for basic features."
+                            },
+                            {
+                                question: "Can I import my existing customer data?",
+                                answer: "Yes! You can easily import your customer list via CSV upload or add them manually one by one. We also provide migration support for businesses switching from other platforms."
+                            },
+                            {
+                                question: "Is M-Pesa payment integration included?",
+                                answer: "M-Pesa STK push integration is available on Professional and Enterprise plans. This allows your customers to pay directly through their phones with a simple prompt."
+                            },
+                            {
+                                question: "How does the loyalty program work?",
+                                answer: "Our automated loyalty system tracks customer visits and purchases. You can set up custom rewards (e.g., 'Get a free haircut after 5 visits'). Customers earn points automatically, and you can redeem rewards with a single click."
+                            },
+                            {
+                                question: "Can I manage multiple salon locations?",
+                                answer: "Yes! The Enterprise plan supports multi-location management with centralized reporting, separate staff assignments, and location-specific services and pricing."
+                            },
+                            {
+                                question: "What kind of support do you offer?",
+                                answer: "All plans include email support. Professional plans get 24/7 WhatsApp support, and Enterprise customers receive dedicated phone support with a personal account manager."
+                            },
+                            {
+                                question: "Is my data secure?",
+                                answer: "Absolutely. We use bank-level encryption (SSL/TLS) for all data transmission and storage. Your data is backed up daily, and we're fully compliant with international data protection standards."
+                            },
+                            {
+                                question: "Can I cancel my subscription anytime?",
+                                answer: "Yes, you can cancel anytime with no penalties or hidden fees. Your data remains accessible for 30 days after cancellation, and you can export it at any time."
+                            }
+                        ].map((faq, index) => (
+                            <details key={index} className="group bg-cream/30 rounded-2xl border border-border hover:border-accent/50 transition-all">
+                                <summary className="flex items-center justify-between p-6 cursor-pointer list-none">
+                                    <h3 className="text-lg font-bold text-chocolate-dark pr-8">{faq.question}</h3>
+                                    <ChevronRight className="w-5 h-5 text-accent transition-transform group-open:rotate-90 flex-shrink-0" />
+                                </summary>
+                                <div className="px-6 pb-6 pt-2">
+                                    <p className="text-muted-foreground leading-relaxed">{faq.answer}</p>
+                                </div>
+                            </details>
+                        ))}
+                    </div>
+
+                    <div className="text-center mt-12">
+                        <p className="text-muted-foreground mb-4">Still have questions?</p>
+                        <a href="#contact">
+                            <Button variant="outline" className="border-2 border-accent text-accent hover:bg-accent hover:text-accent-foreground">
+                                Contact Our Team <ArrowRight className="ml-2 w-4 h-4" />
+                            </Button>
+                        </a>
+                    </div>
+                </div>
             </section>
 
             {/* Contact Section */}

@@ -35,6 +35,7 @@ export default function Staff() {
         commission_percentage: '0',
         is_active: true,
     });
+    const [photoFile, setPhotoFile] = useState<File | null>(null);
 
     // Payroll State
     const [payrollData, setPayrollData] = useState<PayrollReport | null>(null);
@@ -88,13 +89,22 @@ export default function Staff() {
         }
 
         try {
-            await createStaff({
-                ...formData,
-                commission_percentage: Number(formData.commission_percentage)
-            });
+            const staffFormData = new FormData();
+            staffFormData.append('name', formData.name);
+            staffFormData.append('phone', formData.phone);
+            staffFormData.append('email', formData.email);
+            staffFormData.append('specialty', formData.specialty);
+            staffFormData.append('commission_percentage', formData.commission_percentage);
+            staffFormData.append('is_active', String(formData.is_active));
+            if (photoFile) {
+                staffFormData.append('photo', photoFile);
+            }
+
+            await createStaff(staffFormData as any);
             toast({ title: 'Success', description: 'Staff member added successfully!' });
             setShowForm(false);
             setFormData({ name: '', phone: '', email: '', specialty: '', commission_percentage: '0', is_active: true });
+            setPhotoFile(null);
             loadStaff();
         } catch (error) {
             toast({ title: 'Error', description: 'Failed to add staff member', variant: 'destructive' });
@@ -158,8 +168,16 @@ export default function Staff() {
                             <Card key={staffMember.id} className="border-amber-200 hover:shadow-lg transition">
                                 <CardContent className="p-6">
                                     <div className="flex justify-between items-start mb-4">
-                                        <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-400 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                                            {staffMember.name.charAt(0)}
+                                        <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-400 rounded-full flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+                                            {staffMember.photo ? (
+                                                <img
+                                                    src={staffMember.photo.startsWith('http') ? staffMember.photo : `http://localhost:8000${staffMember.photo}`}
+                                                    alt={staffMember.name}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            ) : (
+                                                <span>{staffMember.name.charAt(0)}</span>
+                                            )}
                                         </div>
                                         <Badge className="bg-green-100 text-green-700">Active</Badge>
                                     </div>
@@ -289,6 +307,16 @@ export default function Staff() {
                         <div>
                             <Label>Specialty</Label>
                             <Input value={formData.specialty} onChange={(e) => setFormData({ ...formData, specialty: e.target.value })} />
+                        </div>
+                        <div>
+                            <Label>Profile Photo (Optional)</Label>
+                            <Input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) => setPhotoFile(e.target.files ? e.target.files[0] : null)}
+                                className="cursor-pointer"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">Upload a profile photo for this staff member</p>
                         </div>
                         <div>
                             <Label>Commission Percentage (%)</Label>

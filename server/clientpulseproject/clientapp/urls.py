@@ -18,6 +18,7 @@ from .views import (
     ProductViewSet, InventoryLogViewSet, PayrollView,
     ExpenseViewSet, GalleryImageViewSet
 )
+from .views.analytics import AnalyticsViewSet
 
 # Router for ViewSets
 router = DefaultRouter()
@@ -36,6 +37,7 @@ router.register(r'products', ProductViewSet, basename='product')
 router.register(r'inventory-logs', InventoryLogViewSet, basename='inventory-log')
 router.register(r'expenses', ExpenseViewSet, basename='expense')
 router.register(r'gallery', GalleryImageViewSet, basename='gallery')
+router.register(r'analytics', AnalyticsViewSet, basename='analytics')
 
 urlpatterns = [
     # Authentication
