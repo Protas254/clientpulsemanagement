@@ -4,7 +4,7 @@ from .models import (
     Customer, Sale, Reward, Service, Visit, StaffMember, Booking, 
     CustomerReward, ContactMessage, Notification, UserProfile, Tenant, 
     SubscriptionPlan, TenantSubscription, Review, Product, InventoryLog,
-    ServiceProductConsumption, Expense, GalleryImage
+    ServiceProductConsumption, Expense, GalleryImage, ChatSession, ChatMessage
 )
 
 User = get_user_model()
@@ -312,3 +312,57 @@ class GalleryImageSerializer(serializers.ModelSerializer):
         model = GalleryImage
         fields = '__all__'
         read_only_fields = ['tenant', 'staff_member_name', 'service_name']
+
+class ChatMessageSerializer(serializers.ModelSerializer):
+    sender_name = serializers.ReadOnlyField(source='sender.get_full_name')
+    sender_initial = serializers.SerializerMethodField()
+    is_me = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ChatMessage
+        fields = '__all__'
+        read_only_fields = ['session', 'sender']
+
+    def get_sender_initial(self, obj):
+        name = obj.sender.get_full_name() or obj.sender.username
+        return name[0].upper() if name else '?'
+
+    def get_is_me(self, obj):
+        request = self.context.get('request')
+        if request and request.user:
+            return obj.sender == request.user
+        return False
+
+class ChatSessionSerializer(serializers.ModelSerializer):
+    customer_name = serializers.ReadOnlyField(source='customer.name')
+    tenant_name = serializers.ReadOnlyField(source='tenant.name')
+    last_message = serializers.SerializerMethodField()
+    unread_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ChatSession
+        fields = '__all__'
+        read_only_fields = ['tenant', 'customer']
+
+    def get_last_message(self, obj):
+        last_msg = obj.messages.order_by('-created_at').first()
+        if last_msg:
+            return ChatMessageSerializer(last_msg).data
+        return None
+
+    def get_unread_count(self, obj):
+        # This is a bit tricky, needs context of "who is asking"
+        request = self.context.get('request')
+        if not request or not request.user:
+            return 0
+        
+        # If user is associated with tenant, count messages from customer that are unread
+        if hasattr(request.user, 'profile') and request.user.profile.tenant == obj.tenant:
+            # Count messages where sender != user and is_read=False
+            return obj.messages.exclude(sender=request.user).filter(is_read=False).count()
+        
+        # If user is associated with customer
+        if hasattr(request.user, 'customer_profile') and request.user.customer_profile == obj.customer:
+            return obj.messages.exclude(sender=request.user).filter(is_read=False).count()
+            
+        return 0

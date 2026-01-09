@@ -16,7 +16,7 @@ from .views import (
     PasswordResetRequestView, PasswordResetConfirmView,
     RequestOTPView, VerifyOTPView, ResetPasswordOTPView,
     ProductViewSet, InventoryLogViewSet, PayrollView,
-    ExpenseViewSet, GalleryImageViewSet
+    ExpenseViewSet, GalleryImageViewSet, ChatViewSet
 )
 from .views.analytics import AnalyticsViewSet
 
@@ -38,6 +38,7 @@ router.register(r'inventory-logs', InventoryLogViewSet, basename='inventory-log'
 router.register(r'expenses', ExpenseViewSet, basename='expense')
 router.register(r'gallery', GalleryImageViewSet, basename='gallery')
 router.register(r'analytics', AnalyticsViewSet, basename='analytics')
+router.register(r'chat', ChatViewSet, basename='chat')
 
 urlpatterns = [
     # Authentication

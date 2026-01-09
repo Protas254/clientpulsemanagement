@@ -15,9 +15,11 @@ import { fetchUserProfile } from '@/services/api';
 import { CalendarView } from '@/components/dashboard/CalendarView';
 import { AlertCircle } from 'lucide-react';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useWebSocket } from '@/contexts/WebSocketContext';
 
 export default function Dashboard() {
   const { user } = useAuthStore();
+  const { lastMessage } = useWebSocket();
   const [dailyStats, setDailyStats] = useState<DailyStats | null>(null);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
@@ -33,42 +35,11 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (user?.tenant_id) {
-      const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
-      // In production, use the actual backend host
-      const backendHost = 'localhost:8000';
-      const wsUrl = `${wsScheme}://${backendHost}/ws/dashboard/${user.tenant_id}/`;
-
-      console.log('Connecting to WebSocket:', wsUrl);
-      const socket = new WebSocket(wsUrl);
-
-      socket.onopen = () => {
-        console.log('WebSocket Connected');
-      };
-
-      socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        console.log('WebSocket Message:', data);
-
-        if (data.message) {
-          toast({
-            title: data.message.title,
-            description: data.message.message,
-          });
-          // Reload stats to show new data
-          loadStats();
-        }
-      };
-
-      socket.onerror = (error) => {
-        console.error('WebSocket Error:', error);
-      };
-
-      return () => {
-        socket.close();
-      };
+    if (lastMessage) {
+      loadStats();
     }
-  }, [user?.tenant_id]);
+  }, [lastMessage]);
+
 
   const loadStats = async () => {
     try {

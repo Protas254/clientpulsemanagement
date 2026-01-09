@@ -132,7 +132,23 @@ export interface Reward {
     applicable_services_detail?: Service[];
 }
 
-const API_URL = 'http://localhost:8000/api/';
+export const API_URL = 'http://localhost:8000/api/';
+
+export const api = {
+    get: async (endpoint: string) => {
+        const response = await apiFetch(`${API_URL}${endpoint.replace(/^\//, '')}`);
+        if (!response.ok) throw new Error('API Error');
+        return { data: await response.json() };
+    },
+    post: async (endpoint: string, body: any) => {
+        const response = await apiFetch(`${API_URL}${endpoint.replace(/^\//, '')}`, {
+            method: 'POST',
+            body: JSON.stringify(body)
+        });
+        if (!response.ok) throw new Error('API Error');
+        return { data: await response.json() };
+    }
+};
 
 const getAuthHeaders = (isFormData: boolean = false) => {
     const token = localStorage.getItem('token');
@@ -1339,7 +1355,7 @@ export interface OperationalMetrics {
     }>;
 }
 
-export interface DashboardStats {
+export interface AnalyticsDashboardStats {
     today: {
         bookings: number;
         revenue: number;
@@ -1376,7 +1392,7 @@ export const fetchOperationalMetrics = async (days: number = 30): Promise<Operat
     return response.json();
 };
 
-export const fetchAnalyticsDashboardStats = async (): Promise<DashboardStats> => {
+export const fetchAnalyticsDashboardStats = async (): Promise<AnalyticsDashboardStats> => {
     const response = await fetch(`${API_URL}analytics/dashboard_stats/`, {
         headers: getAuthHeaders()
     });

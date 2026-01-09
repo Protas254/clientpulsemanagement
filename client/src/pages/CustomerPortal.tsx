@@ -43,6 +43,7 @@ import {
     Search,
 } from 'lucide-react';
 import { Service, Reward, CustomerReward } from '@/services/api';
+import { ChatWidget } from '@/components/chat/ChatWidget';
 
 interface CustomerData {
     id: string;
@@ -1107,6 +1108,14 @@ export default function CustomerPortal() {
                     </DialogContent>
                 </Dialog>
             </main>
+            {/* Chat Widget */}
+            {customerData.tenant_id && (
+                <ChatWidget
+                    tenantId={customerData.tenant_id}
+                    tenantName={tenant?.name}
+                    tenantLogo={tenant?.logo}
+                />
+            )}
         </div>
     );
 }

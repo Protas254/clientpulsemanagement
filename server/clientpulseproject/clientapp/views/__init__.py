@@ -4,3 +4,4 @@ from .payments import *
 from .customers import *
 from .rewards import *
 from .core import *
+from .chat import *

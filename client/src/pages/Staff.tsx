@@ -20,9 +20,13 @@ import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table';
 
+import { useWebSocket } from '@/contexts/WebSocketContext';
+
 export default function Staff() {
     const [searchParams] = useSearchParams();
     const searchQuery = (searchParams.get('search') || '').toLowerCase();
+
+    const { lastMessage } = useWebSocket(); // Use global websocket
 
     const [staff, setStaff] = useState<StaffMember[]>([]);
     const [loading, setLoading] = useState(true);
@@ -48,6 +52,15 @@ export default function Staff() {
     useEffect(() => {
         loadStaff();
     }, []);
+
+    useEffect(() => {
+        if (lastMessage) {
+            if (lastMessage.title === 'Staff Added' || lastMessage.message?.includes('Appointment')) {
+                loadStaff();
+            }
+        }
+    }, [lastMessage]);
+
 
     const loadStaff = async () => {
         try {

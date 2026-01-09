@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
 interface User {
-    id: string;
+    id: string; // The canonical User UUID
     username: string;
     email: string;
     role: string;
@@ -17,7 +17,7 @@ interface AuthState {
     token: string | null;
     user: User | null;
     customerData: any | null;
-    setAuth: (token: string, user: User) => void;
+    setAuth: (token: string, userData: any) => void;
     setCustomerData: (data: any) => void;
     logout: () => void;
 }
@@ -28,19 +28,26 @@ export const useAuthStore = create<AuthState>()(
             token: null,
             user: null,
             customerData: null,
-            setAuth: (token, user) => {
-                // Store in Zustand state
-                set({ token, user, customerData: null });
-                // Also store in localStorage for backward compatibility
+            setAuth: (token, userData) => {
+                // EXTREME NORMALIZATION: 
+                // We must ensure the 'id' field is exactly the User UUID from the server.
+                // The server returns it as 'user_id' in the login response.
+                const userId = userData.user_id || userData.id || '';
+
+                const normalizedUser: User = {
+                    ...userData,
+                    id: String(userId).toLowerCase()
+                };
+
+                set({ token, user: normalizedUser, customerData: null });
+
+                // Backup storage
                 localStorage.setItem('token', token);
-                localStorage.setItem('user', JSON.stringify(user));
-                localStorage.removeItem('customerData');
+                localStorage.setItem('user', JSON.stringify(normalizedUser));
             },
             setCustomerData: (customerData) => set({ customerData }),
             logout: () => {
-                // Clear Zustand state
                 set({ token: null, user: null, customerData: null });
-                // Also clear localStorage
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
                 localStorage.removeItem('customerData');
