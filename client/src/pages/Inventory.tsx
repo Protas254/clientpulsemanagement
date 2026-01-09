@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,9 +25,10 @@ import { format } from 'date-fns';
 
 export default function Inventory() {
     const [products, setProducts] = useState<Product[]>([]);
+    const [searchParams] = useSearchParams();
+    const searchTerm = searchParams.get('search') || '';
     const [logs, setLogs] = useState<InventoryLog[]>([]);
     const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState('');
     const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
     const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
     const [currentProduct, setCurrentProduct] = useState<Partial<Product>>({});
@@ -312,8 +314,9 @@ export default function Inventory() {
                                     placeholder="Search products..."
                                     className="pl-8"
                                     value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    readOnly
                                 />
+                                <p className="text-xs text-muted-foreground mt-1">Use the search bar in the header to filter products</p>
                             </div>
                         </div>
 

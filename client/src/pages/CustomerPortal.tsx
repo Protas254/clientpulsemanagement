@@ -40,6 +40,7 @@ import {
     Check,
     Camera,
     User,
+    Search,
 } from 'lucide-react';
 import { Service, Reward, CustomerReward } from '@/services/api';
 
@@ -181,10 +182,33 @@ export default function CustomerPortal() {
 
     const [searchParams, setSearchParams] = useSearchParams();
     const activeTab = searchParams.get('tab') || 'dashboard';
+    const searchQuery = (searchParams.get('search') || '').toLowerCase();
 
     const handleTabChange = (value: string) => {
-        setSearchParams({ tab: value });
+        setSearchParams(prev => {
+            const next = new URLSearchParams(prev);
+            next.set('tab', value);
+            return next;
+        });
     };
+
+    const filteredServices = services.filter(service => {
+        const matchesCategory = selectedCategory === 'all' || service.category === selectedCategory;
+        const matchesSearch = !searchQuery ||
+            service.name.toLowerCase().includes(searchQuery) ||
+            service.description.toLowerCase().includes(searchQuery);
+        return matchesCategory && matchesSearch;
+    });
+
+    const filteredGallery = gallery?.filter(item => {
+        if (!searchQuery) return true;
+        return (
+            item.title?.toLowerCase().includes(searchQuery) ||
+            item.description?.toLowerCase().includes(searchQuery) ||
+            item.service_name?.toLowerCase().includes(searchQuery) ||
+            item.staff_member_name?.toLowerCase().includes(searchQuery)
+        );
+    });
 
     const navigate = useNavigate();
     const { toast } = useToast();
@@ -677,10 +701,6 @@ export default function CustomerPortal() {
 
                             {/* Grouped Services */}
                             {(() => {
-                                const filteredServices = selectedCategory === 'all'
-                                    ? services
-                                    : services.filter(s => s.category === selectedCategory);
-
                                 const groupedServices = filteredServices.reduce((acc, service) => {
                                     if (!acc[service.category]) {
                                         acc[service.category] = [];
@@ -774,6 +794,13 @@ export default function CustomerPortal() {
                                     );
                                 });
                             })()}
+                            {filteredServices.length === 0 && (
+                                <div className="text-center py-20 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200">
+                                    <Search className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+                                    <h3 className="text-xl font-semibold text-slate-900">No services found</h3>
+                                    <p className="text-slate-500">Try adjusting your search or category filters</p>
+                                </div>
+                            )}
                         </TabsContent>
 
                         <TabsContent value="portfolio" className="space-y-6">
@@ -787,9 +814,9 @@ export default function CustomerPortal() {
                                 <p className="text-slate-500 font-medium max-w-lg mx-auto">Take a look at some of the stunning transformations and artistic details we've delivered recently</p>
                             </div>
 
-                            {gallery && gallery.length > 0 ? (
+                            {filteredGallery && filteredGallery.length > 0 ? (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                                    {gallery.map((image: any) => (
+                                    {filteredGallery.map((image: any) => (
                                         <Card key={image.id} className="overflow-hidden group cursor-pointer border-0 shadow-lg hover:shadow-2xl transition-all duration-500 rounded-[2rem]">
                                             <div className="relative aspect-[4/5] overflow-hidden">
                                                 <img

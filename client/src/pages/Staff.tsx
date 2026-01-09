@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +21,9 @@ import {
 } from '@/components/ui/table';
 
 export default function Staff() {
+    const [searchParams] = useSearchParams();
+    const searchQuery = (searchParams.get('search') || '').toLowerCase();
+
     const [staff, setStaff] = useState<StaffMember[]>([]);
     const [loading, setLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
@@ -118,8 +122,20 @@ export default function Staff() {
         }
     };
 
-    const activeStaff = staff.filter(s => s.is_active);
-    const inactiveStaff = staff.filter(s => !s.is_active);
+    const filteredStaff = useMemo(() => {
+        return staff.filter(member => {
+            if (!searchQuery) return true;
+            return (
+                member.name.toLowerCase().includes(searchQuery) ||
+                (member.email && member.email.toLowerCase().includes(searchQuery)) ||
+                member.phone.includes(searchQuery) ||
+                member.specialty.toLowerCase().includes(searchQuery)
+            );
+        });
+    }, [staff, searchQuery]);
+
+    const activeStaff = filteredStaff.filter(s => s.is_active);
+    const inactiveStaff = filteredStaff.filter(s => !s.is_active);
 
     return (
         <AppLayout title="HR & Payroll">

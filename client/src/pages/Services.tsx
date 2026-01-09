@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -35,6 +36,9 @@ const categoryColors = {
 };
 
 export default function Services() {
+    const [searchParams] = useSearchParams();
+    const searchQuery = (searchParams.get('search') || '').toLowerCase();
+
     const [services, setServices] = useState<Service[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
@@ -108,17 +112,23 @@ export default function Services() {
 
     const handleSubmit = async () => {
         try {
-            const serviceData = {
-                ...formData,
-                category: formData.category as any,
-                duration: parseInt(formData.duration),
-                product_consumption: consumptionList
-            };
-
             if (editingService) {
-                await updateService(editingService.id, serviceData);
+                // For updates, send basic service data without product_consumption
+                const updateData = {
+                    ...formData,
+                    category: formData.category as any,
+                    duration: parseInt(formData.duration),
+                };
+                await updateService(editingService.id, updateData);
                 toast({ title: 'Success', description: 'Service updated successfully' });
             } else {
+                // For new services, include product_consumption
+                const serviceData = {
+                    ...formData,
+                    category: formData.category as any,
+                    duration: parseInt(formData.duration),
+                    product_consumption: consumptionList
+                };
                 await createService(serviceData as any);
                 toast({ title: 'Success', description: 'Service created successfully' });
             }
@@ -150,7 +160,16 @@ export default function Services() {
         }
     };
 
-    const filteredServices = selectedCategory === 'all' ? services : services.filter(s => s.category === selectedCategory);
+    const filteredServices = useMemo(() => {
+        return services.filter(service => {
+            const matchesCategory = selectedCategory === 'all' || service.category === selectedCategory;
+            const matchesSearch = !searchQuery ||
+                service.name.toLowerCase().includes(searchQuery) ||
+                service.description.toLowerCase().includes(searchQuery);
+            return matchesCategory && matchesSearch;
+        });
+    }, [services, selectedCategory, searchQuery]);
+
     const groupedServices = filteredServices.reduce((acc, service) => {
         if (!acc[service.category]) acc[service.category] = [];
         acc[service.category].push(service);
