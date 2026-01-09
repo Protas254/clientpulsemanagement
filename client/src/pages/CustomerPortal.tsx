@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import { useCustomerPortal } from '@/hooks/useCustomerPortal';
@@ -178,6 +178,13 @@ export default function CustomerPortal() {
     // Contact form state
     const [contactSubject, setContactSubject] = useState('');
     const [contactMessage, setContactMessage] = useState('');
+
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeTab = searchParams.get('tab') || 'dashboard';
+
+    const handleTabChange = (value: string) => {
+        setSearchParams({ tab: value });
+    };
 
     const navigate = useNavigate();
     const { toast } = useToast();
@@ -368,14 +375,7 @@ export default function CustomerPortal() {
                         </p>
                     </div>
 
-                    <Tabs defaultValue="dashboard" className="w-full">
-                        <TabsList className="grid w-full grid-cols-4 mb-8 max-w-xl mx-auto">
-                            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-                            <TabsTrigger value="services">Book Services</TabsTrigger>
-                            <TabsTrigger value="portfolio">Our Gallery</TabsTrigger>
-                            <TabsTrigger value="contact">Contact Us</TabsTrigger>
-                        </TabsList>
-
+                    <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
                         <TabsContent value="dashboard" className="space-y-6">
                             <div className="space-y-6">
                                 {/* Stats & Details */}

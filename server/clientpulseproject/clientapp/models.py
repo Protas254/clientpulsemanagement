@@ -498,15 +498,15 @@ class Notification(models.Model):
     def __str__(self):
         return f"{self.title} - {self.created_at}"
 
-def create_notification(title, message, recipient_type, customer=None, user=None, staff=None, send_email=False):
+def create_notification(title, message, recipient_type, customer=None, user=None, staff=None, tenant=None, send_email=False):
     """Helper to create a notification and optionally send an email"""
-    tenant = None
-    if user and hasattr(user, 'profile'):
-        tenant = user.profile.tenant
-    elif customer:
-        tenant = customer.tenant
-    elif staff:
-        tenant = staff.tenant
+    if not tenant:
+        if user and hasattr(user, 'profile'):
+            tenant = user.profile.tenant
+        elif customer:
+            tenant = customer.tenant
+        elif staff:
+            tenant = staff.tenant
 
     # Check tenant preferences if applicable
     if send_email and tenant:

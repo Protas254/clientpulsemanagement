@@ -1,7 +1,7 @@
 export interface Service {
     id: string;
     name: string;
-    category: 'hair' | 'spa' | 'nails' | 'facial' | 'salon' | 'barber' | 'other';
+    category: 'hair' | 'spa' | 'nails' | 'facial' | 'massage' | 'makeup' | 'body' | 'packages' | 'other' | 'salon' | 'barber';
     price: string;
     duration: number;
     description: string;
@@ -867,15 +867,8 @@ export const fetchTenantSettings = async () => {
 
 export const updateTenantSettings = async (data: any) => {
     const isFormData = data instanceof FormData;
-    const headers: Record<string, string> = {};
-    const token = localStorage.getItem('token');
-    if (!isFormData) {
-        headers['Content-Type'] = 'application/json';
-    }
-
-    const response = await fetch(`${API_URL}tenant/settings/`, {
+    const response = await apiFetch(`${API_URL}tenant/settings/`, {
         method: 'PATCH',
-        headers: headers,
         body: isFormData ? data : JSON.stringify(data),
     });
     if (!response.ok) {

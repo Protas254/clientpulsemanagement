@@ -53,6 +53,13 @@ const navItems = [
   { title: 'Customer Portal', url: '/customer-portal', icon: User },
 ];
 
+const customerNavItems = [
+  { title: 'Dashboard', url: '/portal?tab=dashboard', icon: LayoutDashboard },
+  { title: 'Book Services', url: '/portal?tab=services', icon: Scissors },
+  { title: 'Our Gallery', url: '/portal?tab=portfolio', icon: ImageIcon },
+  { title: 'Contact Us', url: '/portal?tab=contact', icon: Mail },
+];
+
 interface TopNavProps {
   title: string;
   subtitle?: string;
@@ -241,9 +248,12 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
             </SheetHeader>
             <nav className="flex-1 p-4 bg-sidebar">
               <ul className="space-y-1">
-                {navItems.map((item) => {
+                {(user?.role === 'customer' ? customerNavItems : navItems).map((item) => {
                   const Icon = item.icon;
-                  const isActive = location.pathname === item.url;
+                  const currentPath = location.pathname + location.search;
+                  const isActive = item.url.includes('?')
+                    ? currentPath === item.url || (item.url.endsWith('tab=dashboard') && currentPath === '/portal')
+                    : location.pathname === item.url;
                   return (
                     <li key={item.title}>
                       <button
@@ -288,13 +298,39 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
               className="w-full h-full object-contain rounded-full"
             />
           </div>
-        )}
+        )
+        }
         <div>
           <h1 className="font-display text-base sm:text-xl font-semibold text-foreground">{title}</h1>
           {subtitle && <p className="text-sm text-muted-foreground hidden sm:block">{subtitle}</p>}
         </div>
         {action && <div className="ml-4 hidden sm:block">{action}</div>}
       </div>
+
+      {/* Desktop Customer Navigation */}
+      {user?.role === 'customer' && (
+        <nav className="hidden lg:flex items-center gap-6">
+          {customerNavItems.map((item) => {
+            const currentPath = location.pathname + location.search;
+            const isActive = currentPath === item.url || (item.url.endsWith('tab=dashboard') && currentPath === '/portal');
+            return (
+              <button
+                key={item.title}
+                onClick={() => navigate(item.url)}
+                className={cn(
+                  "text-sm font-medium transition-all hover:text-foreground relative py-1",
+                  isActive ? "text-foreground" : "text-muted-foreground"
+                )}
+              >
+                {item.title}
+                {isActive && (
+                  <span className="absolute bottom-0 left-0 w-full h-0.5 bg-foreground rounded-full" />
+                )}
+              </button>
+            );
+          })}
+        </nav>
+      )}
 
       <div className="flex items-center gap-4">
         {/* Search */}
@@ -526,6 +562,6 @@ export function TopNav({ title, subtitle, action, logo }: TopNavProps) {
           </form>
         </DialogContent>
       </Dialog>
-    </header>
+    </header >
   );
 }

@@ -1,4 +1,5 @@
 from django.shortcuts import render
+from django.db.models import Q
 from rest_framework import generics, status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -44,7 +45,8 @@ class BusinessRegistrationView(APIView):
                 business_type=data['business_type'],
                 city=data['city'],
                 phone_number=data['phone_number'],
-                is_active=False
+                email=data['email'],
+                is_active=True
             )
             
             # Create User (Owner)
@@ -93,10 +95,15 @@ class LoginView(APIView):
                 if user_obj:
                     username = user_obj.username
             else:
-                # 2. Check if it's a Customer Name (and not a direct username match)
-                customer = Customer.objects.filter(name__iexact=username).first()
+                # 2. Check if it's a Customer Name or Phone Number
+                customer = Customer.objects.filter(Q(name__iexact=username) | Q(phone=username)).first()
                 if customer and customer.user:
                     username = customer.user.username
+                else:
+                    # 3. Check if it's a Staff Phone Number
+                    staff = StaffMember.objects.filter(phone=username).first()
+                    if staff and staff.user:
+                        username = staff.user.username
                     
         user = authenticate(username=username, password=password)
         if user:

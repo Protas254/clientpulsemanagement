@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { createService, createStaff, updateTenantSettings } from '@/services/api';
+import { createService, createStaff, updateTenantSettings, Service } from '@/services/api';
 import { toast } from '@/hooks/use-toast';
 import { Scissors, Users, Clock, CheckCircle2, ArrowRight } from 'lucide-react';
 
@@ -19,9 +19,9 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
     const [serviceName, setServiceName] = useState('');
     const [servicePrice, setServicePrice] = useState('');
     const [serviceDuration, setServiceDuration] = useState('30');
-    const [serviceCategory, setServiceCategory] = useState('hair');
+    const [serviceCategory, setServiceCategory] = useState<Service['category']>('hair');
 
-    const categories = [
+    const categories: { id: Service['category'], name: string }[] = [
         { id: 'hair', name: 'Hair' },
         { id: 'massage', name: 'Massage' },
         { id: 'makeup', name: 'Makeup' },
@@ -36,6 +36,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
     // Step 2: Staff
     const [staffName, setStaffName] = useState('');
     const [staffPhone, setStaffPhone] = useState('');
+    const [staffEmail, setStaffEmail] = useState('');
+    const [staffSpecialty, setStaffSpecialty] = useState('');
 
     // Step 3: Hours (Simplified for MVP)
     const [openTime, setOpenTime] = useState('09:00');
@@ -69,7 +71,10 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
             await createStaff({
                 name: staffName,
                 phone: staffPhone,
-                is_active: true
+                email: staffEmail,
+                specialty: staffSpecialty,
+                is_active: true,
+                commission_percentage: 0
             });
             toast({ title: "Success", description: "Staff member added!" });
             setStep(3);
@@ -147,8 +152,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
                                             type="button"
                                             onClick={() => setServiceCategory(cat.id)}
                                             className={`py-2 px-1 text-xs rounded-lg border transition-all ${serviceCategory === cat.id
-                                                    ? 'bg-amber-600 border-amber-600 text-white shadow-md'
-                                                    : 'bg-white border-amber-100 text-amber-800 hover:border-amber-300 hover:bg-amber-50'
+                                                ? 'bg-amber-600 border-amber-600 text-white shadow-md'
+                                                : 'bg-white border-amber-100 text-amber-800 hover:border-amber-300 hover:bg-amber-50'
                                                 }`}
                                         >
                                             {cat.name}
@@ -183,20 +188,39 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
 
                     {step === 2 && (
                         <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Staff Name</Label>
+                                    <Input
+                                        placeholder="e.g. John Kamau"
+                                        value={staffName}
+                                        onChange={e => setStaffName(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Phone Number</Label>
+                                    <Input
+                                        placeholder="+254..."
+                                        value={staffPhone}
+                                        onChange={e => setStaffPhone(e.target.value)}
+                                    />
+                                </div>
+                            </div>
                             <div className="space-y-2">
-                                <Label>Staff Name</Label>
+                                <Label>Email Address (Optional)</Label>
                                 <Input
-                                    placeholder="e.g. John Kamau"
-                                    value={staffName}
-                                    onChange={e => setStaffName(e.target.value)}
+                                    type="email"
+                                    placeholder="john@example.com"
+                                    value={staffEmail}
+                                    onChange={e => setStaffEmail(e.target.value)}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label>Phone Number</Label>
+                                <Label>Specialty / Role</Label>
                                 <Input
-                                    placeholder="+254..."
-                                    value={staffPhone}
-                                    onChange={e => setStaffPhone(e.target.value)}
+                                    placeholder="e.g. Senior Barber, Hair Colorist"
+                                    value={staffSpecialty}
+                                    onChange={e => setStaffSpecialty(e.target.value)}
                                 />
                             </div>
                             <Button onClick={handleAddStaff} disabled={loading || !staffName || !staffPhone} className="w-full bg-amber-600 hover:bg-amber-700 text-white">
