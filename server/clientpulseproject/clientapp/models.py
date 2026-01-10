@@ -350,7 +350,8 @@ class Booking(models.Model):
     booking_date = models.DateTimeField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     notes = models.TextField(blank=True)
-    reminder_sent = models.BooleanField(default=False)
+    reminder_sent = models.BooleanField(default=False, help_text="Short-term reminder (30m)")
+    reminder_24h_sent = models.BooleanField(default=False, help_text="24-hour reminder")
     created_at = models.DateTimeField(auto_now_add=True)
     
     # Parent booking on behalf of child
