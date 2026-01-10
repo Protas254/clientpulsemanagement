@@ -510,9 +510,13 @@ class ReviewViewSet(viewsets.ModelViewSet):
         visit_id = self.request.data.get('visit')
         reviewer_type = self.request.data.get('reviewer_type', 'customer')
         
-        # If authenticated and not a customer profile, it's likely a business owner
-        if self.request.user.is_authenticated and not hasattr(self.request.user, 'customer_profile'):
-            reviewer_type = 'business_owner'
+        # If authenticated and not a customer profile, it's likely a business owner or staff
+        is_staff_or_admin = False
+        if self.request.user.is_authenticated:
+            # Check if it's NOT a customer role
+            if hasattr(self.request.user, 'profile') and self.request.user.profile.role != 'customer':
+                is_staff_or_admin = True
+                reviewer_type = 'business_owner'
 
         if visit_id:
             try:
@@ -522,14 +526,15 @@ class ReviewViewSet(viewsets.ModelViewSet):
                     customer=visit.customer,
                     visit=visit,
                     reviewer_type=reviewer_type,
-                    user=self.request.user if reviewer_type == 'business_owner' else None
+                    user=self.request.user if is_staff_or_admin else None
                 )
             except Visit.DoesNotExist:
                 serializer.save(
                     reviewer_type=reviewer_type,
-                    user=self.request.user if reviewer_type == 'business_owner' else None
+                    user=self.request.user if is_staff_or_admin else None
                 )
         else:
+            # Platform review without specific visit
             tenant = None
             if self.request.user.is_authenticated and hasattr(self.request.user, 'profile'):
                 tenant = self.request.user.profile.tenant
@@ -537,7 +542,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
             serializer.save(
                 tenant=tenant,
                 reviewer_type=reviewer_type,
-                user=self.request.user if reviewer_type == 'business_owner' else None
+                user=self.request.user if is_staff_or_admin else None
             )
 
 class ProductViewSet(viewsets.ModelViewSet):

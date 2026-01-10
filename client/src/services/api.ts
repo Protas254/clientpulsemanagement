@@ -1114,6 +1114,7 @@ export const createReview = async (review: Partial<Review>): Promise<Review> => 
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            ...getAuthHeaders()
         },
         body: JSON.stringify(review),
     });

@@ -324,83 +324,107 @@ export default function Reports() {
 
             {/* Customers Content */}
             <TabsContent value="customers" className="space-y-6">
-              {customerLoading ? <div>Loading customer data...</div> : customerData && (
+              {customerLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-chocolate"></div>
+                </div>
+              ) : customerData ? (
                 <>
                   <div className="grid gap-4 md:grid-cols-4">
-                    <Card>
-                      <CardHeader><CardTitle className="text-sm">Total Customers</CardTitle></CardHeader>
-                      <CardContent><div className="text-2xl font-bold">{customerData.overview.total_customers}</div></CardContent>
+                    <Card className="bg-white/50 backdrop-blur-sm border-chocolate-light/10">
+                      <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Total Customers</CardTitle></CardHeader>
+                      <CardContent><div className="text-2xl font-bold text-chocolate-dark">{customerData.overview?.total_customers ?? 0}</div></CardContent>
                     </Card>
-                    <Card>
-                      <CardHeader><CardTitle className="text-sm">New (30d)</CardTitle></CardHeader>
-                      <CardContent><div className="text-2xl font-bold text-green-600">+{customerData.overview.new_customers_30d}</div></CardContent>
+                    <Card className="bg-white/50 backdrop-blur-sm border-chocolate-light/10">
+                      <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">New (30d)</CardTitle></CardHeader>
+                      <CardContent><div className="text-2xl font-bold text-green-600">+{customerData.overview?.new_customers_30d ?? 0}</div></CardContent>
                     </Card>
-                    <Card>
-                      <CardHeader><CardTitle className="text-sm">Retention Rate</CardTitle></CardHeader>
-                      <CardContent><div className="text-2xl font-bold">{customerData.overview.retention_rate}%</div></CardContent>
+                    <Card className="bg-white/50 backdrop-blur-sm border-chocolate-light/10">
+                      <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Retention Rate</CardTitle></CardHeader>
+                      <CardContent><div className="text-2xl font-bold text-blue-600">{customerData.overview?.retention_rate ?? 0}%</div></CardContent>
                     </Card>
-                    <Card>
-                      <CardHeader><CardTitle className="text-sm">Avg CLV</CardTitle></CardHeader>
-                      <CardContent><div className="text-2xl font-bold">{formatCurrency(customerData.lifetime_value.avg_clv)}</div></CardContent>
+                    <Card className="bg-white/50 backdrop-blur-sm border-chocolate-light/10">
+                      <CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Avg CLV</CardTitle></CardHeader>
+                      <CardContent><div className="text-2xl font-bold text-chocolate-dark">{formatCurrency(customerData.lifetime_value?.avg_clv ?? 0)}</div></CardContent>
                     </Card>
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
-                    <Card>
-                      <CardHeader><CardTitle>Peak Visit Days</CardTitle></CardHeader>
+                    <Card className="bg-white border-chocolate-light/10">
+                      <CardHeader><CardTitle className="text-chocolate-dark font-display">Peak Visit Days</CardTitle></CardHeader>
                       <CardContent className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={customerData.visit_patterns.peak_days}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="day" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="visits" fill="#DB2777" />
-                          </BarChart>
-                        </ResponsiveContainer>
+                        {customerData.visit_patterns?.peak_days?.length > 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={customerData.visit_patterns.peak_days}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                              <XAxis dataKey="day" axisLine={false} tickLine={false} />
+                              <YAxis axisLine={false} tickLine={false} />
+                              <Tooltip
+                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                              />
+                              <Bar dataKey="visits" fill="#D97706" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="flex items-center justify-center h-full text-muted-foreground">No visit data yet</div>
+                        )}
                       </CardContent>
                     </Card>
-                    <Card>
-                      <CardHeader><CardTitle>Peak Hours</CardTitle></CardHeader>
+                    <Card className="bg-white border-chocolate-light/10">
+                      <CardHeader><CardTitle className="text-chocolate-dark font-display">Peak Hours</CardTitle></CardHeader>
                       <CardContent className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={customerData.visit_patterns.peak_hours}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="hour" />
-                            <YAxis />
-                            <Tooltip />
-                            <Bar dataKey="visits" fill="#D97706" />
-                          </BarChart>
-                        </ResponsiveContainer>
+                        {customerData.visit_patterns?.peak_hours?.length > 0 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={customerData.visit_patterns.peak_hours}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                              <XAxis dataKey="hour" axisLine={false} tickLine={false} />
+                              <YAxis axisLine={false} tickLine={false} />
+                              <Tooltip
+                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                              />
+                              <Bar dataKey="visits" fill="#DB2777" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="flex items-center justify-center h-full text-muted-foreground">No visit data yet</div>
+                        )}
                       </CardContent>
                     </Card>
                   </div>
 
-                  <Card>
-                    <CardHeader><CardTitle>Top Customers by Spend</CardTitle></CardHeader>
+                  <Card className="bg-white border-chocolate-light/10">
+                    <CardHeader><CardTitle className="text-chocolate-dark font-display">Top Customers by Spend</CardTitle></CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {customerData.top_customers.map((customer, i) => (
-                          <div key={customer.id} className="flex items-center justify-between border-b pb-2 last:border-0">
-                            <div className="flex items-center gap-4">
-                              <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">
-                                {i + 1}
+                        {customerData.top_customers?.length > 0 ? (
+                          customerData.top_customers.map((customer, i) => (
+                            <div key={customer.id} className="flex items-center justify-between border-b border-chocolate-light/5 pb-2 last:border-0 hover:bg-chocolate-light/5 transition-colors p-2 rounded-lg">
+                              <div className="flex items-center gap-4">
+                                <div className="h-8 w-8 rounded-full bg-caramel/10 flex items-center justify-center text-xs font-bold text-caramel">
+                                  {i + 1}
+                                </div>
+                                <div>
+                                  <p className="font-medium text-chocolate-dark">{customer.name}</p>
+                                  <p className="text-xs text-muted-foreground">{customer.visits} visits</p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="font-medium">{customer.name}</p>
-                                <p className="text-xs text-muted-foreground">{customer.visits} visits</p>
+                              <div className="text-right">
+                                <p className="font-bold text-chocolate-dark">{formatCurrency(customer.total_spent)}</p>
+                                <p className="text-xs text-muted-foreground">Avg: {formatCurrency(customer.avg_per_visit)}</p>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <p className="font-bold">{formatCurrency(customer.total_spent)}</p>
-                              <p className="text-xs text-muted-foreground">Avg: {formatCurrency(customer.avg_per_visit)}</p>
-                            </div>
-                          </div>
-                        ))}
+                          ))
+                        ) : (
+                          <div className="text-center py-8 text-muted-foreground">No customer spending data available</div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
                 </>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">Unable to load customer analytics. Please check your connection.</p>
+                </div>
               )}
             </TabsContent>
 

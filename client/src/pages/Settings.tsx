@@ -56,6 +56,10 @@ export default function Settings() {
       // We only save the tenant settings here as profile info is usually separate
       // but we can extend this if needed.
       await updateTenantSettings({
+        name: tenant.name,
+        email: tenant.email,
+        phone_number: tenant.phone_number,
+        city: tenant.city,
         primary_color: tenant.primary_color,
         auto_campaign_we_miss_you: tenant.auto_campaign_we_miss_you,
         we_miss_you_discount_pct: tenant.we_miss_you_discount_pct,
@@ -96,30 +100,91 @@ export default function Settings() {
   return (
     <AppLayout title="Settings" subtitle="Manage your account and preferences">
       <div className="max-w-3xl space-y-6 pb-12">
-        {/* Profile Settings */}
-        <Card className="animate-fade-in">
+        {/* Personal Profile Settings */}
+        <Card className="animate-fade-in shadow-sm border-chocolate-light/20">
           <CardHeader>
-            <CardTitle className="font-display">Profile Information</CardTitle>
-            <CardDescription>Update your account details</CardDescription>
+            <CardTitle className="font-display text-chocolate-dark">Personal Information</CardTitle>
+            <CardDescription>Update your personal account details</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name</Label>
-                <Input id="firstName" defaultValue={user?.first_name} />
+                <Input
+                  id="firstName"
+                  defaultValue={user?.first_name}
+                  className="bg-white border-chocolate-light/20 focus:border-caramel focus:ring-caramel/20"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="lastName">Last Name</Label>
-                <Input id="lastName" defaultValue={user?.last_name} />
+                <Input
+                  id="lastName"
+                  defaultValue={user?.last_name}
+                  className="bg-white border-chocolate-light/20 focus:border-caramel focus:ring-caramel/20"
+                />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue={user?.email} />
+              <Label htmlFor="email">Work Email</Label>
+              <Input
+                id="email"
+                type="email"
+                defaultValue={user?.email}
+                className="bg-white border-chocolate-light/20 focus:border-caramel focus:ring-caramel/20"
+              />
+              <p className="text-[10px] text-muted-foreground italic">Your login email</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Business Information */}
+        <Card className="animate-fade-in shadow-sm border-chocolate-light/20" style={{ animationDelay: '0.05s' }}>
+          <CardHeader>
+            <CardTitle className="font-display text-chocolate-dark">Business Details</CardTitle>
+            <CardDescription>Information about your salon or spa</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="company">Business Name</Label>
+              <Input
+                id="company"
+                value={tenant?.name || user?.company_name || ''}
+                onChange={(e) => setTenant({ ...tenant, name: e.target.value })}
+                className="bg-white border-chocolate-light/20 focus:border-caramel focus:ring-caramel/20"
+              />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="company">Company Name</Label>
-              <Input id="company" defaultValue={user?.company_name || user?.tenant_name} />
+              <Label htmlFor="businessEmail">Public Business Email</Label>
+              <Input
+                id="businessEmail"
+                type="email"
+                value={tenant?.email || ''}
+                onChange={(e) => setTenant({ ...tenant, email: e.target.value })}
+                placeholder="hello@yourbusiness.com"
+                className="bg-white border-chocolate-light/20 focus:border-caramel focus:ring-caramel/20"
+              />
+              <p className="text-[10px] text-muted-foreground italic">Email shown to customers on receipts and reminders</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="businessPhone">Business Phone</Label>
+                <Input
+                  id="businessPhone"
+                  value={tenant?.phone_number || ''}
+                  onChange={(e) => setTenant({ ...tenant, phone_number: e.target.value })}
+                  className="bg-white border-chocolate-light/20 focus:border-caramel focus:ring-caramel/20"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  value={tenant?.city || ''}
+                  onChange={(e) => setTenant({ ...tenant, city: e.target.value })}
+                  className="bg-white border-chocolate-light/20 focus:border-caramel focus:ring-caramel/20"
+                />
+              </div>
             </div>
           </CardContent>
         </Card>

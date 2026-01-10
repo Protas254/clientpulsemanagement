@@ -32,7 +32,6 @@ const navItems = [
   { title: 'Rewards', url: '/rewards', icon: Gift },
   { title: 'Reports', url: '/reports', icon: BarChart3 },
   { title: 'Contact Messages', url: '/contact-messages', icon: Mail },
-  { title: 'Review Platform', url: '/platform-review', icon: Star },
   { title: 'Settings', url: '/settings', icon: Settings },
 ];
 
