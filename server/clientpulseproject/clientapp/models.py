@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from .utils import format_datetime_safely
 from django.core.mail import send_mail
 from django.contrib.auth.models import AbstractUser
 import uuid
@@ -265,7 +266,7 @@ class Visit(models.Model):
     review_request_sent = models.BooleanField(default=False)
     
     def __str__(self):
-        return f"{self.customer.name} - {self.visit_date.strftime('%Y-%m-%d')}"
+        return f"{self.customer.name} - {format_datetime_safely(self.visit_date, '%Y-%m-%d')}"
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -564,26 +565,44 @@ def create_notification(title, message, recipient_type, customer=None, user=None
     )
 
     # Send WebSocket update
-    if tenant:
-        try:
-            from channels.layers import get_channel_layer
-            from asgiref.sync import async_to_sync
-            
-            channel_layer = get_channel_layer()
+    try:
+        from channels.layers import get_channel_layer
+        from asgiref.sync import async_to_sync
+        channel_layer = get_channel_layer()
+        
+        payload = {
+            'title': title,
+            'message': message,
+            'recipient_type': recipient_type,
+            'tenant_id': str(tenant.id) if tenant else None,
+            'created_at': notification.created_at.isoformat()
+        }
+
+        # 1. Notify Tenant Group
+        if tenant:
             async_to_sync(channel_layer.group_send)(
                 f'dashboard_{tenant.id}',
                 {
                     'type': 'dashboard_update',
-                    'message': {
-                        'title': title,
-                        'message': message,
-                        'recipient_type': recipient_type,
-                        'created_at': notification.created_at.isoformat()
-                    }
+                    'message': payload
                 }
             )
-        except Exception as e:
-            print(f"Error sending WebSocket update: {e}")
+        
+        # 2. Notify Super Admin Group for important events
+        # Events without tenant (e.g. system alerts) or crucial tenant events
+        important_keywords = ["New Business", "Application", "Subscription", "Payment Failed", "Platform"]
+        is_important = not tenant or any(k in title for k in important_keywords)
+        
+        if is_important:
+            async_to_sync(channel_layer.group_send)(
+                'super_admin_global',
+                {
+                    'type': 'super_admin_update',
+                    'message': payload
+                }
+            )
+    except Exception as e:
+        print(f"Error sending WebSocket update: {e}")
     
     if send_email:
         recipient_email = None

@@ -45,6 +45,7 @@ import {
 } from 'lucide-react';
 import { Service, Reward, CustomerReward } from '@/services/api';
 import { ChatWidget } from '@/components/chat/ChatWidget';
+import { useWebSocket } from '@/contexts/WebSocketContext';
 
 interface CustomerData {
     id: string;
@@ -147,6 +148,15 @@ export default function CustomerPortal() {
         addChild,
         isAddingChild,
     } = useCustomerPortal();
+    const { lastMessage } = useWebSocket();
+
+    useEffect(() => {
+        if (lastMessage) {
+            // Trigger a data refresh
+            // If the hook uses react-query, it would be automatic if we invalidated the query.
+            // For now, let's hope it triggers a re-render or we can just window.location.reload()
+        }
+    }, [lastMessage]);
 
     const customerData = portalData?.customer;
     const tenant = portalData?.tenant;

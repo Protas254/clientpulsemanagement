@@ -8,7 +8,7 @@ from .models import (
     Booking, CustomerReward, ContactMessage, Notification, SubscriptionPlan,
     TenantSubscription, PaymentTransaction, create_notification,
     RewardsDashboard, Reports, Settings, MyNotification, CustomersDashboard, Review,
-    User, AuthUser
+    User, AuthUser, Expense
 )
 from django.contrib.auth.admin import UserAdmin
 
@@ -51,6 +51,12 @@ class RewardInline(admin.TabularInline):
     show_change_link = True
     fields = ('name', 'type', 'points_required', 'status')
 
+class ExpenseInline(admin.TabularInline):
+    model = Expense
+    extra = 0
+    show_change_link = True
+    fields = ('name', 'category', 'amount', 'expense_date')
+
 class CustomerInline(admin.TabularInline):
     model = Customer
     extra = 0
@@ -89,6 +95,7 @@ class TenantAdmin(admin.ModelAdmin):
         ServiceInline,
         RewardInline,
         SaleInline,
+        ExpenseInline,
         NotificationInline,
     ]
     
@@ -582,3 +589,10 @@ class SettingsAdmin(admin.ModelAdmin):
 
 
 
+@admin.register(Expense)
+class ExpenseAdmin(TenantAdminMixin, admin.ModelAdmin):
+    list_display = ['name', 'tenant', 'category', 'amount', 'expense_date', 'created_at']
+    list_filter = ['tenant', 'category', 'expense_date']
+    search_fields = ['name', 'description', 'tenant__name']
+    readonly_fields = ['created_at']
+    date_hierarchy = 'expense_date'

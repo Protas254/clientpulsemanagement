@@ -179,7 +179,7 @@ export default function Inventory() {
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {products.map(p => (
-                                                    <SelectItem key={p.id} value={p.id}>{p.name} (Current: {p.current_stock})</SelectItem>
+                                                    <SelectItem key={p.id} value={p.id}>{p.name} (Stock: {p.current_stock}) - KES {parseFloat(p.cost_price).toLocaleString()}</SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
@@ -332,7 +332,8 @@ export default function Inventory() {
                                     <TableRow>
                                         <TableHead>Product Name</TableHead>
                                         <TableHead>SKU</TableHead>
-                                        <TableHead className="text-right">Price</TableHead>
+                                        <TableHead className="text-right">Retail Price</TableHead>
+                                        <TableHead className="text-right">Cost Price</TableHead>
                                         <TableHead className="text-right">Stock</TableHead>
                                         <TableHead className="text-right">Status</TableHead>
                                         <TableHead className="text-right">Actions</TableHead>
@@ -361,7 +362,8 @@ export default function Inventory() {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>{product.sku || '-'}</TableCell>
-                                                <TableCell className="text-right">{parseFloat(product.price).toLocaleString()}</TableCell>
+                                                <TableCell className="text-right">KES {parseFloat(product.price).toLocaleString()}</TableCell>
+                                                <TableCell className="text-right text-muted-foreground">KES {product.cost_price ? parseFloat(product.cost_price).toLocaleString() : '0'}</TableCell>
                                                 <TableCell className="text-right">
                                                     <div className={`inline-flex items-center gap-1 font-bold ${product.current_stock <= product.reorder_level ? 'text-red-600' : 'text-green-600'
                                                         }`}>

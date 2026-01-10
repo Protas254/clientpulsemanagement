@@ -65,7 +65,7 @@ export default function Reports() {
         toast.error('No report data available to export');
         return;
       }
-      toast.success('Generating PDF report...');
+      toast.success('Pdf report Generated');
 
       // Pass a combined object
       exportToPDF({

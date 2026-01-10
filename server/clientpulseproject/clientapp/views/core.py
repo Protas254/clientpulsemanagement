@@ -11,6 +11,7 @@ from ..models import (
     Tenant, SubscriptionPlan, TenantSubscription, Notification, Review, Product, InventoryLog,
     Expense, GalleryImage
 )
+from ..utils import format_datetime_safely
 from ..serializers import (
     UserSerializer, VisitSerializer, TenantSerializer, SubscriptionPlanSerializer, 
     TenantSubscriptionSerializer, ContactMessageSerializer, NotificationSerializer,
@@ -141,17 +142,23 @@ class AnalyticsView(APIView):
 
         visits_qs = Visit.objects.filter(tenant=tenant)
         expenses_qs = Expense.objects.filter(tenant=tenant)
-        inventory_logs_qs = InventoryLog.objects.filter(tenant=tenant, reason='service_use')
         staff_qs = StaffMember.objects.filter(tenant=tenant)
         customers_qs = Customer.objects.filter(tenant=tenant)
 
         # 1. Financial Breakdown (Last 30 Days)
         period_visits = visits_qs.filter(visit_date__date__gt=last_30_days, payment_status='paid')
         total_revenue = period_visits.aggregate(Sum('total_amount'))['total_amount__sum'] or 0
-        
+
         # Calculate COGS (Cost of product consumption)
         cogs = 0
-        service_logs = inventory_logs_qs.filter(created_at__date__gt=last_30_days).select_related('product')
+        cost_reasons = ['service_use', 'sale', 'damage']
+        service_logs = InventoryLog.objects.filter(
+            tenant=tenant, 
+            reason__in=cost_reasons,
+            change_quantity__lt=0,
+            created_at__date__gte=last_30_days
+        ).select_related('product')
+        
         for log in service_logs:
             cost = abs(log.change_quantity) * (log.product.cost_price or 0)
             cogs += cost
@@ -165,6 +172,12 @@ class AnalyticsView(APIView):
             staff_revenue = period_visits.filter(staff_member=staff).aggregate(Sum('total_amount'))['total_amount__sum'] or 0
             total_commissions += (staff_revenue * staff.commission_percentage) / 100
             
+        # Total Inventory Value (Stock on Hand)
+        inventory_value = 0
+        products = Product.objects.filter(tenant=tenant, is_active=True)
+        for product in products:
+            inventory_value += (product.current_stock * (product.cost_price or 0))
+
         net_profit = total_revenue - cogs - total_expenses - total_commissions
 
         # 2. Monthly Sales & Customer Acquisition (Last 12 Months)
@@ -179,11 +192,10 @@ class AnalyticsView(APIView):
 
         # Format for frontend
         formatted_monthly_data = []
-        stats_map = {item['month'].strftime('%b'): item for item in monthly_stats}
-        
+        stats_map = {format_datetime_safely(item['month'], '%b'): item for item in monthly_stats}
         for i in range(11, -1, -1):
             date_cursor = today - timedelta(days=i*30)
-            month_name = date_cursor.strftime('%b')
+            month_name = format_datetime_safely(date_cursor, '%b')
             
             data = stats_map.get(month_name, {'sales': 0, 'customers': 0})
             formatted_monthly_data.append({
@@ -215,7 +227,7 @@ class AnalyticsView(APIView):
         customer_growth_data = []
         for i in range(5, -1, -1): # Last 6 months
             date_cursor = today - timedelta(days=i*30)
-            month_name = date_cursor.strftime('%b')
+            month_name = format_datetime_safely(date_cursor, '%b')
             
             # Simple simulation of growth if we don't have historical status tracking
             status_counts = Customer.objects.filter(
@@ -235,6 +247,7 @@ class AnalyticsView(APIView):
             'summary': {
                 'total_revenue': float(total_revenue), # Last 30 days
                 'cogs': float(cogs),
+                'inventory_value': float(inventory_value),
                 'expenses': float(total_expenses),
                 'commissions': float(total_commissions),
                 'net_profit': float(net_profit),

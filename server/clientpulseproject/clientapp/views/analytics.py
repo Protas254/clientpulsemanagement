@@ -9,6 +9,7 @@ from django.utils import timezone
 from datetime import timedelta, datetime
 from decimal import Decimal
 from ..models import Booking, Visit, Service, StaffMember, Customer
+from ..utils import format_datetime_safely
 from ..serializers import BookingSerializer
 
 
@@ -442,7 +443,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
             
             for visit in visits:
                 writer.writerow([
-                    visit.visit_date.strftime('%Y-%m-%d %H:%M'),
+                    format_datetime_safely(visit.visit_date, '%Y-%m-%d %H:%M'),
                     visit.customer.name,
                     visit.staff_member.name if visit.staff_member else 'N/A',
                     visit.total_amount,
@@ -469,7 +470,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
                     customer.points,
                     customer.referral_code,
                     customer.referred_by.name if customer.referred_by else 'Direct',
-                    customer.created_at.strftime('%Y-%m-%d')
+                    format_datetime_safely(customer.created_at, '%Y-%m-%d')
                 ])
                 
         elif report_type == 'bookings':
@@ -480,12 +481,12 @@ class AnalyticsViewSet(viewsets.ViewSet):
                 
             for b in bookings:
                 writer.writerow([
-                    b.booking_date.strftime('%Y-%m-%d %H:%M'),
+                    format_datetime_safely(b.booking_date, '%Y-%m-%d %H:%M'),
                     b.customer.name,
                     b.service.name,
                     b.staff_member.name if b.staff_member else 'N/A',
                     b.status,
-                    b.created_at.strftime('%Y-%m-%d %H:%M')
+                    format_datetime_safely(b.created_at, '%Y-%m-%d %H:%M')
                 ])
 
         elif report_type == 'referrals':
@@ -498,7 +499,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
                 writer.writerow([
                     ref.referred_by.name,
                     ref.name,
-                    ref.created_at.strftime('%Y-%m-%d %H:%M'),
+                    format_datetime_safely(ref.created_at, '%Y-%m-%d %H:%M'),
                     50 # Fixed bonus points
                 ])
         

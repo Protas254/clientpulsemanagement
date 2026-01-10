@@ -112,23 +112,17 @@ export default function Services() {
 
     const handleSubmit = async () => {
         try {
+            const serviceData = {
+                ...formData,
+                category: formData.category as any,
+                duration: parseInt(formData.duration),
+                product_consumption: consumptionList
+            };
+
             if (editingService) {
-                // For updates, send basic service data without product_consumption
-                const updateData = {
-                    ...formData,
-                    category: formData.category as any,
-                    duration: parseInt(formData.duration),
-                };
-                await updateService(editingService.id, updateData);
+                await updateService(editingService.id, serviceData as any);
                 toast({ title: 'Success', description: 'Service updated successfully' });
             } else {
-                // For new services, include product_consumption
-                const serviceData = {
-                    ...formData,
-                    category: formData.category as any,
-                    duration: parseInt(formData.duration),
-                    product_consumption: consumptionList
-                };
                 await createService(serviceData as any);
                 toast({ title: 'Success', description: 'Service created successfully' });
             }
@@ -308,7 +302,7 @@ export default function Services() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {products.map(p => (
-                                            <SelectItem key={p.id} value={p.id}>{p.name} (Stock: {p.current_stock})</SelectItem>
+                                            <SelectItem key={p.id} value={p.id}>{p.name} (Stock: {p.current_stock}) - KES {parseFloat(p.cost_price).toLocaleString()}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>

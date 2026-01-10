@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Building2, Search, Users, Calendar, MessageSquare, Settings, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useWebSocket } from '@/contexts/WebSocketContext';
 
 interface Tenant {
   id: string;
@@ -27,6 +28,7 @@ interface TenantStats {
 
 const SuperAdminDashboard = () => {
   const navigate = useNavigate();
+  const { lastMessage } = useWebSocket();
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -34,7 +36,7 @@ const SuperAdminDashboard = () => {
 
   useEffect(() => {
     fetchTenants();
-  }, []);
+  }, [lastMessage]);
 
   const fetchTenants = async () => {
     try {

@@ -11,6 +11,7 @@ interface User {
     last_name?: string;
     photo?: string;
     tenant_id?: string;
+    is_superuser?: boolean;
 }
 
 interface AuthState {

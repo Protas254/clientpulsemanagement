@@ -5,6 +5,7 @@ from django.db.models import Sum, Count, Q
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from ..models import Reward, CustomerReward, Customer, Visit, Sale
+from ..utils import format_datetime_safely
 from ..serializers import RewardSerializer, CustomerRewardSerializer, TenantSerializer, VisitSerializer, SaleSerializer
 
 class RewardListCreate(generics.ListCreateAPIView):
@@ -193,7 +194,7 @@ class RewardsStatsView(APIView):
         monthly_usage = []
         for entry in monthly_usage_qs:
             monthly_usage.append({
-                'month': entry['month'].strftime('%b'),
+                'month': format_datetime_safely(entry['month'], '%b'),
                 'redeemed': entry['redeemed'],
                 'points': 0 # Placeholder, would need aggregation on related Reward.points_required
             })

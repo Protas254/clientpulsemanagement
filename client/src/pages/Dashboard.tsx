@@ -280,8 +280,8 @@ export default function Dashboard() {
           </Card>
           <Card className="bg-white/50 backdrop-blur-sm shadow-sm border-blue-100">
             <CardContent className="pt-6">
-              <p className="text-sm font-medium text-blue-600">Inventory Costs</p>
-              <h3 className="text-2xl font-bold text-blue-900 font-display">KES {analyticsData?.summary.cogs.toLocaleString() || '0'}</h3>
+              <p className="text-sm font-medium text-blue-600">Stock on Hand</p>
+              <h3 className="text-2xl font-bold text-blue-900 font-display">KES {analyticsData?.summary.inventory_value.toLocaleString() || '0'}</h3>
               <p className="text-[10px] text-muted-foreground mt-1 underline cursor-pointer" onClick={() => window.location.href = '/inventory'}>Check Stock →</p>
             </CardContent>
           </Card>

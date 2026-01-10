@@ -33,6 +33,19 @@ class DashboardConsumer(AsyncWebsocketConsumer):
             'message': message
         }))
 
+class SuperAdminConsumer(AsyncWebsocketConsumer):
+    async def connect(self):
+        self.room_group_name = 'super_admin_global'
+        await self.channel_layer.group_add(self.room_group_name, self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+
+    async def super_admin_update(self, event):
+        message = event['message']
+        await self.send(text_data=json.dumps({'message': message}))
+
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.session_id = self.scope['url_route']['kwargs']['session_id']

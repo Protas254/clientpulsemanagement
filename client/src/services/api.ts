@@ -543,6 +543,7 @@ export interface AnalyticsData {
     summary: {
         total_revenue: number;
         cogs: number;
+        inventory_value: number;
         expenses: number;
         commissions: number;
         net_profit: number;

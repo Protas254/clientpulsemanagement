@@ -9,6 +9,7 @@ from .models import (
     Notification, create_notification, UserProfile, ContactMessage, Service, Visit,
     Review, TenantSubscription, CustomerReward, InventoryLog
 )
+from .utils import format_datetime_safely
 
 # --- TENANT SIGNALS ---
 
@@ -33,14 +34,13 @@ def track_tenant_status_change(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Tenant)
 def tenant_notifications(sender, instance, created, **kwargs):
-    # Find tenant admin
-    admin_profile = instance.userprofile_set.filter(role='tenant_admin').first()
-    admin_user = admin_profile.user if admin_profile else None
-
+    # Get current user model
+    UserModel = get_user_model()
+    
     # 1. New Business Application (Notify Super Admin)
     if created:
         # Assuming superusers are platform admins
-        superusers = User.objects.filter(is_superuser=True)
+        superusers = UserModel.objects.filter(is_superuser=True)
         for su in superusers:
             create_notification(
                 title="New Business Application",
@@ -50,6 +50,10 @@ def tenant_notifications(sender, instance, created, **kwargs):
                 send_email=True
             )
         return
+
+    # Find tenant admin
+    admin_profile = instance.userprofile_set.filter(role='tenant_admin').first()
+    admin_user = admin_profile.user if admin_profile else None
 
     # Check for approval via is_active OR status
     is_approved = False
@@ -127,10 +131,13 @@ def booking_notifications(sender, instance, created, **kwargs):
     if created:
         # 1. New Booking Created
         
+        # Format date safely
+        booking_date_formatted = format_datetime_safely(instance.booking_date)
+
         # Notify Customer - Booking Confirmation
         create_notification(
             title="Booking Confirmed",
-            message=f"Your booking for {instance.service.name} on {instance.booking_date.strftime('%B %d, %Y at %I:%M %p')} has been confirmed. We look forward to seeing you!",
+            message=f"Your booking for {instance.service.name} on {booking_date_formatted} has been confirmed. We look forward to seeing you!",
             recipient_type='customer',
             customer=customer,
             send_email=True
@@ -148,12 +155,9 @@ def booking_notifications(sender, instance, created, **kwargs):
             
         # Notify Staff (if assigned initially)
         if instance.staff_member and instance.staff_member.email:
-             # We don't have a direct User link to StaffMember easily in this model yet, 
-             # assuming StaffMember has email field.
-             # create_notification supports 'staff' recipient_type if we pass StaffMember object
              create_notification(
                 title="New Appointment",
-                message=f"You have a new appointment with {customer.name} on {instance.booking_date.strftime('%Y-%m-%d %H:%M')}.",
+                message=f"You have a new appointment with {customer.name} on {booking_date_formatted}.",
                 recipient_type='staff',
                 staff=instance.staff_member,
                 send_email=True
@@ -165,9 +169,12 @@ def booking_notifications(sender, instance, created, **kwargs):
         new_status = instance.status
         
         if new_status == 'confirmed':
+            # Format date safely
+            booking_date_formatted = format_datetime_safely(instance.booking_date)
+
             create_notification(
                 title="Booking Approved",
-                message=f"Great news! Your booking for {instance.service.name} on {instance.booking_date.strftime('%B %d, %Y at %I:%M %p')} has been approved by our team.",
+                message=f"Great news! Your booking for {instance.service.name} on {booking_date_formatted} has been approved by our team.",
                 recipient_type='customer',
                 customer=customer,
                 send_email=True
@@ -249,7 +256,7 @@ def booking_notifications(sender, instance, created, **kwargs):
     if hasattr(instance, '_old_date') and instance._old_date != instance.booking_date:
         create_notification(
             title="Booking Rescheduled",
-            message=f"Your booking has been rescheduled to {instance.booking_date.strftime('%Y-%m-%d %H:%M')}.",
+            message=f"Your booking has been rescheduled to {format_datetime_safely(instance.booking_date, '%Y-%m-%d %H:%M')}.",
             recipient_type='customer',
             customer=customer,
             send_email=True
@@ -258,7 +265,7 @@ def booking_notifications(sender, instance, created, **kwargs):
         if admin_user:
             create_notification(
                 title="Booking Rescheduled",
-                message=f"Booking for {customer.name} has been rescheduled to {instance.booking_date.strftime('%Y-%m-%d %H:%M')}.",
+                message=f"Booking for {customer.name} has been rescheduled to {format_datetime_safely(instance.booking_date, '%Y-%m-%d %H:%M')}.",
                 recipient_type='admin',
                 user=admin_user,
                 send_email=True
@@ -266,7 +273,7 @@ def booking_notifications(sender, instance, created, **kwargs):
         if instance.staff_member:
              create_notification(
                 title="Appointment Rescheduled",
-                message=f"Appointment with {customer.name} rescheduled to {instance.booking_date.strftime('%Y-%m-%d %H:%M')}.",
+                message=f"Appointment with {customer.name} rescheduled to {format_datetime_safely(instance.booking_date, '%Y-%m-%d %H:%M')}.",
                 recipient_type='staff',
                 staff=instance.staff_member,
                 send_email=True
